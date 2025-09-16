@@ -1,0 +1,34 @@
+[package]
+name = "kompute-sys"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Low-level unsafe Rust bindings for the Kompute GPU compute framework"
+keywords.workspace = true
+categories.workspace = true
+
+# This is a sys crate - it provides unsafe FFI bindings
+build = "build.rs"
+links = "kompute"  # Prevents multiple versions of this crate from linking
+
+[dependencies]
+# Minimal dependencies for FFI
+ash.workspace = true
+
+[build-dependencies]
+bindgen.workspace = true
+cc.workspace = true
+cmake.workspace = true
+
+[features]
+default = []
+# Enable Vulkan validation layers (development only)
+validation = []
+
+[package.metadata.docs.rs]
+# Ensure docs build on docs.rs with proper features
+features = []
+rustdoc-args = ["--cfg", "docsrs"]

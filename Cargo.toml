@@ -1,0 +1,64 @@
+[workspace]
+members = [
+    "kompute-sys",
+    "kompute"
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+authors = ["Kompute-rs Team"]
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/kompute-rs/kompute-rs"
+homepage = "https://github.com/kompute-rs/kompute-rs"
+documentation = "https://docs.rs/kompute"
+description = "Idiomatic Rust bindings for the Kompute GPU compute framework"
+keywords = ["gpu", "compute", "vulkan", "gpgpu", "machine-learning"]
+categories = ["science", "graphics", "api-bindings"]
+
+[workspace.dependencies]
+# FFI and C++ integration
+bindgen = "0.69"
+cc = "1.0"
+cmake = "0.1"
+
+# Vulkan integration
+ash = "0.37"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Async support (for future use)
+tokio = { version = "1.0", features = ["rt", "rt-multi-thread"] }
+futures = "0.3"
+
+# Testing and benchmarking
+criterion = "0.5"
+proptest = "1.0"
+
+# Development dependencies
+env_logger = "0.10"
+log = "0.4"
+
+[profile.dev]
+debug = true
+overflow-checks = true
+
+[profile.release]
+debug = false
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.bench]
+debug = true
+lto = true
+
+# Features for optional functionality
+[workspace.metadata.features]
+default = []
+async = ["tokio"]
+validation = []  # Enable Vulkan validation layers

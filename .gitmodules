@@ -1,0 +1,4 @@
+[submodule "vendor/kompute"]
+	path = vendor/kompute
+	url = https://github.com/KomputeProject/kompute.git
+	branch = master
