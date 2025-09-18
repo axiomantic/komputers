@@ -7,11 +7,11 @@ resolver = "2"
 
 [workspace.package]
 version = "0.1.0"
-authors = ["Kompute-rs Team"]
+authors = ["Komputers Team"]
 edition = "2021"
 license = "Apache-2.0"
-repository = "https://github.com/kompute-rs/kompute-rs"
-homepage = "https://github.com/kompute-rs/kompute-rs"
+repository = "https://github.com/axiomantic/komputers"
+homepage = "https://github.com/axiomantic/komputers"
 documentation = "https://docs.rs/kompute"
 description = "Idiomatic Rust bindings for the Kompute GPU compute framework"
 keywords = ["gpu", "compute", "vulkan", "gpgpu", "machine-learning"]
@@ -31,7 +31,7 @@ thiserror = "1.0"
 anyhow = "1.0"
 
 # Async support (for future use)
-tokio = { version = "1.0", features = ["rt", "rt-multi-thread"] }
+tokio = { version = "1.0", features = ["rt", "rt-multi-thread", "time", "test-util", "macros"] }
 futures = "0.3"
 
 # Testing and benchmarking

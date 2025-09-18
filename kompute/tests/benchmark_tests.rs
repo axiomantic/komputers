@@ -1,0 +1,394 @@
+//! Performance and benchmark tests for the komputers library.
+//!
+//! These tests measure performance characteristics and help identify
+//! performance regressions over time.
+
+use kompute::{Manager, Result, Sequence, Tensor};
+use std::time::{Duration, Instant};
+
+/// Benchmark tensor creation performance.
+#[test]
+#[ignore = "requires Vulkan-capable device"]
+fn bench_tensor_creation() -> Result<()> {
+    println!("Starting tensor creation benchmark...");
+
+    let mut manager = Manager::new()?;
+    let sizes = vec![10, 100, 1_000, 10_000];
+
+    for size in sizes {
+        let data: Vec<f32> = (0..size).map(|i| i as f32).collect();
+
+        // Warm up
+        for _ in 0..5 {
+            let _ = Tensor::new(&mut manager, &data)?;
+        }
+
+        // Benchmark
+        let iterations = 100;
+        let start = Instant::now();
+
+        for _ in 0..iterations {
+            let _tensor = Tensor::new(&mut manager, &data)?;
+        }
+
+        let elapsed = start.elapsed();
+        let avg_time = elapsed / iterations;
+
+        println!(
+            "✓ Size {}: {} iterations, avg {:?} per tensor, {} tensors/sec",
+            size,
+            iterations,
+            avg_time,
+            (iterations as f64 / elapsed.as_secs_f64()) as u64
+        );
+
+        // Basic performance assertions
+        assert!(
+            avg_time < Duration::from_millis(100),
+            "Tensor creation should be fast"
+        );
+    }
+
+    Ok(())
+}
+
+/// Benchmark tensor data transfer performance.
+#[test]
+#[ignore = "requires Vulkan-capable device"]
+fn bench_tensor_data_transfer() -> Result<()> {
+    println!("Starting tensor data transfer benchmark...");
+
+    let mut manager = Manager::new()?;
+    let sizes = vec![1_000, 10_000, 100_000];
+
+    for size in sizes {
+        let data: Vec<f32> = (0..size).map(|i| i as f32).collect();
+        let tensor = Tensor::new(&mut manager, &data)?;
+
+        // Warm up
+        for _ in 0..5 {
+            let _ = tensor.to_vec()?;
+        }
+
+        // Benchmark data retrieval
+        let iterations = 50;
+        let start = Instant::now();
+
+        for _ in 0..iterations {
+            let _retrieved = tensor.to_vec()?;
+        }
+
+        let elapsed = start.elapsed();
+        let avg_time = elapsed / iterations;
+        let bytes_per_second = (size * 4 * iterations) as f64 / elapsed.as_secs_f64();
+
+        println!(
+            "✓ Size {}: {} iterations, avg {:?} per transfer, {:.2} MB/s",
+            size,
+            iterations,
+            avg_time,
+            bytes_per_second / 1_000_000.0
+        );
+
+        // Performance should be reasonable
+        assert!(
+            avg_time < Duration::from_millis(100),
+            "Data transfer should be fast"
+        );
+    }
+
+    Ok(())
+}
+
+/// Benchmark sequence operations.
+#[test]
+#[ignore = "requires Vulkan-capable device"]
+fn bench_sequence_operations() -> Result<()> {
+    println!("Starting sequence operations benchmark...");
+
+    let mut manager = Manager::new()?;
+    let data = vec![1.0f32; 1000];
+    let _tensor = Tensor::new(&mut manager, &data)?;
+
+    // Benchmark sequence creation
+    let iterations = 100;
+    let start = Instant::now();
+
+    for _ in 0..iterations {
+        let _sequence = Sequence::new(&mut manager)?;
+    }
+
+    let elapsed = start.elapsed();
+    let avg_time = elapsed / iterations;
+
+    println!(
+        "✓ Sequence creation: {} iterations, avg {:?} per sequence",
+        iterations, avg_time
+    );
+
+    assert!(
+        avg_time < Duration::from_millis(50),
+        "Sequence creation should be fast"
+    );
+
+    Ok(())
+}
+
+/// Benchmark concurrent operations.
+#[test]
+#[ignore = "requires Vulkan-capable device"]
+fn bench_concurrent_operations() -> Result<()> {
+    use std::sync::{Arc, Mutex};
+    use std::thread;
+
+    println!("Starting concurrent operations benchmark...");
+
+    let manager = Arc::new(Mutex::new(Manager::new()?));
+    let thread_count = 4;
+    let operations_per_thread = 25;
+
+    let start = Instant::now();
+    let handles: Vec<_> = (0..thread_count)
+        .map(|thread_id| {
+            let manager_clone = Arc::clone(&manager);
+            thread::spawn(move || -> Result<()> {
+                for i in 0..operations_per_thread {
+                    let data: Vec<f32> = vec![thread_id as f32 * 1000.0 + i as f32; 100];
+                    let mut guard = manager_clone.lock().unwrap();
+                    let _tensor = Tensor::new(&mut *guard, &data)?;
+                    drop(guard);
+                }
+                Ok(())
+            })
+        })
+        .collect();
+
+    for handle in handles {
+        handle.join().unwrap()?;
+    }
+
+    let elapsed = start.elapsed();
+    let total_operations = thread_count * operations_per_thread;
+    let ops_per_second = total_operations as f64 / elapsed.as_secs_f64();
+
+    println!(
+        "✓ Concurrent: {} threads, {} ops/thread, {:.2} ops/sec total",
+        thread_count, operations_per_thread, ops_per_second
+    );
+
+    // Should maintain reasonable throughput even with contention
+    assert!(
+        ops_per_second > 10.0,
+        "Concurrent operations should maintain throughput"
+    );
+
+    Ok(())
+}
+
+/// Benchmark memory usage patterns.
+#[test]
+#[ignore = "requires Vulkan-capable device"]
+fn bench_memory_usage() -> Result<()> {
+    println!("Starting memory usage benchmark...");
+
+    let mut manager = Manager::new()?;
+
+    // Test creating many small tensors
+    let small_tensor_count = 1000;
+    let start = Instant::now();
+
+    let mut small_tensors = Vec::new();
+    for i in 0..small_tensor_count {
+        let data = vec![i as f32; 10];
+        let tensor = Tensor::new(&mut manager, &data)?;
+        small_tensors.push(tensor);
+    }
+
+    let small_tensors_time = start.elapsed();
+
+    println!(
+        "✓ Created {} small tensors in {:?} (avg {:?} per tensor)",
+        small_tensor_count,
+        small_tensors_time,
+        small_tensors_time / small_tensor_count
+    );
+
+    // Test creating fewer large tensors
+    let large_tensor_count = 10;
+    let start = Instant::now();
+
+    let mut large_tensors = Vec::new();
+    for i in 0..large_tensor_count {
+        let data: Vec<f32> = vec![i as f32; 10_000];
+        let tensor = Tensor::new(&mut manager, &data)?;
+        large_tensors.push(tensor);
+    }
+
+    let large_tensors_time = start.elapsed();
+
+    println!(
+        "✓ Created {} large tensors in {:?} (avg {:?} per tensor)",
+        large_tensor_count,
+        large_tensors_time,
+        large_tensors_time / large_tensor_count
+    );
+
+    // Test cleanup performance
+    let start = Instant::now();
+    drop(small_tensors);
+    let small_cleanup_time = start.elapsed();
+
+    let start = Instant::now();
+    drop(large_tensors);
+    let large_cleanup_time = start.elapsed();
+
+    println!(
+        "✓ Cleanup: small tensors {:?}, large tensors {:?}",
+        small_cleanup_time, large_cleanup_time
+    );
+
+    Ok(())
+}
+
+/// Benchmark handle operations.
+#[test]
+#[ignore = "requires Vulkan-capable device"]
+fn bench_handle_operations() -> Result<()> {
+    println!("Starting handle operations benchmark...");
+
+    let mut manager = Manager::new()?;
+
+    // Create tensors and measure handle access performance
+    let tensor_count = 1000;
+    let mut tensors = Vec::new();
+
+    for i in 0..tensor_count {
+        let data = vec![i as f32; 100];
+        let tensor = Tensor::new(&mut manager, &data)?;
+        tensors.push(tensor);
+    }
+
+    // Benchmark handle access
+    let iterations = 10_000;
+    let start = Instant::now();
+
+    for _ in 0..iterations {
+        for tensor in &tensors {
+            let _handle = tensor.handle();
+        }
+    }
+
+    let elapsed = start.elapsed();
+    let total_accesses = iterations * tensor_count;
+    let accesses_per_second = total_accesses as f64 / elapsed.as_secs_f64();
+
+    println!(
+        "✓ Handle access: {} total accesses in {:?}, {:.0} accesses/sec",
+        total_accesses, elapsed, accesses_per_second
+    );
+
+    // Handle access should be extremely fast
+    assert!(
+        accesses_per_second > 1_000_000.0,
+        "Handle access should be very fast"
+    );
+
+    // Benchmark size queries
+    let start = Instant::now();
+
+    for _ in 0..iterations {
+        for tensor in &tensors {
+            let _size = tensor.size();
+            let _size_bytes = tensor.size_bytes();
+        }
+    }
+
+    let elapsed = start.elapsed();
+    let total_queries = iterations * tensor_count * 2; // size() + size_bytes()
+    let queries_per_second = total_queries as f64 / elapsed.as_secs_f64();
+
+    println!(
+        "✓ Size queries: {} total queries in {:?}, {:.0} queries/sec",
+        total_queries, elapsed, queries_per_second
+    );
+
+    Ok(())
+}
+
+/// Stress test with realistic workload patterns.
+#[test]
+#[ignore = "requires Vulkan-capable device and sufficient time"]
+fn bench_realistic_workload() -> Result<()> {
+    println!("Starting realistic workload benchmark...");
+
+    let mut manager = Manager::new()?;
+
+    // Simulate a machine learning workload:
+    // - Create input tensors
+    // - Process them in batches
+    // - Retrieve results
+
+    let batch_size = 32;
+    let feature_size = 512;
+    let num_batches = 100;
+
+    let total_start = Instant::now();
+
+    for batch in 0..num_batches {
+        let batch_start = Instant::now();
+
+        // Create input tensors for this batch
+        let mut input_tensors = Vec::new();
+        for sample in 0..batch_size {
+            let data: Vec<f32> = (0..feature_size)
+                .map(|i| ((batch * batch_size + sample) * feature_size + i) as f32 / 1000.0)
+                .collect();
+            let tensor = Tensor::new(&mut manager, &data)?;
+            input_tensors.push(tensor);
+        }
+
+        // Create a sequence for processing
+        let _sequence = Sequence::new(&mut manager)?;
+
+        // Simulate processing by accessing tensor properties
+        let mut total_elements = 0;
+        for tensor in &input_tensors {
+            total_elements += tensor.size();
+        }
+
+        // Retrieve some results
+        if batch % 10 == 0 {
+            for tensor in &input_tensors {
+                let _data = tensor.to_vec()?;
+            }
+        }
+
+        let batch_time = batch_start.elapsed();
+
+        if batch % 20 == 0 {
+            println!(
+                "✓ Batch {}: {} tensors, {} elements, {:?}",
+                batch, batch_size, total_elements, batch_time
+            );
+        }
+
+        // Cleanup happens automatically when tensors go out of scope
+    }
+
+    let total_time = total_start.elapsed();
+    let total_tensors = num_batches * batch_size;
+    let total_elements = total_tensors * feature_size;
+
+    println!(
+        "✓ Realistic workload completed: {} batches, {} tensors, {} elements in {:?}",
+        num_batches, total_tensors, total_elements, total_time
+    );
+
+    println!(
+        "✓ Performance: {:.2} tensors/sec, {:.2} elements/sec",
+        total_tensors as f64 / total_time.as_secs_f64(),
+        total_elements as f64 / total_time.as_secs_f64()
+    );
+
+    Ok(())
+}

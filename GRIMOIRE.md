@@ -11,6 +11,7 @@
 **CRITICAL PREREQUISITE**: Before any implementation work can begin, verify the project is properly initialized with systematic structure.
 
 ### Foundation Requirements Checklist:
+
 - [x] `STATUS_MANIFEST.yaml` exists and contains component definitions
 - [x] `SYSTEM_ARCHITECTURE.md` defines the system structure and principles
 - [x] `CONTRIBUTING.md` establishes development workflow and quality gates
@@ -18,6 +19,7 @@
 - [x] Project structure matches documented architecture
 
 ### If Foundation is Missing:
+
 **STOP IMMEDIATELY** and direct the user to initialize the project:
 
 ```
@@ -34,6 +36,7 @@ After initialization, component implementation can proceed safely.
 ```
 
 ### Foundation Benefits:
+
 - **Quality Assurance**: Established standards prevent technical debt
 - **Development Efficiency**: Clear processes accelerate implementation
 - **Integration Safety**: Documented interfaces prevent conflicts
@@ -81,6 +84,7 @@ Include:
 ```
 
 **The Preservation Targets:** These elements MUST be maintained during your implementation:
+
 - All existing functionality must continue to work
 - All interfaces must remain compatible
 - Performance must meet or exceed baselines
@@ -98,6 +102,7 @@ As a Master Implementation Engineer, you are bound by these sacred laws:
 - **The Law of Clean Code**: Your code must be clear, maintainable, and follow established patterns.
 
 **The Implementation Protocol:** You MUST follow the Three Rings of Validation:
+
 1. **Inner Ring (Unit Tests)**: Component testing in isolation
 2. **Middle Ring (Integration Tests)**: Workflow validation without mocks
 3. **Outer Ring (Quality Gates)**: Comprehensive quality validation
@@ -111,27 +116,32 @@ As a Master Implementation Engineer, you are bound by these sacred laws:
 You will follow this precise sequence for implementation:
 
 ### Phase 1: Preparation & Analysis (Silent Contemplation)
+
 Before writing any code, perform this internal analysis:
 
 **1.1. Architectural Understanding**
+
 - Verbally re-state the component's purpose within the system
 - Identify which architectural layer this component belongs to
 - Understand the component's interfaces and contracts
 - Map dependencies and integration points
 
 **1.2. Dependency Verification**
+
 - Confirm all prerequisite components show status `COMPLETED`
 - Verify required libraries and tools are available
 - Check for potential conflicts or incompatibilities
 - Document any assumptions or constraints
 
 **1.3. Implementation Analysis**
+
 - Study existing patterns in similar components
 - Identify potential challenges and edge cases
 - Plan error handling strategies
 - Design for testability and maintainability
 
 **1.4. Test Strategy Formation**
+
 - Design comprehensive test scenarios
 - Plan unit test coverage strategy
 - Define integration test workflows
@@ -141,11 +151,13 @@ Before writing any code, perform this internal analysis:
 
 **2.1. Create the Test Space**
 Create or modify the relevant test file:
+
 ```rust
 # tests/test_{{component}}.rs
 ```
 
 **2.2. Write Failing Unit Tests**
+
 ```rust
 #[cfg(test)]
 mod tests {
@@ -180,6 +192,7 @@ mod tests {
 ```
 
 **2.3. Run Tests and Capture Evidence**
+
 ```bash
 cargo test tests::test_{{component}} --lib -v
 # Capture exact output showing test failures
@@ -188,6 +201,7 @@ cargo test tests::test_{{component}} --lib -v
 ### Phase 3: The Implementation Manifestation
 
 **3.1. Create Implementation Structure**
+
 ```rust
 # src/{{component}}.rs
 use crate::error::KomputeError;
@@ -214,12 +228,14 @@ impl Component {
 
 **3.2. Implement Minimum Viable Solution**
 Write the minimum robust code to make tests pass:
+
 - Focus on correctness over optimization
 - Handle errors explicitly
 - Follow established patterns
 - Document complex logic
 
 **3.3. Validate Unit Tests Pass**
+
 ```bash
 cargo test tests::test_{{component}} --lib -v
 # Capture exact output showing tests passing
@@ -228,6 +244,7 @@ cargo test tests::test_{{component}} --lib -v
 ### Phase 4: The Middle Ring - Integration Testing
 
 **4.1. Create Integration Tests**
+
 ```rust
 # tests/test_integration_{{component}}.rs
 use kompute_rs::*;
@@ -248,12 +265,14 @@ fn test_component_gpu_integration() {
 ```
 
 **4.2. Validate Real Workflows**
+
 - Test without mocks where possible
 - Validate complete user journeys
 - Test error scenarios
 - Verify performance characteristics
 
 **4.3. Run Integration Tests**
+
 ```bash
 cargo test test_integration_{{component}} --tests -v
 # Capture evidence of passing integration tests
@@ -262,12 +281,14 @@ cargo test test_integration_{{component}} --tests -v
 ### Phase 5: The Outer Ring - Quality Validation
 
 **5.1. Code Quality Refinement**
+
 - Refactor for clarity and maintainability
 - Add comprehensive documentation
 - Ensure consistent style
 - Optimize where necessary
 
 **5.2. Run Quality Gates**
+
 ```bash
 # Linting
 cargo clippy -- -D warnings
@@ -286,6 +307,7 @@ cargo audit
 ```
 
 **5.3. Performance Validation**
+
 ```bash
 cargo bench
 # Verify meets established benchmarks
@@ -295,6 +317,7 @@ cargo bench
 
 **6.1. Component Documentation**
 Document the implementation comprehensively:
+
 - Purpose and responsibilities
 - Interface specifications
 - Usage examples
@@ -303,6 +326,7 @@ Document the implementation comprehensively:
 
 **6.2. Evidence Collection**
 Compile comprehensive evidence:
+
 ```bash
 # Test Evidence
 cargo test --verbose
@@ -323,8 +347,9 @@ cargo bench
 
 **6.3. Status Update**
 Update `STATUS_MANIFEST.yaml`:
+
 ```yaml
-{{component_id}}:
+{ { component_id } }:
   status: USER_REVIEW
   completion_date: "{{timestamp}}"
   evidence_provided: true
@@ -343,24 +368,28 @@ Update `STATUS_MANIFEST.yaml`:
 ### 5.1. Fundamental Design Principles
 
 **Single Responsibility Principle**
+
 - Each module has exactly one reason to change
 - Clear, focused purpose that can be stated in a single sentence
 - Avoid the temptation to add "just one more feature"
 - If a module does multiple things, split it into multiple modules
 
 **Explicit Over Implicit**
+
 - Make dependencies, side effects, and assumptions visible
 - Favor explicit parameters over global state or hidden configuration
 - Use clear, descriptive naming that reveals intent
 - Document non-obvious behavior and edge cases
 
 **Fail Fast and Explicitly**
+
 - Validate inputs at module boundaries immediately
 - Use strong typing to catch errors at compile time when possible
 - Provide clear, actionable error messages with context
 - Never silently ignore errors or provide degraded functionality
 
 **Composability and Orthogonality**
+
 - Design interfaces that work well together
 - Minimize coupling between modules
 - Use dependency injection or similar patterns to enable testing
@@ -369,12 +398,14 @@ Update `STATUS_MANIFEST.yaml`:
 ### 5.2. Security and Robustness Standards
 
 **Input Validation and Sanitization**
+
 - Validate all inputs at module boundaries
 - Use allowlist validation (specify what IS allowed) over denylist (what is forbidden)
 - Sanitize inputs before processing, especially for external data
 - Implement proper bounds checking for arrays, strings, and numeric inputs
 
 **Error Handling Excellence**
+
 - Handle all error conditions explicitly
 - Provide meaningful error messages with sufficient context for debugging
 - Use language-appropriate error handling patterns (Result types in Rust)
@@ -382,6 +413,7 @@ Update `STATUS_MANIFEST.yaml`:
 - Never expose sensitive information in error messages
 
 **Resource Management**
+
 - Follow RAII principles (Resource Acquisition Is Initialization)
 - Ensure all acquired resources are properly released
 - Use language-specific patterns for automatic resource cleanup
@@ -389,6 +421,7 @@ Update `STATUS_MANIFEST.yaml`:
 - Avoid resource leaks in all code paths, including error paths
 
 **Defensive Programming**
+
 - Assume inputs will be malicious or malformed
 - Add assertions for critical invariants during development
 - Use immutable data structures where possible
@@ -398,6 +431,7 @@ Update `STATUS_MANIFEST.yaml`:
 ### 5.3. Code Quality and Maintainability
 
 **Readability and Clarity**
+
 - Write code that tells a story - it should be self-documenting
 - Use meaningful variable and function names that explain purpose
 - Keep functions small and focused on a single task
@@ -405,6 +439,7 @@ Update `STATUS_MANIFEST.yaml`:
 - Add comments for "why" not "what" - explain the reasoning behind non-obvious decisions
 
 **Testing and Verification**
+
 - Write testable code by design
 - Each function should have clear inputs, outputs, and side effects
 - Use dependency injection to enable easy mocking and testing
@@ -412,6 +447,7 @@ Update `STATUS_MANIFEST.yaml`:
 - Include edge cases and error conditions in test planning
 
 **Performance Considerations**
+
 - Design for performance from the start, but measure before optimizing
 - Avoid premature optimization, but don't write obviously inefficient code
 - Consider algorithmic complexity (Big O) for data processing operations
@@ -419,6 +455,7 @@ Update `STATUS_MANIFEST.yaml`:
 - Be mindful of memory allocation and garbage collection patterns
 
 **Documentation Standards**
+
 - Document the module's purpose, inputs, outputs, and side effects
 - Include usage examples for non-trivial interfaces
 - Document error conditions and how callers should handle them
@@ -428,6 +465,7 @@ Update `STATUS_MANIFEST.yaml`:
 ### 5.4. Language-Specific Implementation Patterns
 
 **Module Structure Organization**
+
 ```
 module_name/
 ├── mod.rs                      # Public API definitions
@@ -442,6 +480,7 @@ module_name/
 ```
 
 **Interface Design Principles**
+
 - Define clear contracts between modules
 - Use strong typing to enforce contracts at compile time
 - Minimize the number of public functions/methods
@@ -449,6 +488,7 @@ module_name/
 - Version interfaces explicitly when they need to evolve
 
 **Configuration and Dependencies**
+
 - Make dependencies explicit through constructor injection or similar patterns
 - Use configuration objects rather than long parameter lists
 - Validate configuration at startup, not during runtime operations
@@ -456,6 +496,7 @@ module_name/
 - Separate configuration from business logic
 
 **Error Handling Patterns**
+
 - Define specific error types for different failure modes
 - Include sufficient context in errors for debugging
 - Use appropriate error propagation patterns for the language
@@ -465,6 +506,7 @@ module_name/
 ### 5.5. Integration and Compatibility
 
 **API Design Excellence**
+
 - Design APIs that are hard to use incorrectly
 - Use consistent naming conventions across the entire project
 - Group related operations together in logical modules
@@ -472,6 +514,7 @@ module_name/
 - Think carefully about what should be public vs. private
 
 **Backward Compatibility**
+
 - Design for evolution - APIs will need to change over time
 - Use versioning strategies appropriate for your project type
 - Deprecate features gracefully with clear migration paths
@@ -479,6 +522,7 @@ module_name/
 - Document breaking changes clearly
 
 **Interoperability**
+
 - Follow language-specific conventions and idioms
 - Integrate well with common frameworks and tools in the ecosystem
 - Use standard serialization formats for data exchange
@@ -488,6 +532,7 @@ module_name/
 ### 5.6. Quality Assurance Integration
 
 **Built-in Observability**
+
 - Include appropriate logging at different verbosity levels
 - Add metrics and monitoring hooks for production systems
 - Provide debugging interfaces or diagnostic information
@@ -495,6 +540,7 @@ module_name/
 - Design for troubleshooting and maintenance
 
 **Performance Monitoring**
+
 - Include timing information for critical operations
 - Monitor resource usage (memory, CPU, I/O) in production
 - Provide performance benchmarks as part of testing
@@ -502,6 +548,7 @@ module_name/
 - Design for profiling and performance analysis
 
 **Security by Design**
+
 - Follow secure coding practices for the language and domain
 - Validate all inputs against expected formats and ranges
 - Use parameterized queries for database interactions
@@ -513,7 +560,8 @@ module_name/
 ## 6. Implementation Patterns and Templates
 
 ### 6.1. Component Structure Template
-```rust
+
+````rust
 use crate::error::KomputeError;
 use std::result::Result;
 
@@ -559,9 +607,10 @@ impl ComponentName {
         })
     }
 }
-```
+````
 
 ### 6.2. Error Handling Pattern
+
 ```rust
 use thiserror::Error;
 
@@ -590,6 +639,7 @@ impl From<VulkanError> for ComponentError {
 ```
 
 ### 6.3. Testing Pattern
+
 ```rust
 #[cfg(test)]
 mod tests {
@@ -629,7 +679,8 @@ mod tests {
 ```
 
 ### 6.4. Documentation Pattern
-```rust
+
+````rust
 /// GPU Tensor representation with type-safe memory management
 ///
 /// The `Tensor<T>` struct provides a safe interface to GPU memory,
@@ -660,7 +711,7 @@ mod tests {
 pub struct Tensor<T> {
     // Implementation details hidden
 }
-```
+````
 
 ---
 
@@ -669,24 +720,28 @@ pub struct Tensor<T> {
 Before declaring completion, verify:
 
 ### 7.1. Functionality ✅
+
 - [ ] All requirements implemented completely
 - [ ] All edge cases handled properly
 - [ ] Error handling comprehensive
 - [ ] Performance meets requirements
 
 ### 7.2. Testing ✅
+
 - [ ] Unit test coverage > 80%
 - [ ] Integration tests cover all workflows
 - [ ] All tests passing consistently
 - [ ] Performance benchmarks validated
 
 ### 7.3. Code Quality ✅
+
 - [ ] Code follows established patterns
 - [ ] No linting errors or warnings
 - [ ] Type checking passes completely
 - [ ] Documentation comprehensive
 
 ### 7.4. Integration ✅
+
 - [ ] Interfaces match specifications
 - [ ] Dependencies properly managed
 - [ ] No breaking changes introduced
@@ -699,7 +754,8 @@ Before declaring completion, verify:
 Your final implementation report must contain:
 
 ### 8.1. The Progress Chronicle
-```markdown
+
+````markdown
 ### Implementation: Component {{component_id}} - {{component_name}}
 
 **Date/Time:** {{timestamp}}
@@ -710,6 +766,7 @@ Your final implementation report must contain:
 {{brief_description}}
 
 **Architectural Alignment:**
+
 - ✅ Follows established patterns
 - ✅ Meets interface specifications
 - ✅ Integrates with existing components
@@ -718,18 +775,22 @@ Your final implementation report must contain:
 **Testing Evidence:**
 
 **Unit Test Evidence:**
+
 ```bash
 $ cargo test --lib
 {{test_output}}
 ```
+````
 
 **Integration Test Evidence:**
+
 ```bash
 $ cargo test --tests
 {{integration_output}}
 ```
 
 **Quality Gate Evidence:**
+
 - Coverage: {{coverage}}%
 - Linting: PASSED
 - Type Checking: PASSED
@@ -737,13 +798,14 @@ $ cargo test --tests
 
 **Performance Evidence:**
 {{performance_metrics}}
-```
+
+````
 
 ### 8.2. The Code Artifacts
 ```rust:{{file_path}}
 # Complete implementation code
 {{implementation_code}}
-```
+````
 
 ```rust:tests/test_{{component}}.rs
 # Complete test code
@@ -755,18 +817,21 @@ $ cargo test --tests
 ## 9. Common Pitfalls to Avoid
 
 ### 9.1. Implementation Pitfalls
+
 - ❌ Writing code before tests
 - ❌ Skipping error handling
 - ❌ Ignoring edge cases
 - ❌ Breaking existing functionality
 
 ### 9.2. Testing Pitfalls
+
 - ❌ Insufficient test coverage
 - ❌ Testing implementation instead of behavior
 - ❌ Skipping integration tests
 - ❌ Not testing error scenarios
 
 ### 9.3. Quality Pitfalls
+
 - ❌ Ignoring linting warnings
 - ❌ Poor documentation
 - ❌ Inconsistent style
@@ -779,24 +844,28 @@ $ cargo test --tests
 Your implementation is complete ONLY when all criteria are met:
 
 ### 10.1. Functional Completeness ✅
+
 - All requirements fully implemented
 - All tests passing consistently
 - Performance requirements met
 - No regressions introduced
 
 ### 10.2. Quality Achievement ✅
+
 - Code quality gates passed
 - Documentation complete
 - Patterns followed consistently
 - Maintainability ensured
 
 ### 10.3. Integration Success ✅
+
 - Clean integration with system
 - All interfaces working correctly
 - Dependencies properly managed
 - No breaking changes
 
 ### 10.4. Evidence Provision ✅
+
 - Comprehensive test evidence provided
 - Quality metrics documented
 - Performance validated
@@ -806,4 +875,4 @@ Your implementation is complete ONLY when all criteria are met:
 
 **The path of implementation is not merely writing code, but the disciplined manifestation of architectural vision into robust, maintainable reality. Let this grimoire guide you through each sacred step of the implementation journey.**
 
-*"Excellence in implementation comes from discipline in process, rigor in testing, and commitment to quality."*
+_"Excellence in implementation comes from discipline in process, rigor in testing, and commitment to quality."_

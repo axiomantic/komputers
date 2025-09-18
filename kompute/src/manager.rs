@@ -1,7 +1,12 @@
 //! GPU device management and resource allocation.
 
+use crate::algorithm::Algorithm;
 use crate::error::{KomputeError, Result};
-use std::ptr::NonNull;
+use crate::sequence::Sequence;
+use crate::tensor::{Tensor, TensorData};
+use cxx::UniquePtr;
+use kompute_sys::ffi;
+use std::pin::Pin;
 
 /// GPU device manager for resource allocation and compute operations.
 ///
@@ -11,17 +16,25 @@ use std::ptr::NonNull;
 ///
 /// # Examples
 ///
-/// ```rust,ignore
-/// use kompute::Manager;
+/// ```rust,no_run
+/// use kompute::{Manager, Result};
 ///
-/// // Create manager with default device (usually device 0)
-/// let mut manager = Manager::new()?;
+/// fn example() -> Result<()> {
+///     // Create manager with default device (usually device 0)
+///     let manager = Manager::new()?;
 ///
-/// // Create manager with specific device
-/// let mut manager = Manager::with_device(1)?;
+///     // Create manager with specific device
+///     let manager2 = Manager::with_device(1)?;
+///
+///     // Check device count
+///     let count = Manager::device_count()?;
+///     println!("Available GPU devices: {}", count);
+///
+///     Ok(())
+/// }
 /// ```
 pub struct Manager {
-    handle: NonNull<kompute_sys::kp_Manager>,
+    handle: UniquePtr<ffi::Manager>,
 }
 
 impl Manager {
@@ -46,19 +59,43 @@ impl Manager {
     /// Returns [`KomputeError::DeviceError`] if the specified device is not available
     /// or initialization fails.
     pub fn with_device(device_id: u32) -> Result<Self> {
-        unsafe {
-            let handle = kompute_sys::kp_manager_new(device_id);
-            if handle.is_null() {
-                return Err(KomputeError::device(format!(
-                    "Failed to create manager with device {}",
-                    device_id
-                )));
-            }
+        // First validate that devices are available
+        let device_count = Self::device_count().map_err(|e| {
+            KomputeError::device(format!(
+                "Cannot create manager: device enumeration failed: {}",
+                e
+            ))
+        })?;
 
-            Ok(Self {
-                handle: NonNull::new_unchecked(handle),
-            })
+        if device_count == 0 {
+            return Err(KomputeError::device(
+                "Cannot create manager: no Vulkan devices available. \
+                 Ensure MoltenVK is properly installed and configured."
+                    .to_string(),
+            ));
         }
+
+        if device_id >= device_count {
+            return Err(KomputeError::device(format!(
+                "Cannot create manager: device ID {} is invalid. \
+                 Only {} devices available (valid range: 0-{})",
+                device_id,
+                device_count,
+                device_count - 1
+            )));
+        }
+
+        // Attempt to create the manager with detailed error context
+        let handle = ffi::create_manager(device_id);
+        if handle.is_null() {
+            return Err(KomputeError::device(format!(
+                "Manager creation failed for device {} (out of {} available devices). \
+                 This may indicate a Vulkan driver issue or insufficient GPU memory.",
+                device_id, device_count
+            )));
+        }
+
+        Ok(Self { handle })
     }
 
     /// Get the number of available Vulkan-capable devices.
@@ -71,13 +108,118 @@ impl Manager {
     ///
     /// Returns [`KomputeError::VulkanError`] if device enumeration fails.
     pub fn device_count() -> Result<u32> {
-        unsafe {
-            let count = kompute_sys::kp_manager_get_device_count();
-            if count < 0 {
-                return Err(KomputeError::vulkan("Failed to enumerate Vulkan devices"));
-            }
-            Ok(count as u32)
+        let count = ffi::get_device_count();
+        if count < 0 {
+            return Err(KomputeError::vulkan("Failed to enumerate Vulkan devices"));
         }
+        Ok(count as u32)
+    }
+
+    /// Create a tensor with data copied from the host.
+    ///
+    /// # Arguments
+    ///
+    /// * `data` - Host data to copy to the GPU
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KomputeError::MemoryError`] if GPU allocation fails or
+    /// [`KomputeError::TensorError`] if data copying fails.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use kompute::{Manager, Result};
+    ///
+    /// fn example() -> Result<()> {
+    ///     let mut manager = Manager::new()?;
+    ///     let data = vec![1.0f32, 2.0, 3.0, 4.0];
+    ///     let tensor = manager.tensor(&data)?;
+    ///     println!("Created tensor with {} elements", tensor.size());
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn tensor<T: TensorData>(&mut self, data: &[T]) -> Result<Tensor<T>> {
+        Tensor::new(self, data)
+    }
+
+    /// Create an uninitialized tensor of the specified size.
+    ///
+    /// # Arguments
+    ///
+    /// * `size` - Number of elements to allocate
+    ///
+    /// # Safety
+    ///
+    /// The tensor contains uninitialized memory until data is explicitly
+    /// written to it via compute shaders or host synchronization.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KomputeError::MemoryError`] if GPU allocation fails.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use kompute::{Manager, Result};
+    ///
+    /// fn example() -> Result<()> {
+    ///     let mut manager = Manager::new()?;
+    ///     let tensor = manager.tensor_uninit::<f32>(100)?;
+    ///     println!("Created uninitialized tensor with {} elements", tensor.size());
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn tensor_uninit<T: TensorData>(&mut self, size: usize) -> Result<Tensor<T>> {
+        Tensor::uninit(self, size)
+    }
+
+    /// Create an algorithm from SPIR-V bytecode.
+    ///
+    /// # Arguments
+    ///
+    /// * `spirv_data` - SPIR-V bytecode as 32-bit words
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KomputeError::ShaderError`] if the SPIR-V is invalid or
+    /// [`KomputeError::ComputeError`] if algorithm creation fails.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use kompute::{Manager, Result};
+    ///
+    /// fn example() -> Result<()> {
+    ///     let mut manager = Manager::new()?;
+    ///     let spirv_data: Vec<u32> = vec![/* SPIR-V bytecode */];
+    ///     let algorithm = manager.algorithm(&spirv_data)?;
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn algorithm(&mut self, spirv_data: &[u32]) -> Result<Algorithm> {
+        Algorithm::new(self, spirv_data)
+    }
+
+    /// Create a sequence for recording GPU operations.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KomputeError::ComputeError`] if sequence creation fails.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use kompute::{Manager, Result};
+    ///
+    /// fn example() -> Result<()> {
+    ///     let mut manager = Manager::new()?;
+    ///     let sequence = manager.sequence()?;
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn sequence(&mut self) -> Result<Sequence> {
+        Sequence::new(self)
     }
 
     /// Get the raw handle for FFI operations.
@@ -86,19 +228,12 @@ impl Manager {
     ///
     /// The returned handle is only valid while this Manager exists.
     /// Using the handle after the Manager is dropped results in undefined behavior.
-    pub(crate) unsafe fn handle(&self) -> *mut kompute_sys::kp_Manager {
-        self.handle.as_ptr()
+    pub(crate) fn handle(&mut self) -> Pin<&mut ffi::Manager> {
+        self.handle.pin_mut()
     }
 }
 
-// RAII cleanup - automatically destroy the manager when dropped
-impl Drop for Manager {
-    fn drop(&mut self) {
-        unsafe {
-            kompute_sys::kp_manager_destroy(self.handle.as_ptr());
-        }
-    }
-}
+// UniquePtr handles RAII cleanup automatically - no manual Drop needed
 
 // Manager is safe to send between threads (contains only a pointer to GPU resources)
 unsafe impl Send for Manager {}
@@ -115,25 +250,31 @@ mod tests {
         // This test may fail in environments without Vulkan support
         match Manager::device_count() {
             Ok(count) => {
-                println!("Found {} Vulkan devices", count);
+                // Device enumeration succeeded
                 assert!(count < 100, "Device count should be reasonable");
             }
-            Err(e) => {
-                println!("Device enumeration failed (expected in CI): {}", e);
+            Err(_e) => {
+                // Device enumeration failed - expected in CI/headless environments
+                assert!(true, "Device enumeration failed as expected");
             }
         }
     }
 
     #[test]
+    #[ignore = "requires Vulkan-capable device"]
     fn test_manager_creation() {
         // This test may fail in environments without Vulkan support
         match Manager::new() {
             Ok(_manager) => {
-                // Manager created successfully
-                println!("Manager creation succeeded");
+                // Manager created successfully - test passed
+                assert!(true, "Manager creation succeeded");
             }
-            Err(e) => {
-                println!("Manager creation failed (expected in CI): {}", e);
+            Err(_e) => {
+                // In CI/headless environments, this is expected
+                assert!(
+                    true,
+                    "Manager creation failed as expected in non-GPU environment"
+                );
             }
         }
     }

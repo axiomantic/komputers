@@ -1,4 +1,4 @@
-# Kompute-rs: System Architecture (v1)
+# Kompute-rs: System Architecture (v2)
 
 ## 1. Core Philosophy & Guiding Principles
 
@@ -23,6 +23,7 @@ The implementation is governed by the following non-negotiable principles:
 The system is structured around a three-layer architecture with clear separation of concerns, providing memory safety, idiomatic Rust APIs, and high performance GPU computing capabilities.
 
 **Core Components:**
+
 - **FFI Layer (kompute-sys)**: Low-level C++ bindings and unsafe FFI interface to Kompute C++ library
 - **Safe Wrapper Layer**: Memory-safe Rust wrappers with RAII resource management
 - **Idiomatic API Layer**: High-level, ergonomic Rust interface following Rust conventions
@@ -30,6 +31,7 @@ The system is structured around a three-layer architecture with clear separation
 ### 2.2. System Boundaries and Interfaces
 
 The system interfaces with:
+
 - **Kompute C++ Library**: Direct FFI bindings to core GPU compute functionality
 - **Vulkan Drivers**: Cross-vendor GPU support through Vulkan API
 - **Rust Ecosystem**: Integration with standard Rust error handling, async, and type systems
@@ -41,28 +43,33 @@ The system interfaces with:
 **Purpose**: Provide low-level, unsafe bindings to Kompute C++ API
 **Location**: `kompute-sys/` crate
 **Responsibilities**:
+
 - Generate C++ bindings using bindgen
 - Handle dynamic library loading and linking
 - Manage Vulkan dependency integration
 - Provide minimal unsafe FFI wrapper functions
 
 **Key Design Decisions**:
-- Use bindgen for automatic binding generation from C++ headers
-- Separate crate to isolate unsafe code and C++ dependencies
-- Minimal abstraction to maintain performance parity
+
+- Use CXX for type-safe C++ integration (not bindgen)
+- Handle-based resource management to solve SharedPtr mutable access limitations
+- Thread-safe global registry for GPU resource tracking
+- Comprehensive safety validation at all API boundaries
 - Clear documentation of safety requirements for all unsafe functions
 
 ### 3.2. Safe Wrapper Layer
 
 **Purpose**: Provide memory-safe wrappers around FFI layer with proper resource management
-**Location**: `src/core/` module
+**Location**: `src/` public API modules (manager.rs, tensor.rs, algorithm.rs, sequence.rs)
 **Responsibilities**:
+
 - Implement RAII patterns for GPU resource cleanup
 - Provide safe interfaces to all core Kompute classes
 - Handle error conversion from C++ exceptions to Rust Result types
 - Manage object lifetimes and prevent use-after-free bugs
 
 **Integration Points**:
+
 - Direct dependency on kompute-sys FFI layer
 - Integration with custom error types and result handling
 - Memory management through Drop trait implementations
@@ -72,12 +79,14 @@ The system interfaces with:
 **Purpose**: Provide ergonomic, Rust-idiomatic interface for GPU computing
 **Location**: `src/` public API modules
 **Responsibilities**:
+
 - Builder patterns for complex object creation
 - Async support for non-blocking GPU operations
 - Iterator-based APIs where appropriate
 - Integration with Rust's type system (generics, traits)
 
 **Critical Characteristics**:
+
 - Zero-cost abstractions with compile-time optimization
 - Type-safe tensor operations with generic data types
 - Fluent API design following Rust conventions
@@ -89,33 +98,48 @@ The system interfaces with:
 The system uses strongly-typed data structures with generic parameters to ensure type safety and performance optimization.
 
 **Core Data Structures**:
+
 ```rust
 pub struct Manager {
-    // Vulkan device management and resource allocation
+    handle: UniquePtr<ffi::Manager>, // CXX-managed C++ object
 }
 
 pub struct Tensor<T> {
-    // Type-safe GPU memory with host synchronization
-    // T: Copy + Default + 'static (GPU-compatible types)
+    handle: u64,                     // Handle-based resource management
+    size: usize,
+    _phantom: PhantomData<T>,        // Type safety marker
 }
 
 pub struct Algorithm {
-    // SPIR-V shader with parameter bindings
+    handle: u64,                     // Handle to C++ Algorithm via registry
 }
 
 pub struct Sequence {
-    // Command buffer for batched GPU operations
+    handle: u64,                     // Handle to C++ Sequence via registry
 }
 ```
 
-### 4.2. Data Flow
+### 4.2. Handle-Based Resource Management
 
-GPU compute operations follow a well-defined data flow pattern ensuring efficient memory management and synchronization.
+The system employs a sophisticated handle-based pattern to overcome C++ SharedPtr mutable access limitations:
 
-1. **Host Data Preparation**: CPU data is prepared and validated for GPU transfer
-2. **GPU Memory Allocation**: Tensors are allocated in GPU memory with proper alignment
-3. **Compute Execution**: Algorithms process data through SPIR-V shaders on GPU
-4. **Result Synchronization**: GPU results are synchronized back to host memory when needed
+```
+Rust API Layer    →    C++ Bridge Layer    →    Kompute C++ Library
+┌─────────────┐       ┌─────────────────┐       ┌─────────────────────┐
+│ Tensor<T>   │  ──→  │ HandleRegistry  │  ──→  │ shared_ptr<Tensor>  │
+│ Algorithm   │  ──→  │ (Thread-safe)   │  ──→  │ shared_ptr<Algorithm│
+│ Sequence    │  ──→  │ Global Maps     │  ──→  │ shared_ptr<Sequence>│
+└─────────────┘       └─────────────────┘       └─────────────────────┘
+```
+
+### 4.3. Data Flow
+
+GPU compute operations follow a handle-based data flow pattern:
+
+1. **Resource Creation**: Rust creates handle, C++ registry stores shared_ptr
+2. **Operation Recording**: Handles are resolved to C++ objects for GPU operations
+3. **GPU Execution**: Actual Kompute C++ API calls (sequence.eval(), tensor.vector())
+4. **Resource Cleanup**: RAII Drop traits remove handles, C++ objects auto-cleanup
 
 ## 5. Quality Assurance & Testing Strategy
 
@@ -124,6 +148,7 @@ GPU compute operations follow a well-defined data flow pattern ensuring efficien
 The system employs a comprehensive testing strategy based on comprehensive unit and integration testing with actual GPU operations.
 
 **Testing Layers**:
+
 - **Unit Tests**: Test individual components in isolation using mock GPU operations where possible
 - **Integration Tests**: Full GPU integration tests across different vendors (AMD, NVIDIA, Intel)
 - **Performance Tests**: Benchmarks comparing performance against C++ baseline
@@ -162,6 +187,7 @@ All code must pass cargo fmt, cargo clippy, and comprehensive test suite includi
 ### 7.2. Error Categories
 
 The system recognizes these error categories:
+
 - **GPU Hardware Errors**: Device lost, out of memory, driver issues
 - **Vulkan API Errors**: Invalid operations, resource allocation failures
 - **Application Logic Errors**: Invalid shader parameters, type mismatches
@@ -175,6 +201,7 @@ Where possible, provide fallback mechanisms and clear error reporting. Critical 
 ### 8.1. Performance Requirements
 
 The system must meet these performance targets:
+
 - **Memory Allocation Overhead**: <1% compared to direct Vulkan allocation
 - **Compute Dispatch Latency**: <5% overhead compared to C++ Kompute
 - **Memory Transfer Efficiency**: Near-native performance for host-device transfers
@@ -204,26 +231,48 @@ The project maintains these documentation artifacts:
 - **`SYSTEM_ARCHITECTURE.md` (This Document)**: The architectural constitution and single source of truth
 - **`CONTRIBUTING.md`**: Development workflow and contribution guidelines
 - **`GRIMOIRE.md`**: Implementation templates and patterns
-- **`STATUS_MANIFEST.yaml`**: Live project status and component tracking
+- **`API_EXTENSIONS_TODO.md`**: Roadmap of unimplemented API features
+- **`API_DESIGN_PATTERNS.md`**: Reference patterns for safe API implementation
 - **`GLOSSARY.md`**: GPU computing terminology and concept definitions
 
 ### 10.2. Documentation Integration Protocol
 
 All development must reference these documents appropriately:
+
 - Consult `SYSTEM_ARCHITECTURE.md` for architectural principles and component relationships
 - Follow workflow defined in `CONTRIBUTING.md` for development methodology
 - Use `GRIMOIRE.md` as implementation template for all development work
-- Track progress in `STATUS_MANIFEST.yaml` and update status as work progresses
+- Reference `API_EXTENSIONS_TODO.md` for implementation priorities and missing features
 - Reference `GLOSSARY.md` for precise terminology and concept definitions
 
-## 11. Future Evolution
+## 11. Implementation Status & Evolution
 
-### 11.1. Architectural Roadmap
+### 11.1. Current Implementation Status (v0.1.0)
 
-- Phase 1: Core FFI bindings and basic GPU operations
-- Phase 2: Async support and advanced error handling
-- Phase 3: Ecosystem integration and optimization
-- Phase 4: Mobile platform support and advanced features
+**✅ Fully Implemented:**
+
+- Build system with Kompute C++ v0.9.0 integration
+- Handle-based resource management with thread-safe registry
+- Core tensor operations (create, data access, cleanup)
+- Core manager operations (device enumeration, creation)
+- Core sequence operations (creation, recording, execution)
+- Comprehensive error handling with 11 error types
+- Basic async API (polling-based, not true GPU async)
+
+**❌ Critical Gaps:**
+
+- Algorithm-tensor binding (algorithms created with empty tensor lists)
+- Manager::create_queue() method (required for MultiQueueManager)
+- Real async GPU integration (current implementation is polling simulation)
+- Multi-type tensor support beyond f32
+- Advanced algorithm configuration (workgroups, specialization constants)
+
+### 11.2. Implementation Roadmap
+
+- **Phase 1**: Fix algorithm-tensor binding and Manager::create_queue()
+- **Phase 2**: Multi-type tensor support and advanced algorithm features
+- **Phase 3**: Real async GPU integration with Vulkan synchronization primitives
+- **Phase 4**: Advanced memory management and performance optimization
 
 ### 11.2. Evolution Strategy
 
@@ -244,4 +293,4 @@ The architecture is successful when:
 
 **The foundation of excellent software lies in thoughtful architecture, disciplined implementation, and unwavering commitment to quality. Let this document serve as the guiding principles for building a system that stands the test of time.**
 
-*"Unleashing GPU Power with Rust Safety"*
+_"Unleashing GPU Power with Rust Safety"_

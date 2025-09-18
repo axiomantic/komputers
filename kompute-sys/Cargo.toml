@@ -17,16 +17,18 @@ links = "kompute"  # Prevents multiple versions of this crate from linking
 [dependencies]
 # Minimal dependencies for FFI
 ash.workspace = true
+cxx = "1.0"
 
 [build-dependencies]
-bindgen.workspace = true
-cc.workspace = true
+cxx-build = "1.0"
 cmake.workspace = true
 
 [features]
 default = []
 # Enable Vulkan validation layers (development only)
 validation = []
+# Enable AddressSanitizer for C++ memory debugging
+asan = []
 
 [package.metadata.docs.rs]
 # Ensure docs build on docs.rs with proper features

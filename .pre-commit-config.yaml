@@ -1,0 +1,27 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+
+  - repo: https://github.com/doublify/pre-commit-rust
+    rev: v1.0
+    hooks:
+      - id: fmt
+        args: ["--verbose", "--"]
+      - id: cargo-check
+        args: ["--verbose", "--"]
+      - id: clippy
+        args: ["--verbose", "--", "-D", "warnings"]
+
+  # Alternative Rust repo with more options
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        types_or: [markdown, yaml, json]
+        exclude: '^(Cargo\.lock|target/)'

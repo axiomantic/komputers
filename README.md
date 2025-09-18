@@ -1,8 +1,8 @@
-# Kompute-rs
+# Komputers
 
 [![Crates.io](https://img.shields.io/crates/v/kompute.svg)](https://crates.io/crates/kompute)
 [![Documentation](https://docs.rs/kompute/badge.svg)](https://docs.rs/kompute)
-[![Build Status](https://github.com/kompute-rs/kompute-rs/workflows/CI/badge.svg)](https://github.com/kompute-rs/kompute-rs/actions)
+[![Build Status](https://github.com/axiomantic/komputers/workflows/CI/badge.svg)](https://github.com/axiomantic/komputers/actions)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 Idiomatic Rust bindings for the [Kompute](https://github.com/KomputeProject/kompute) GPU compute framework.
@@ -59,12 +59,14 @@ fn main() -> kompute::Result<()> {
 You need a Vulkan SDK installed:
 
 **Linux (Ubuntu/Debian):**
+
 ```bash
 sudo apt update
 sudo apt install vulkan-sdk
 ```
 
 **macOS (Homebrew):**
+
 ```bash
 brew install vulkan-headers vulkan-loader molten-vk
 ```
@@ -92,8 +94,8 @@ The crate is structured around four main components:
 ## Building from Source
 
 ```bash
-git clone https://github.com/kompute-rs/kompute-rs.git
-cd kompute-rs
+git clone https://github.com/axiomantic/komputers.git
+cd komputers
 git submodule update --init --recursive
 cargo build
 ```
