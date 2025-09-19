@@ -39,18 +39,6 @@ impl TensorData for u32 {
     } // UInt32
 }
 
-impl TensorData for i8 {
-    fn data_type_id() -> u32 {
-        4
-    } // Int8
-}
-
-impl TensorData for u8 {
-    fn data_type_id() -> u32 {
-        5
-    } // UInt8
-}
-
 /// Type-safe GPU tensor with automatic memory management.
 ///
 /// Tensors represent GPU-allocated memory that can be efficiently used for
@@ -118,35 +106,41 @@ impl<T: TensorData> Tensor<T> {
             )));
         }
 
-        // For now, only support f32 until we implement other types in the bridge
-        if std::any::TypeId::of::<T>() != std::any::TypeId::of::<f32>() {
+        // Dispatch to the appropriate tensor creation function based on type
+        let handle = match TypeId::of::<T>() {
+            type_id if type_id == TypeId::of::<f32>() => {
+                let f32_data: &[f32] =
+                    unsafe { std::slice::from_raw_parts(data.as_ptr() as *const f32, data.len()) };
+                ffi::create_tensor_f32_handle(manager.handle(), f32_data)
+            }
+            type_id if type_id == TypeId::of::<f64>() => {
+                let f64_data: &[f64] =
+                    unsafe { std::slice::from_raw_parts(data.as_ptr() as *const f64, data.len()) };
+                ffi::create_tensor_f64_handle(manager.handle(), f64_data)
+            }
+            type_id if type_id == TypeId::of::<i32>() => {
+                let i32_data: &[i32] =
+                    unsafe { std::slice::from_raw_parts(data.as_ptr() as *const i32, data.len()) };
+                ffi::create_tensor_i32_handle(manager.handle(), i32_data)
+            }
+            type_id if type_id == TypeId::of::<u32>() => {
+                let u32_data: &[u32] =
+                    unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u32, data.len()) };
+                ffi::create_tensor_u32_handle(manager.handle(), u32_data)
+            }
+            _ => {
+                return Err(KomputeError::tensor(format!(
+                    "Unsupported tensor data type: {:?}",
+                    std::any::type_name::<T>()
+                )));
+            }
+        };
+
+        if handle == 0 {
             return Err(KomputeError::tensor(
-                "Only f32 tensors are currently supported",
+                "Tensor creation returned invalid handle",
             ));
         }
-
-        // Validate memory layout compatibility for f32
-        if std::mem::size_of::<T>() != std::mem::size_of::<f32>() {
-            return Err(KomputeError::tensor(format!(
-                "Type size mismatch: expected {} bytes for f32, got {} bytes",
-                std::mem::size_of::<f32>(),
-                std::mem::size_of::<T>()
-            )));
-        }
-
-        if std::mem::align_of::<T>() != std::mem::align_of::<f32>() {
-            return Err(KomputeError::tensor(format!(
-                "Type alignment mismatch: expected {} bytes for f32, got {} bytes",
-                std::mem::align_of::<f32>(),
-                std::mem::align_of::<T>()
-            )));
-        }
-
-        // Safe cast now that we've validated the type compatibility
-        let f32_data: &[f32] =
-            unsafe { std::slice::from_raw_parts(data.as_ptr() as *const f32, data.len()) };
-
-        let handle = ffi::create_tensor_f32_handle(manager.handle(), f32_data);
 
         Ok(Self {
             handle,
@@ -178,14 +172,33 @@ impl<T: TensorData> Tensor<T> {
             )));
         }
 
-        // For now, only support f32 until we implement other types in the bridge
-        if TypeId::of::<T>() != TypeId::of::<f32>() {
+        // Dispatch to the appropriate uninitialized tensor creation function based on type
+        let handle = match TypeId::of::<T>() {
+            type_id if type_id == TypeId::of::<f32>() => {
+                ffi::create_tensor_uninit_f32_handle(manager.handle(), size)
+            }
+            type_id if type_id == TypeId::of::<f64>() => {
+                ffi::create_tensor_uninit_f64_handle(manager.handle(), size)
+            }
+            type_id if type_id == TypeId::of::<i32>() => {
+                ffi::create_tensor_uninit_i32_handle(manager.handle(), size)
+            }
+            type_id if type_id == TypeId::of::<u32>() => {
+                ffi::create_tensor_uninit_u32_handle(manager.handle(), size)
+            }
+            _ => {
+                return Err(KomputeError::tensor(format!(
+                    "Unsupported tensor data type: {:?}",
+                    std::any::type_name::<T>()
+                )));
+            }
+        };
+
+        if handle == 0 {
             return Err(KomputeError::tensor(
-                "Only f32 tensors are currently supported",
+                "Uninitialized tensor creation returned invalid handle",
             ));
         }
-
-        let handle = ffi::create_tensor_uninit_f32_handle(manager.handle(), size);
 
         Ok(Self {
             handle,
@@ -212,18 +225,45 @@ impl<T: TensorData> Tensor<T> {
     ///
     /// Returns [`KomputeError::ComputeError`] if data retrieval fails.
     pub fn to_vec(&self) -> Result<Vec<T>> {
-        // For now, only support f32 until we implement other types in the bridge
-        if TypeId::of::<T>() != TypeId::of::<f32>() {
-            return Err(KomputeError::tensor(
-                "Only f32 tensors are currently supported",
-            ));
+        // Dispatch to the appropriate data retrieval function based on type
+        match TypeId::of::<T>() {
+            type_id if type_id == TypeId::of::<f32>() => {
+                let f32_data = ffi::tensor_data_f32_by_handle(self.handle);
+                let data: Vec<T> = unsafe {
+                    std::slice::from_raw_parts(f32_data.as_ptr() as *const T, f32_data.len())
+                        .to_vec()
+                };
+                Ok(data)
+            }
+            type_id if type_id == TypeId::of::<f64>() => {
+                let f64_data = ffi::tensor_data_f64_by_handle(self.handle);
+                let data: Vec<T> = unsafe {
+                    std::slice::from_raw_parts(f64_data.as_ptr() as *const T, f64_data.len())
+                        .to_vec()
+                };
+                Ok(data)
+            }
+            type_id if type_id == TypeId::of::<i32>() => {
+                let i32_data = ffi::tensor_data_i32_by_handle(self.handle);
+                let data: Vec<T> = unsafe {
+                    std::slice::from_raw_parts(i32_data.as_ptr() as *const T, i32_data.len())
+                        .to_vec()
+                };
+                Ok(data)
+            }
+            type_id if type_id == TypeId::of::<u32>() => {
+                let u32_data = ffi::tensor_data_u32_by_handle(self.handle);
+                let data: Vec<T> = unsafe {
+                    std::slice::from_raw_parts(u32_data.as_ptr() as *const T, u32_data.len())
+                        .to_vec()
+                };
+                Ok(data)
+            }
+            _ => Err(KomputeError::tensor(format!(
+                "Unsupported tensor data type for retrieval: {:?}",
+                std::any::type_name::<T>()
+            ))),
         }
-
-        let f32_data = ffi::tensor_data_f32_by_handle(self.handle);
-        let data: Vec<T> = unsafe {
-            std::slice::from_raw_parts(f32_data.as_ptr() as *const T, f32_data.len()).to_vec()
-        };
-        Ok(data)
     }
 
     /// Get the internal handle value.
@@ -456,5 +496,64 @@ mod tests {
         let f32_type_id = TypeId::of::<f32>();
         assert_eq!(f32_type_id, TypeId::of::<f32>());
         assert_ne!(f32_type_id, TypeId::of::<f64>());
+    }
+
+    #[test]
+    #[ignore = "requires Vulkan-capable device"]
+    fn test_multi_type_tensor_creation() {
+        // Test tensor creation with all supported types
+        if let Ok(mut manager) = Manager::new() {
+            // Test f64 tensors
+            let f64_data = vec![1.0f64, 2.0, 3.0];
+            if let Ok(tensor) = Tensor::new(&mut manager, &f64_data) {
+                assert_eq!(tensor.size(), 3);
+                if let Ok(retrieved) = tensor.to_vec() {
+                    assert_eq!(f64_data, retrieved);
+                }
+            }
+
+            // Test i32 tensors
+            let i32_data = vec![1i32, -2, 3];
+            if let Ok(tensor) = Tensor::new(&mut manager, &i32_data) {
+                assert_eq!(tensor.size(), 3);
+                if let Ok(retrieved) = tensor.to_vec() {
+                    assert_eq!(i32_data, retrieved);
+                }
+            }
+
+            // Test u32 tensors
+            let u32_data = vec![1u32, 2, 3];
+            if let Ok(tensor) = Tensor::new(&mut manager, &u32_data) {
+                assert_eq!(tensor.size(), 3);
+                if let Ok(retrieved) = tensor.to_vec() {
+                    assert_eq!(u32_data, retrieved);
+                }
+            }
+        }
+    }
+
+    #[test]
+    #[ignore = "requires Vulkan-capable device"]
+    fn test_multi_type_tensor_uninit() {
+        // Test uninitialized tensor creation with all supported types
+        if let Ok(mut manager) = Manager::new() {
+            // Test f64 uninitialized tensors
+            if let Ok(tensor) = Tensor::<f64>::uninit(&mut manager, 5) {
+                assert_eq!(tensor.size(), 5);
+                assert_eq!(tensor.size_bytes(), 40); // 5 * 8 bytes
+            }
+
+            // Test i32 uninitialized tensors
+            if let Ok(tensor) = Tensor::<i32>::uninit(&mut manager, 5) {
+                assert_eq!(tensor.size(), 5);
+                assert_eq!(tensor.size_bytes(), 20); // 5 * 4 bytes
+            }
+
+            // Test u32 uninitialized tensors
+            if let Ok(tensor) = Tensor::<u32>::uninit(&mut manager, 5) {
+                assert_eq!(tensor.size(), 5);
+                assert_eq!(tensor.size_bytes(), 20); // 5 * 4 bytes
+            }
+        }
     }
 }

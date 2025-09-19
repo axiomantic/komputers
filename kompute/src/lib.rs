@@ -14,10 +14,12 @@
 //!
 //! # Quick Start
 //!
+//! ## Basic Tensor Operations
+//!
 //! ```rust,no_run
 //! use kompute::{Manager, Tensor, Result};
 //!
-//! fn main() -> Result<()> {
+//! fn basic_example() -> Result<()> {
 //!     // Create a GPU manager
 //!     let mut manager = Manager::new()?;
 //!
@@ -26,12 +28,33 @@
 //!     let tensor_b = Tensor::new(&mut manager, &[4.0f32, 5.0, 6.0])?;
 //!     let mut tensor_out: Tensor<f32> = Tensor::uninit(&mut manager, 3)?;
 //!
-//!     // Tensor operations would involve compute shaders
-//!     // (Algorithm creation and execution not yet implemented)
-//!
 //!     // Access tensor properties
 //!     println!("Tensor A size: {}", tensor_a.size());
 //!     println!("Tensor B size: {}", tensor_b.size());
+//!
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ## High-Level GPU Operations
+//!
+//! ```rust,no_run
+//! use kompute::{GpuOperations, Tensor, WorkgroupConfig, Result};
+//!
+//! fn gpu_operations_example() -> Result<()> {
+//!     // Create high-level GPU operations manager
+//!     let mut ops = GpuOperations::new()?;
+//!
+//!     // Create tensors for computation
+//!     let source = Tensor::new(ops.manager(), &[1.0f32, 2.0, 3.0, 4.0])?;
+//!     let mut dest = Tensor::uninit::<f32>(ops.manager(), 4)?;
+//!
+//!     // Perform GPU copy operation
+//!     ops.copy(&source, &mut dest)?;
+//!
+//!     // Configure optimal workgroup for 1000 elements
+//!     let workgroup = WorkgroupConfig::optimal_1d(1000);
+//!     println!("Optimal workgroup: {}x{}x{}", workgroup.x, workgroup.y, workgroup.z);
 //!
 //!     Ok(())
 //! }
@@ -60,7 +83,11 @@ pub mod error;
 pub mod handle_tracker;
 pub mod manager;
 pub mod multi_queue;
+pub mod operations;
+pub mod platform;
+pub mod queue;
 pub mod sequence;
+pub mod spirv_utils;
 pub mod tensor;
 pub mod vulkan_setup;
 
@@ -77,9 +104,17 @@ pub use error::{KomputeError, Result};
 pub use handle_tracker::{HandleStatistics, HandleTracker, TrackedHandle};
 pub use manager::Manager;
 pub use multi_queue::{DeviceCapabilities, MultiQueueManager, MultiQueueWorkflow};
+pub use operations::{DeviceInfo, GpuOperations, MemoryPatterns, WorkgroupConfig};
+pub use platform::{
+    EnvironmentValidator, GpuSupport, PlatformInfo, RuntimeUtils, ValidationReport,
+};
+pub use queue::Queue;
 pub use sequence::Sequence;
+pub use spirv_utils::{CommonKernels, ShaderCompilationGuide, SpirvUtils};
 pub use tensor::{Tensor, TensorData};
-pub use vulkan_setup::{configure_vulkan_environment, verify_vulkan_availability};
+pub use vulkan_setup::{
+    configure_vulkan_environment, diagnose_vulkan_environment, verify_vulkan_availability,
+};
 
 // Feature-gated async support
 #[cfg(feature = "async")]

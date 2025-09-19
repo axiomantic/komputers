@@ -62,6 +62,25 @@ impl Sequence {
         Ok(Self { handle })
     }
 
+    /// Create a sequence from an existing handle.
+    ///
+    /// # Arguments
+    ///
+    /// * `handle` - The existing sequence handle
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KomputeError::ComputeError`] if the handle is invalid.
+    pub(crate) fn from_handle(handle: u64) -> Result<Self> {
+        if handle == 0 {
+            return Err(crate::error::KomputeError::compute(
+                "Cannot create sequence from invalid handle",
+            ));
+        }
+
+        Ok(Self { handle })
+    }
+
     /// Record a tensor synchronization operation from host to device.
     ///
     /// # Arguments

@@ -97,6 +97,19 @@ int32_t get_device_count();
 // Legacy SharedPtr operations (kept for compatibility)
 std::shared_ptr<Tensor> create_tensor_f32(Manager& manager, rust::Slice<const float> data);
 std::shared_ptr<Tensor> create_tensor_uninit_f32(Manager& manager, size_t size);
+
+// Multi-type tensor creation (SharedPtr)
+std::shared_ptr<Tensor> create_tensor_f64(Manager& manager, rust::Slice<const double> data);
+std::shared_ptr<Tensor> create_tensor_i32(Manager& manager, rust::Slice<const int32_t> data);
+std::shared_ptr<Tensor> create_tensor_u32(Manager& manager, rust::Slice<const uint32_t> data);
+std::shared_ptr<Tensor> create_tensor_i8(Manager& manager, rust::Slice<const int8_t> data);
+std::shared_ptr<Tensor> create_tensor_u8(Manager& manager, rust::Slice<const uint8_t> data);
+
+std::shared_ptr<Tensor> create_tensor_uninit_f64(Manager& manager, size_t size);
+std::shared_ptr<Tensor> create_tensor_uninit_i32(Manager& manager, size_t size);
+std::shared_ptr<Tensor> create_tensor_uninit_u32(Manager& manager, size_t size);
+std::shared_ptr<Tensor> create_tensor_uninit_i8(Manager& manager, size_t size);
+std::shared_ptr<Tensor> create_tensor_uninit_u8(Manager& manager, size_t size);
 size_t tensor_size(Tensor& tensor);
 size_t tensor_size_bytes(Tensor& tensor);
 rust::Vec<float> tensor_data_f32(Tensor& tensor);
@@ -111,6 +124,27 @@ void sequence_eval(Sequence& sequence);
 // Tensor operations by handle
 uint64_t create_tensor_f32_handle(Manager& manager, rust::Slice<const float> data);
 uint64_t create_tensor_uninit_f32_handle(Manager& manager, size_t size);
+
+// Multi-type tensor operations by handle
+uint64_t create_tensor_f64_handle(Manager& manager, rust::Slice<const double> data);
+uint64_t create_tensor_i32_handle(Manager& manager, rust::Slice<const int32_t> data);
+uint64_t create_tensor_u32_handle(Manager& manager, rust::Slice<const uint32_t> data);
+uint64_t create_tensor_i8_handle(Manager& manager, rust::Slice<const int8_t> data);
+uint64_t create_tensor_u8_handle(Manager& manager, rust::Slice<const uint8_t> data);
+
+uint64_t create_tensor_uninit_f64_handle(Manager& manager, size_t size);
+uint64_t create_tensor_uninit_i32_handle(Manager& manager, size_t size);
+uint64_t create_tensor_uninit_u32_handle(Manager& manager, size_t size);
+uint64_t create_tensor_uninit_i8_handle(Manager& manager, size_t size);
+uint64_t create_tensor_uninit_u8_handle(Manager& manager, size_t size);
+
+// Multi-type tensor data retrieval by handle
+rust::Vec<double> tensor_data_f64_by_handle(uint64_t handle);
+rust::Vec<int32_t> tensor_data_i32_by_handle(uint64_t handle);
+rust::Vec<uint32_t> tensor_data_u32_by_handle(uint64_t handle);
+rust::Vec<int8_t> tensor_data_i8_by_handle(uint64_t handle);
+rust::Vec<uint8_t> tensor_data_u8_by_handle(uint64_t handle);
+
 size_t tensor_size_by_handle(uint64_t handle);
 size_t tensor_size_bytes_by_handle(uint64_t handle);
 rust::Vec<float> tensor_data_f32_by_handle(uint64_t handle);
@@ -129,3 +163,10 @@ void sequence_eval_by_handle(uint64_t handle);
 void sequence_eval_async_by_handle(uint64_t handle);
 void sequence_eval_await_by_handle(uint64_t handle, uint64_t timeout_ms);
 void sequence_destroy_handle(uint64_t handle);
+
+// Queue management operations
+uint64_t create_queue_handle(Manager& manager, uint32_t queue_family_index);
+uint64_t create_sequence_on_queue_handle(Manager& manager, uint64_t queue_handle);
+void queue_submit_sequence(uint64_t queue_handle, uint64_t sequence_handle);
+void queue_wait_idle(uint64_t queue_handle);
+void queue_destroy_handle(uint64_t handle);

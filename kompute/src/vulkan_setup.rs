@@ -153,8 +153,124 @@ pub fn verify_vulkan_availability() -> Result<u32, String> {
             );
             Ok(count)
         }
-        Err(e) => Err(format!("Vulkan verification failed: {}", e)),
+        Err(e) => {
+            let platform = crate::platform::PlatformInfo::detect();
+            let mut error_msg = format!("Vulkan verification failed: {}", e);
+
+            // Add platform-specific troubleshooting
+            error_msg.push_str("\n\nTroubleshooting for ");
+            error_msg.push_str(&platform.os);
+            error_msg.push_str(":\n");
+
+            for suggestion in platform.troubleshooting_guide() {
+                error_msg.push_str(&format!("  💡 {}\n", suggestion));
+            }
+
+            Err(error_msg)
+        }
     }
+}
+
+/// Comprehensive Vulkan environment diagnostics.
+pub fn diagnose_vulkan_environment() -> String {
+    let mut report = String::new();
+    report.push_str("Vulkan Environment Diagnostics\n");
+    report.push_str("==============================\n\n");
+
+    // Platform information
+    let platform = crate::platform::PlatformInfo::detect();
+    report.push_str(&format!("Platform: {} ({})\n", platform.os, platform.arch));
+    report.push_str(&format!("GPU Support: {:?}\n\n", platform.gpu_support));
+
+    // Environment variables
+    report.push_str("Environment Variables:\n");
+    let env_vars = vec![
+        "VULKAN_SDK",
+        "VK_ICD_FILENAMES",
+        "VK_LAYER_PATH",
+        "VK_INSTANCE_LAYERS",
+        "VK_DEVICE_EXTENSIONS",
+    ];
+
+    for var in env_vars {
+        match env::var(var) {
+            Ok(value) => report.push_str(&format!("  {}: {}\n", var, value)),
+            Err(_) => report.push_str(&format!("  {}: <not set>\n", var)),
+        }
+    }
+    report.push('\n');
+
+    // Configuration attempt
+    report.push_str("Configuration Results:\n");
+    match configure_vulkan_environment() {
+        Ok(()) => report.push_str("  ✅ Vulkan environment configured successfully\n"),
+        Err(e) => report.push_str(&format!("  ❌ Configuration failed: {}\n", e)),
+    }
+
+    // Device detection
+    match crate::Manager::device_count() {
+        Ok(count) => {
+            report.push_str(&format!("  ✅ Found {} Vulkan device(s)\n", count));
+        }
+        Err(e) => {
+            report.push_str(&format!("  ❌ Device detection failed: {}\n", e));
+        }
+    }
+
+    report.push('\n');
+
+    // Platform-specific checks
+    report.push_str("Platform-Specific Checks:\n");
+    match platform.os.as_str() {
+        "macos" => {
+            report.push_str("  MoltenVK Status:\n");
+            let moltenvk_paths = vec![
+                "/usr/local/share/vulkan/icd.d/MoltenVK_icd.json",
+                "/opt/homebrew/share/vulkan/icd.d/MoltenVK_icd.json",
+            ];
+
+            if let Ok(vulkan_sdk) = env::var("VULKAN_SDK") {
+                let sdk_path = format!("{}/share/vulkan/icd.d/MoltenVK_icd.json", vulkan_sdk);
+                if Path::new(&sdk_path).exists() {
+                    report.push_str(&format!("    ✅ MoltenVK found in SDK: {}\n", sdk_path));
+                } else {
+                    report.push_str(&format!("    ❌ MoltenVK not found in SDK: {}\n", sdk_path));
+                }
+            }
+
+            for path in moltenvk_paths {
+                if Path::new(path).exists() {
+                    report.push_str(&format!("    ✅ MoltenVK found: {}\n", path));
+                } else {
+                    report.push_str(&format!("    ❌ MoltenVK not found: {}\n", path));
+                }
+            }
+        }
+        "linux" => {
+            report.push_str("  Linux GPU Drivers:\n");
+            if Path::new("/dev/dri").exists() {
+                report.push_str("    ✅ DRI devices available\n");
+            } else {
+                report.push_str("    ❌ No DRI devices found\n");
+            }
+
+            if Path::new("/proc/driver/nvidia").exists() {
+                report.push_str("    ✅ NVIDIA drivers detected\n");
+            } else {
+                report.push_str("    ℹ️  NVIDIA drivers not detected\n");
+            }
+        }
+        "windows" => {
+            report.push_str("  Windows GPU Support:\n");
+            report.push_str("    ℹ️  Registry-based driver detection not implemented\n");
+            report.push_str("    ℹ️  Vulkan runtime detection through device enumeration\n");
+        }
+        _ => {
+            report.push_str("  ⚠️  Untested platform - results may vary\n");
+        }
+    }
+
+    report
 }
 
 #[cfg(test)]

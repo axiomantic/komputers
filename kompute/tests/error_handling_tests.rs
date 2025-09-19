@@ -212,6 +212,8 @@ fn test_error_message_quality() {
         KomputeError::invalid_parameter("Invalid buffer size"),
         KomputeError::resource_not_found("Shader not found"),
         KomputeError::not_supported("Feature not supported on this device"),
+        KomputeError::platform("Platform compatibility issue"),
+        KomputeError::environment("Environment configuration error"),
         KomputeError::internal("Unexpected internal state"),
     ];
 
@@ -241,6 +243,8 @@ fn test_error_message_quality() {
             KomputeError::InvalidParameter(_) => assert!(message.contains("parameter")),
             KomputeError::ResourceNotFound(_) => assert!(message.contains("not found")),
             KomputeError::NotSupported(_) => assert!(message.contains("not supported")),
+            KomputeError::PlatformError(_) => assert!(message.contains("Platform")),
+            KomputeError::EnvironmentError(_) => assert!(message.contains("Environment")),
             KomputeError::InternalError(_) => assert!(message.contains("Internal")),
         }
     }

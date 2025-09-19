@@ -5,6 +5,7 @@
 #include "kompute/Tensor.hpp"
 #include "kompute/Algorithm.hpp"
 #include "kompute/Sequence.hpp"
+#include <vulkan/vulkan.h>
 #include <memory>
 #include <vector>
 #include <unordered_map>
@@ -17,6 +18,16 @@ using Tensor = kp::Tensor;
 using Algorithm = kp::Algorithm;
 using Sequence = kp::Sequence;
 
+// Queue wrapper for handle management
+struct QueueHandle {
+    VkQueue queue;
+    uint32_t family_index;
+    std::string name;
+
+    QueueHandle(VkQueue q, uint32_t family, const std::string& n)
+        : queue(q), family_index(family), name(n) {}
+};
+
 /// Thread-safe handle registry for managing GPU resources.
 /// This replaces the global variables with a proper RAII class.
 class HandleRegistry {
@@ -24,6 +35,7 @@ private:
     std::unordered_map<uint64_t, std::shared_ptr<Tensor>> tensor_registry_;
     std::unordered_map<uint64_t, std::shared_ptr<Algorithm>> algorithm_registry_;
     std::unordered_map<uint64_t, std::shared_ptr<Sequence>> sequence_registry_;
+    std::unordered_map<uint64_t, std::shared_ptr<QueueHandle>> queue_registry_;
     std::atomic<uint64_t> next_handle_{1};
     mutable std::mutex registry_mutex_;
 
@@ -90,6 +102,17 @@ public:
         return handle;
     }
 
+    /// Register a queue and return its handle
+    uint64_t register_queue(std::shared_ptr<QueueHandle> queue) {
+        if (!queue) {
+            throw std::invalid_argument("Cannot register null queue");
+        }
+        uint64_t handle = generate_handle();
+        std::lock_guard<std::mutex> lock(registry_mutex_);
+        queue_registry_[handle] = std::move(queue);
+        return handle;
+    }
+
     /// Get a tensor by handle (thread-safe)
     std::shared_ptr<Tensor> get_tensor(uint64_t handle) const {
         std::lock_guard<std::mutex> lock(registry_mutex_);
@@ -111,6 +134,13 @@ public:
         return (it != sequence_registry_.end()) ? it->second : nullptr;
     }
 
+    /// Get a queue by handle (thread-safe)
+    std::shared_ptr<QueueHandle> get_queue(uint64_t handle) const {
+        std::lock_guard<std::mutex> lock(registry_mutex_);
+        auto it = queue_registry_.find(handle);
+        return (it != queue_registry_.end()) ? it->second : nullptr;
+    }
+
     /// Remove a tensor handle
     bool remove_tensor(uint64_t handle) {
         std::lock_guard<std::mutex> lock(registry_mutex_);
@@ -127,6 +157,12 @@ public:
     bool remove_sequence(uint64_t handle) {
         std::lock_guard<std::mutex> lock(registry_mutex_);
         return sequence_registry_.erase(handle) > 0;
+    }
+
+    /// Remove a queue handle
+    bool remove_queue(uint64_t handle) {
+        std::lock_guard<std::mutex> lock(registry_mutex_);
+        return queue_registry_.erase(handle) > 0;
     }
 
     /// Find tensor handle by object address (thread-safe)
@@ -167,6 +203,7 @@ public:
         size_t tensor_count;
         size_t algorithm_count;
         size_t sequence_count;
+        size_t queue_count;
         uint64_t next_handle_value;
     };
 
@@ -176,6 +213,7 @@ public:
             .tensor_count = tensor_registry_.size(),
             .algorithm_count = algorithm_registry_.size(),
             .sequence_count = sequence_registry_.size(),
+            .queue_count = queue_registry_.size(),
             .next_handle_value = next_handle_.load()
         };
     }

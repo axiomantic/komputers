@@ -46,13 +46,12 @@ use std::collections::HashMap;
 pub struct MultiQueueManager {
     manager: Manager,
     queues: HashMap<String, QueueInfo>,
-    next_queue_id: u32,
 }
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)] // Part of future API design
 struct QueueInfo {
-    queue_id: u32,
+    queue_id: u64, // Changed to u64 to store actual GPU queue handle
     queue_name: String,
     active_sequences: Vec<u64>,
 }
@@ -68,7 +67,6 @@ impl MultiQueueManager {
         Ok(Self {
             manager,
             queues: HashMap::new(),
-            next_queue_id: 0,
         })
     }
 
@@ -86,7 +84,6 @@ impl MultiQueueManager {
         Ok(Self {
             manager,
             queues: HashMap::new(),
-            next_queue_id: 0,
         })
     }
 
@@ -98,12 +95,12 @@ impl MultiQueueManager {
     ///
     /// # Returns
     ///
-    /// The queue ID for referencing this queue in operations.
+    /// The queue handle for referencing this queue in operations.
     ///
     /// # Errors
     ///
     /// Returns [`KomputeError::ComputeError`] if queue creation fails.
-    pub fn create_queue(&mut self, queue_name: &str) -> Result<u32> {
+    pub fn create_queue(&mut self, queue_name: &str) -> Result<u64> {
         // Validate queue name
         if queue_name.is_empty() {
             return Err(KomputeError::compute("Queue name cannot be empty"));
@@ -130,17 +127,17 @@ impl MultiQueueManager {
             ));
         }
 
-        let queue_id = self.next_queue_id;
-        self.next_queue_id += 1;
+        // Create actual GPU queue using the manager (family index 0 for compute queues)
+        let queue_handle = self.manager.create_queue(0)?;
 
         let queue_info = QueueInfo {
-            queue_id,
+            queue_id: queue_handle, // Use the actual GPU queue handle as the ID
             queue_name: queue_name.to_string(),
             active_sequences: Vec::new(),
         };
 
         self.queues.insert(queue_name.to_string(), queue_info);
-        Ok(queue_id)
+        Ok(queue_handle) // Return the actual GPU queue handle
     }
 
     /// Create a sequence on a specific queue.
@@ -153,14 +150,15 @@ impl MultiQueueManager {
     ///
     /// Returns [`KomputeError::ComputeError`] if sequence creation fails or queue doesn't exist.
     pub fn create_sequence_on_queue(&mut self, queue_name: &str) -> Result<Sequence> {
-        if !self.queues.contains_key(queue_name) {
-            return Err(KomputeError::compute(format!(
+        let queue_info = self.queues.get(queue_name).ok_or_else(|| {
+            KomputeError::compute(format!(
                 "Queue '{}' does not exist. Create it first with create_queue()",
                 queue_name
-            )));
-        }
+            ))
+        })?;
 
-        let sequence = Sequence::new(&mut self.manager)?;
+        let queue_handle = queue_info.queue_id;
+        let sequence = self.manager.create_sequence_on_queue(queue_handle)?;
         let sequence_handle = sequence.handle();
 
         // Track the sequence in the queue

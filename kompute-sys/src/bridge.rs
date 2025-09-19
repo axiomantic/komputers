@@ -24,6 +24,20 @@ pub mod ffi {
         // Create uninitialized tensor
         fn create_tensor_uninit_f32(manager: Pin<&mut Manager>, size: usize) -> SharedPtr<Tensor>;
 
+        // Multi-type tensor creation functions
+        fn create_tensor_f64(manager: Pin<&mut Manager>, data: &[f64]) -> SharedPtr<Tensor>;
+        fn create_tensor_i32(manager: Pin<&mut Manager>, data: &[i32]) -> SharedPtr<Tensor>;
+        fn create_tensor_u32(manager: Pin<&mut Manager>, data: &[u32]) -> SharedPtr<Tensor>;
+        fn create_tensor_i8(manager: Pin<&mut Manager>, data: &[i8]) -> SharedPtr<Tensor>;
+        fn create_tensor_u8(manager: Pin<&mut Manager>, data: &[u8]) -> SharedPtr<Tensor>;
+
+        // Create uninitialized multi-type tensors
+        fn create_tensor_uninit_f64(manager: Pin<&mut Manager>, size: usize) -> SharedPtr<Tensor>;
+        fn create_tensor_uninit_i32(manager: Pin<&mut Manager>, size: usize) -> SharedPtr<Tensor>;
+        fn create_tensor_uninit_u32(manager: Pin<&mut Manager>, size: usize) -> SharedPtr<Tensor>;
+        fn create_tensor_uninit_i8(manager: Pin<&mut Manager>, size: usize) -> SharedPtr<Tensor>;
+        fn create_tensor_uninit_u8(manager: Pin<&mut Manager>, size: usize) -> SharedPtr<Tensor>;
+
         // Tensor operations
         fn tensor_size(tensor: Pin<&mut Tensor>) -> usize;
         fn tensor_size_bytes(tensor: Pin<&mut Tensor>) -> usize;
@@ -54,6 +68,21 @@ pub mod ffi {
         // Tensor operations by handle
         fn create_tensor_f32_handle(manager: Pin<&mut Manager>, data: &[f32]) -> u64;
         fn create_tensor_uninit_f32_handle(manager: Pin<&mut Manager>, size: usize) -> u64;
+
+        // Multi-type tensor operations by handle
+        fn create_tensor_f64_handle(manager: Pin<&mut Manager>, data: &[f64]) -> u64;
+        fn create_tensor_i32_handle(manager: Pin<&mut Manager>, data: &[i32]) -> u64;
+        fn create_tensor_u32_handle(manager: Pin<&mut Manager>, data: &[u32]) -> u64;
+
+        fn create_tensor_uninit_f64_handle(manager: Pin<&mut Manager>, size: usize) -> u64;
+        fn create_tensor_uninit_i32_handle(manager: Pin<&mut Manager>, size: usize) -> u64;
+        fn create_tensor_uninit_u32_handle(manager: Pin<&mut Manager>, size: usize) -> u64;
+
+        // Multi-type tensor data retrieval
+        fn tensor_data_f64_by_handle(handle: u64) -> Vec<f64>;
+        fn tensor_data_i32_by_handle(handle: u64) -> Vec<i32>;
+        fn tensor_data_u32_by_handle(handle: u64) -> Vec<u32>;
+
         fn tensor_size_by_handle(handle: u64) -> usize;
         fn tensor_size_bytes_by_handle(handle: u64) -> usize;
         fn tensor_data_f32_by_handle(handle: u64) -> Vec<f32>;
@@ -72,5 +101,12 @@ pub mod ffi {
         fn sequence_eval_async_by_handle(handle: u64);
         fn sequence_eval_await_by_handle(handle: u64, timeout_ms: u64);
         fn sequence_destroy_handle(handle: u64);
+
+        // Queue management operations
+        fn create_queue_handle(manager: Pin<&mut Manager>, queue_family_index: u32) -> u64;
+        fn create_sequence_on_queue_handle(manager: Pin<&mut Manager>, queue_handle: u64) -> u64;
+        fn queue_submit_sequence(queue_handle: u64, sequence_handle: u64);
+        fn queue_wait_idle(queue_handle: u64);
+        fn queue_destroy_handle(handle: u64);
     }
 }

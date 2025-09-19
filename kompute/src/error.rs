@@ -48,6 +48,14 @@ pub enum KomputeError {
     #[error("Operation not supported: {0}")]
     NotSupported(String),
 
+    /// Platform-specific errors (driver issues, environment setup)
+    #[error("Platform error: {0}")]
+    PlatformError(String),
+
+    /// Environment validation errors (missing dependencies, configuration issues)
+    #[error("Environment error: {0}")]
+    EnvironmentError(String),
+
     /// Generic internal error with context
     #[error("Internal error: {0}")]
     InternalError(String),
@@ -104,9 +112,82 @@ impl KomputeError {
         KomputeError::NotSupported(msg.into())
     }
 
+    /// Create a new platform error with context
+    pub fn platform<S: Into<String>>(msg: S) -> Self {
+        KomputeError::PlatformError(msg.into())
+    }
+
+    /// Create a new environment error with context
+    pub fn environment<S: Into<String>>(msg: S) -> Self {
+        KomputeError::EnvironmentError(msg.into())
+    }
+
     /// Create a new internal error with context
     pub fn internal<S: Into<String>>(msg: S) -> Self {
         KomputeError::InternalError(msg.into())
+    }
+
+    /// Get platform-specific error recovery suggestions.
+    pub fn recovery_suggestions(&self) -> Vec<String> {
+        match self {
+            KomputeError::VulkanError(_) => vec![
+                "Check if Vulkan drivers are installed and up to date".to_string(),
+                "Verify VULKAN_SDK environment variable is set correctly".to_string(),
+                "Run 'vulkaninfo' to test Vulkan installation".to_string(),
+            ],
+            KomputeError::HardwareError(_) => vec![
+                "Check GPU power and thermal status".to_string(),
+                "Verify GPU is properly seated and connected".to_string(),
+                "Update GPU drivers to latest version".to_string(),
+                "Check system power supply capacity".to_string(),
+            ],
+            KomputeError::DeviceError(_) => vec![
+                "Verify GPU supports Vulkan 1.0 or higher".to_string(),
+                "Check if other applications are using the GPU".to_string(),
+                "Try selecting a different GPU device".to_string(),
+            ],
+            KomputeError::MemoryError(_) => vec![
+                "Reduce tensor sizes or batch sizes".to_string(),
+                "Free unused GPU memory before allocation".to_string(),
+                "Check available GPU memory with nvidia-smi or equivalent".to_string(),
+            ],
+            KomputeError::PlatformError(_) => vec![
+                "Check platform-specific requirements and dependencies".to_string(),
+                "Verify environment variables are set correctly".to_string(),
+                "Consult platform-specific installation guide".to_string(),
+            ],
+            KomputeError::EnvironmentError(_) => vec![
+                "Run environment validation to identify issues".to_string(),
+                "Install missing dependencies and libraries".to_string(),
+                "Check PATH and LD_LIBRARY_PATH settings".to_string(),
+            ],
+            _ => vec![
+                "Check Kompute documentation for troubleshooting".to_string(),
+                "Verify all system requirements are met".to_string(),
+            ],
+        }
+    }
+
+    /// Check if this error indicates a recoverable condition.
+    pub fn is_recoverable(&self) -> bool {
+        matches!(
+            self,
+            KomputeError::MemoryError(_)
+                | KomputeError::ComputeError(_)
+                | KomputeError::InvalidParameter(_)
+                | KomputeError::ResourceNotFound(_)
+        )
+    }
+
+    /// Check if this error requires environment reconfiguration.
+    pub fn requires_environment_setup(&self) -> bool {
+        matches!(
+            self,
+            KomputeError::VulkanError(_)
+                | KomputeError::PlatformError(_)
+                | KomputeError::EnvironmentError(_)
+                | KomputeError::DeviceError(_)
+        )
     }
 }
 

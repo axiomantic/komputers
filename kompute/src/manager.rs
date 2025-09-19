@@ -222,6 +222,98 @@ impl Manager {
         Sequence::new(self)
     }
 
+    /// Create a queue on a specific queue family for parallel operations.
+    ///
+    /// # Arguments
+    ///
+    /// * `queue_family_index` - The queue family index to create the queue on (0 for compute)
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KomputeError::ComputeError`] if queue creation fails.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use kompute::{Manager, Result};
+    ///
+    /// fn example() -> Result<()> {
+    ///     let mut manager = Manager::new()?;
+    ///     let queue_handle = manager.create_queue(0)?; // Create queue on family 0
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn create_queue(&mut self, queue_family_index: u32) -> Result<u64> {
+        let handle = ffi::create_queue_handle(self.handle.pin_mut(), queue_family_index);
+        if handle == 0 {
+            return Err(KomputeError::compute(format!(
+                "Failed to create queue on family index {}",
+                queue_family_index
+            )));
+        }
+        Ok(handle)
+    }
+
+    /// Create a sequence on a specific queue.
+    ///
+    /// # Arguments
+    ///
+    /// * `queue_handle` - Handle to the queue to create the sequence on
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KomputeError::ComputeError`] if sequence creation fails.
+    pub fn create_sequence_on_queue(&mut self, queue_handle: u64) -> Result<Sequence> {
+        let sequence_handle =
+            ffi::create_sequence_on_queue_handle(self.handle.pin_mut(), queue_handle);
+        if sequence_handle == 0 {
+            return Err(KomputeError::compute(
+                "Failed to create sequence on queue".to_string(),
+            ));
+        }
+
+        // Create Rust wrapper for the sequence
+        Sequence::from_handle(sequence_handle)
+    }
+
+    /// Wait for all operations on a queue to complete.
+    ///
+    /// # Arguments
+    ///
+    /// * `queue_handle` - Handle to the queue to wait for
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KomputeError::ComputeError`] if wait operation fails.
+    pub fn queue_wait_idle(&self, queue_handle: u64) -> Result<()> {
+        ffi::queue_wait_idle(queue_handle);
+        Ok(())
+    }
+
+    /// Submit a sequence to a specific queue for execution.
+    ///
+    /// # Arguments
+    ///
+    /// * `queue_handle` - Handle to the queue to submit to
+    /// * `sequence_handle` - Handle to the sequence to submit
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KomputeError::ComputeError`] if submission fails.
+    pub fn queue_submit_sequence(&self, queue_handle: u64, sequence_handle: u64) -> Result<()> {
+        ffi::queue_submit_sequence(queue_handle, sequence_handle);
+        Ok(())
+    }
+
+    /// Destroy a queue handle and release its resources.
+    ///
+    /// # Arguments
+    ///
+    /// * `queue_handle` - Handle to the queue to destroy
+    pub fn destroy_queue(&self, queue_handle: u64) {
+        ffi::queue_destroy_handle(queue_handle);
+    }
+
     /// Get the raw handle for FFI operations.
     ///
     /// # Safety

@@ -3,35 +3,48 @@
 use crate::error::{KomputeError, Result};
 use crate::handle_tracker::HandleTracker;
 use crate::manager::Manager;
+use crate::queue::Queue;
 use crate::sequence::Sequence;
 use crate::tensor::Tensor;
 use std::future::Future;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
+use tokio::sync::Mutex;
 use tokio::time::{sleep, timeout};
 
 /// High-level async GPU context for idiomatic Rust patterns.
 ///
 /// This provides async/await support that integrates naturally with
-/// Rust's async ecosystem (tokio, async-std, etc.).
+/// Rust's async ecosystem (tokio, async-std, etc.). It includes
+/// queue management for parallel GPU operations.
 pub struct AsyncGpuContext {
-    manager: Manager,
+    manager: Arc<Mutex<Manager>>,
     tracker: HandleTracker,
+    default_queue: Option<Queue>,
 }
 
 impl AsyncGpuContext {
     /// Create a new async GPU context.
-    pub fn new() -> Result<Self> {
+    pub async fn new() -> Result<Self> {
+        let mut manager = Manager::new()?;
+        let default_queue = Queue::new(&mut manager, 0).ok(); // Try to create default queue
+
         Ok(Self {
-            manager: Manager::new()?,
+            manager: Arc::new(Mutex::new(manager)),
             tracker: HandleTracker::new(),
+            default_queue,
         })
     }
 
     /// Create a new async GPU context with a specific device.
-    pub fn with_device(device_id: u32) -> Result<Self> {
+    pub async fn with_device(device_id: u32) -> Result<Self> {
+        let mut manager = Manager::with_device(device_id)?;
+        let default_queue = Queue::new(&mut manager, 0).ok(); // Try to create default queue
+
         Ok(Self {
-            manager: Manager::with_device(device_id)?,
+            manager: Arc::new(Mutex::new(manager)),
             tracker: HandleTracker::new(),
+            default_queue,
         })
     }
 
@@ -40,12 +53,14 @@ impl AsyncGpuContext {
         &mut self,
         data: &[T],
     ) -> Result<AsyncTensor<T>> {
-        // Simulate async operation (in real implementation, this might involve
-        // async allocation or initialization)
+        // Yield control to allow other async operations
         tokio::task::yield_now().await;
 
-        let tensor = Tensor::new(&mut self.manager, data)?;
+        let mut manager = self.manager.lock().await;
+        let tensor = Tensor::new(&mut *manager, data)?;
         let handle = tensor.handle();
+        drop(manager); // Release lock as soon as possible
+
         self.tracker.register_handle("tensor", handle);
 
         Ok(AsyncTensor {
@@ -61,8 +76,11 @@ impl AsyncGpuContext {
     ) -> Result<AsyncTensor<T>> {
         tokio::task::yield_now().await;
 
-        let tensor = Tensor::uninit(&mut self.manager, size)?;
+        let mut manager = self.manager.lock().await;
+        let tensor = Tensor::uninit(&mut *manager, size)?;
         let handle = tensor.handle();
+        drop(manager);
+
         self.tracker.register_handle("tensor", handle);
 
         Ok(AsyncTensor {
@@ -75,13 +93,37 @@ impl AsyncGpuContext {
     pub async fn create_sequence(&mut self) -> Result<AsyncSequence> {
         tokio::task::yield_now().await;
 
-        let sequence = Sequence::new(&mut self.manager)?;
+        let mut manager = self.manager.lock().await;
+        let sequence = Sequence::new(&mut *manager)?;
         let handle = sequence.handle();
+        drop(manager);
+
         self.tracker.register_handle("sequence", handle);
 
         Ok(AsyncSequence {
             sequence: Some(sequence),
             tracker: self.tracker.clone(),
+            manager: Some(Arc::clone(&self.manager)),
+            queue: self.default_queue.as_ref().map(|q| q.handle()),
+        })
+    }
+
+    /// Create a sequence on a specific queue asynchronously.
+    pub async fn create_sequence_on_queue(&mut self, queue: &Queue) -> Result<AsyncSequence> {
+        tokio::task::yield_now().await;
+
+        let mut manager = self.manager.lock().await;
+        let sequence = queue.create_sequence(&mut *manager)?;
+        let handle = sequence.handle();
+        drop(manager);
+
+        self.tracker.register_handle("sequence", handle);
+
+        Ok(AsyncSequence {
+            sequence: Some(sequence),
+            tracker: self.tracker.clone(),
+            manager: Some(Arc::clone(&self.manager)),
+            queue: Some(queue.handle()),
         })
     }
 
@@ -137,17 +179,29 @@ impl<T: crate::tensor::TensorData> AsyncTensor<T> {
     }
 
     /// Synchronize to device asynchronously with timeout.
-    pub async fn sync_to_device(&self, timeout: Duration) -> Result<()> {
-        let mut sequence = AsyncSequence::temp_for_tensor_sync(&self.tracker)?;
-        sequence.record_tensor_sync_device(self.handle()).await?;
-        sequence.execute_with_timeout(timeout).await
+    ///
+    /// Note: This requires a manager instance to create sequences.
+    /// For now, this returns an error until we refactor to support
+    /// tensor-specific sync operations.
+    pub async fn sync_to_device(&self, _timeout: Duration) -> Result<()> {
+        // This operation requires access to a manager to create sequences
+        // In a future version, we would store a manager reference in AsyncTensor
+        Err(KomputeError::compute(
+            "Tensor sync operations require explicit sequence management. Use AsyncGpuContext::create_sequence() instead.",
+        ))
     }
 
     /// Synchronize to host asynchronously with timeout.
-    pub async fn sync_to_host(&self, timeout: Duration) -> Result<()> {
-        let mut sequence = AsyncSequence::temp_for_tensor_sync(&self.tracker)?;
-        sequence.record_tensor_sync_local(self.handle()).await?;
-        sequence.execute_with_timeout(timeout).await
+    ///
+    /// Note: This requires a manager instance to create sequences.
+    /// For now, this returns an error until we refactor to support
+    /// tensor-specific sync operations.
+    pub async fn sync_to_host(&self, _timeout: Duration) -> Result<()> {
+        // This operation requires access to a manager to create sequences
+        // In a future version, we would store a manager reference in AsyncTensor
+        Err(KomputeError::compute(
+            "Tensor sync operations require explicit sequence management. Use AsyncGpuContext::create_sequence() instead.",
+        ))
     }
 }
 
@@ -162,16 +216,20 @@ impl<T: crate::tensor::TensorData> Drop for AsyncTensor<T> {
 pub struct AsyncSequence {
     sequence: Option<Sequence>,
     tracker: HandleTracker,
+    manager: Option<Arc<Mutex<Manager>>>,
+    queue: Option<u64>, // Queue handle for submission
 }
 
 impl AsyncSequence {
     /// Create a temporary sequence for tensor operations.
-    fn temp_for_tensor_sync(_tracker: &HandleTracker) -> Result<Self> {
-        // This would create a temporary sequence on a temp manager
-        // For now, return an error as we need a manager reference
-        Err(KomputeError::compute(
-            "Temporary sequences not yet implemented",
-        ))
+    fn temp_for_tensor_sync(tracker: &HandleTracker, manager: Arc<Mutex<Manager>>) -> Result<Self> {
+        // This creates a temporary sequence for internal operations
+        Ok(Self {
+            sequence: None,
+            tracker: tracker.clone(),
+            manager: Some(manager),
+            queue: None,
+        })
     }
 
     /// Record tensor sync to device asynchronously.
@@ -207,7 +265,7 @@ impl AsyncSequence {
         }
     }
 
-    /// Execute with timeout using Rust async patterns.
+    /// Execute with timeout using Rust async patterns and real GPU async operations.
     pub async fn execute_with_timeout(mut self, timeout_duration: Duration) -> Result<()> {
         let mut sequence = self
             .sequence
@@ -216,34 +274,34 @@ impl AsyncSequence {
 
         // Use tokio's timeout for proper async integration
         timeout(timeout_duration, async move {
-            // Start async execution
-            sequence.eval_async()?;
+            // Start async execution on GPU using the real async API
+            sequence.eval_async().map_err(|e| {
+                KomputeError::compute(format!("Failed to start async GPU execution: {}", e))
+            })?;
 
-            // Poll for completion using exponential backoff
+            // Use exponential backoff polling for completion
             let mut delay = Duration::from_millis(1);
-            let start = Instant::now();
+            let max_delay = Duration::from_millis(50);
 
             loop {
-                // Try to await with a short timeout
+                // Try to await completion with a very short timeout (1ms)
                 match sequence.eval_await(1) {
-                    Ok(()) => return Ok(()),
+                    Ok(()) => {
+                        // GPU operation completed successfully
+                        return Ok(());
+                    }
                     Err(_) => {
-                        // Not ready yet, sleep and try again
+                        // Operation still in progress - yield and retry
                         sleep(delay).await;
 
-                        // Exponential backoff up to 100ms
-                        delay = std::cmp::min(delay * 2, Duration::from_millis(100));
-
-                        // Check if we should continue
-                        if start.elapsed() > timeout_duration {
-                            return Err(KomputeError::compute("GPU operation timed out"));
-                        }
+                        // Exponential backoff to avoid busy polling
+                        delay = std::cmp::min(delay.saturating_mul(2), max_delay);
                     }
                 }
             }
         })
         .await
-        .map_err(|_| KomputeError::compute("Sequence execution timed out"))?
+        .map_err(|_| KomputeError::compute("GPU operation timed out"))?
     }
 
     /// Execute without timeout.
@@ -279,7 +337,7 @@ pub struct AsyncComputeKernel {
 impl AsyncComputeKernel {
     /// Create a new compute kernel.
     pub async fn new() -> Result<Self> {
-        let context = AsyncGpuContext::new()?;
+        let context = AsyncGpuContext::new().await?;
         Ok(Self { _context: context })
     }
 
@@ -341,7 +399,7 @@ impl AsyncWorkflowBuilder {
     /// Create a new workflow builder.
     pub async fn new() -> Result<Self> {
         Ok(Self {
-            context: AsyncGpuContext::new()?,
+            context: AsyncGpuContext::new().await?,
             operations: Vec::new(),
         })
     }

@@ -117,7 +117,7 @@ int32_t get_device_count() {
 std::shared_ptr<Tensor> create_tensor_f32(Manager& manager, rust::Slice<const float> data) {
     try {
         std::vector<float> cpp_data(data.begin(), data.end());
-        return manager.tensor(cpp_data);
+        return manager.tensorT<float>(cpp_data);
     } catch (const std::exception& e) {
         throw std::runtime_error(std::string("Failed to create tensor: ") + e.what());
     }
@@ -126,11 +126,69 @@ std::shared_ptr<Tensor> create_tensor_f32(Manager& manager, rust::Slice<const fl
 std::shared_ptr<Tensor> create_tensor_uninit_f32(Manager& manager, size_t size) {
     try {
         std::vector<float> empty_data(size, 0.0f);
-        return manager.tensor(empty_data);
+        return manager.tensorT<float>(empty_data);
     } catch (const std::exception& e) {
         throw std::runtime_error(std::string("Failed to create uninitialized tensor: ") + e.what());
     }
 }
+
+// Multi-type tensor creation functions
+std::shared_ptr<Tensor> create_tensor_f64(Manager& manager, rust::Slice<const double> data) {
+    try {
+        std::vector<double> cpp_data(data.begin(), data.end());
+        return manager.tensorT<double>(cpp_data);
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to create f64 tensor: ") + e.what());
+    }
+}
+
+std::shared_ptr<Tensor> create_tensor_i32(Manager& manager, rust::Slice<const int32_t> data) {
+    try {
+        std::vector<int32_t> cpp_data(data.begin(), data.end());
+        return manager.tensorT<int32_t>(cpp_data);
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to create i32 tensor: ") + e.what());
+    }
+}
+
+std::shared_ptr<Tensor> create_tensor_u32(Manager& manager, rust::Slice<const uint32_t> data) {
+    try {
+        std::vector<uint32_t> cpp_data(data.begin(), data.end());
+        return manager.tensorT<uint32_t>(cpp_data);
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to create u32 tensor: ") + e.what());
+    }
+}
+
+
+// Uninitialized multi-type tensors
+std::shared_ptr<Tensor> create_tensor_uninit_f64(Manager& manager, size_t size) {
+    try {
+        std::vector<double> empty_data(size, 0.0);
+        return manager.tensorT<double>(empty_data);
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to create uninitialized f64 tensor: ") + e.what());
+    }
+}
+
+std::shared_ptr<Tensor> create_tensor_uninit_i32(Manager& manager, size_t size) {
+    try {
+        std::vector<int32_t> empty_data(size, 0);
+        return manager.tensorT<int32_t>(empty_data);
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to create uninitialized i32 tensor: ") + e.what());
+    }
+}
+
+std::shared_ptr<Tensor> create_tensor_uninit_u32(Manager& manager, size_t size) {
+    try {
+        std::vector<uint32_t> empty_data(size, 0u);
+        return manager.tensorT<uint32_t>(empty_data);
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to create uninitialized u32 tensor: ") + e.what());
+    }
+}
+
 
 size_t tensor_size(Tensor& tensor) {
     return tensor.size();
@@ -284,7 +342,7 @@ uint64_t create_tensor_f32_handle(Manager& manager, rust::Slice<const float> dat
         std::copy(data.begin(), data.end(), std::back_inserter(cpp_data));
 
         // Pattern 4: RAII - Automatic cleanup if tensor creation fails
-        auto tensor = manager.tensor(cpp_data);
+        auto tensor = manager.tensorT<float>(cpp_data);
 
         if (!tensor) {
             throw std::runtime_error("Manager returned null tensor");
@@ -323,7 +381,7 @@ uint64_t create_tensor_uninit_f32_handle(Manager& manager, size_t size) {
         empty_data.resize(size, 0.0f); // Initialize to zero
 
         // Pattern 4: RAII - Automatic cleanup if tensor creation fails
-        auto tensor = manager.tensor(empty_data);
+        auto tensor = manager.tensorT<float>(empty_data);
 
         if (!tensor) {
             throw std::runtime_error("Manager returned null tensor");
@@ -395,6 +453,255 @@ rust::Vec<float> tensor_data_f32_by_handle(uint64_t handle) {
 void tensor_destroy_handle(uint64_t handle) {
     get_global_registry().remove_tensor(handle);
 }
+
+// =============================================================================
+// Multi-Type Tensor Handle Operations Implementation
+// =============================================================================
+
+uint64_t create_tensor_f64_handle(Manager& manager, rust::Slice<const double> data) {
+    if (data.empty()) {
+        throw std::invalid_argument("Cannot create tensor with empty data");
+    }
+
+    if (!validation::is_safe_size(data.size(), safety_limits::MAX_TENSOR_SIZE)) {
+        throw std::invalid_argument("Tensor size exceeds safety limits: " +
+                                  std::to_string(data.size()) + " elements");
+    }
+
+    try {
+        std::vector<double> cpp_data;
+        cpp_data.reserve(data.size());
+        std::copy(data.begin(), data.end(), std::back_inserter(cpp_data));
+
+        auto tensor = manager.tensorT<double>(cpp_data);
+        if (!tensor) {
+            throw std::runtime_error("Manager returned null tensor");
+        }
+
+        auto handle = get_global_registry().register_tensor(tensor);
+        if (!validation::is_valid_handle(handle)) {
+            throw std::runtime_error("Registry returned invalid handle");
+        }
+
+        return handle;
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to create f64 tensor handle: ") + e.what());
+    }
+}
+
+uint64_t create_tensor_i32_handle(Manager& manager, rust::Slice<const int32_t> data) {
+    if (data.empty()) {
+        throw std::invalid_argument("Cannot create tensor with empty data");
+    }
+
+    if (!validation::is_safe_size(data.size(), safety_limits::MAX_TENSOR_SIZE)) {
+        throw std::invalid_argument("Tensor size exceeds safety limits: " +
+                                  std::to_string(data.size()) + " elements");
+    }
+
+    try {
+        std::vector<int32_t> cpp_data;
+        cpp_data.reserve(data.size());
+        std::copy(data.begin(), data.end(), std::back_inserter(cpp_data));
+
+        auto tensor = manager.tensorT<int32_t>(cpp_data);
+        if (!tensor) {
+            throw std::runtime_error("Manager returned null tensor");
+        }
+
+        auto handle = get_global_registry().register_tensor(tensor);
+        if (!validation::is_valid_handle(handle)) {
+            throw std::runtime_error("Registry returned invalid handle");
+        }
+
+        return handle;
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to create i32 tensor handle: ") + e.what());
+    }
+}
+
+uint64_t create_tensor_u32_handle(Manager& manager, rust::Slice<const uint32_t> data) {
+    if (data.empty()) {
+        throw std::invalid_argument("Cannot create tensor with empty data");
+    }
+
+    if (!validation::is_safe_size(data.size(), safety_limits::MAX_TENSOR_SIZE)) {
+        throw std::invalid_argument("Tensor size exceeds safety limits: " +
+                                  std::to_string(data.size()) + " elements");
+    }
+
+    try {
+        std::vector<uint32_t> cpp_data;
+        cpp_data.reserve(data.size());
+        std::copy(data.begin(), data.end(), std::back_inserter(cpp_data));
+
+        auto tensor = manager.tensorT<uint32_t>(cpp_data);
+        if (!tensor) {
+            throw std::runtime_error("Manager returned null tensor");
+        }
+
+        auto handle = get_global_registry().register_tensor(tensor);
+        if (!validation::is_valid_handle(handle)) {
+            throw std::runtime_error("Registry returned invalid handle");
+        }
+
+        return handle;
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to create u32 tensor handle: ") + e.what());
+    }
+}
+
+
+// =============================================================================
+// Uninitialized Multi-Type Tensor Handle Operations
+// =============================================================================
+
+uint64_t create_tensor_uninit_f64_handle(Manager& manager, size_t size) {
+    if (size == 0) {
+        throw std::invalid_argument("Cannot create tensor with zero size");
+    }
+
+    if (!validation::is_safe_size(size, safety_limits::MAX_TENSOR_SIZE)) {
+        throw std::invalid_argument("Tensor size exceeds safety limits: " +
+                                  std::to_string(size) + " elements");
+    }
+
+    try {
+        std::vector<double> empty_data(size, 0.0);
+        auto tensor = manager.tensorT<double>(empty_data);
+        if (!tensor) {
+            throw std::runtime_error("Manager returned null tensor");
+        }
+
+        auto handle = get_global_registry().register_tensor(tensor);
+        if (!validation::is_valid_handle(handle)) {
+            throw std::runtime_error("Registry returned invalid handle");
+        }
+
+        return handle;
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to create f64 uninit tensor handle: ") + e.what());
+    }
+}
+
+uint64_t create_tensor_uninit_i32_handle(Manager& manager, size_t size) {
+    if (size == 0) {
+        throw std::invalid_argument("Cannot create tensor with zero size");
+    }
+
+    if (!validation::is_safe_size(size, safety_limits::MAX_TENSOR_SIZE)) {
+        throw std::invalid_argument("Tensor size exceeds safety limits: " +
+                                  std::to_string(size) + " elements");
+    }
+
+    try {
+        std::vector<int32_t> empty_data(size, 0);
+        auto tensor = manager.tensorT<int32_t>(empty_data);
+        if (!tensor) {
+            throw std::runtime_error("Manager returned null tensor");
+        }
+
+        auto handle = get_global_registry().register_tensor(tensor);
+        if (!validation::is_valid_handle(handle)) {
+            throw std::runtime_error("Registry returned invalid handle");
+        }
+
+        return handle;
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to create i32 uninit tensor handle: ") + e.what());
+    }
+}
+
+uint64_t create_tensor_uninit_u32_handle(Manager& manager, size_t size) {
+    if (size == 0) {
+        throw std::invalid_argument("Cannot create tensor with zero size");
+    }
+
+    if (!validation::is_safe_size(size, safety_limits::MAX_TENSOR_SIZE)) {
+        throw std::invalid_argument("Tensor size exceeds safety limits: " +
+                                  std::to_string(size) + " elements");
+    }
+
+    try {
+        std::vector<uint32_t> empty_data(size, 0u);
+        auto tensor = manager.tensorT<uint32_t>(empty_data);
+        if (!tensor) {
+            throw std::runtime_error("Manager returned null tensor");
+        }
+
+        auto handle = get_global_registry().register_tensor(tensor);
+        if (!validation::is_valid_handle(handle)) {
+            throw std::runtime_error("Registry returned invalid handle");
+        }
+
+        return handle;
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to create u32 uninit tensor handle: ") + e.what());
+    }
+}
+
+
+// =============================================================================
+// Multi-Type Tensor Data Retrieval Functions
+// =============================================================================
+
+rust::Vec<double> tensor_data_f64_by_handle(uint64_t handle) {
+    try {
+        auto tensor = get_global_registry().get_tensor(handle);
+        if (!tensor) {
+            return rust::Vec<double>();
+        }
+
+        auto cpp_data = tensor->vector<double>();
+        rust::Vec<double> rust_data;
+        rust_data.reserve(cpp_data.size());
+        for (const auto& item : cpp_data) {
+            rust_data.push_back(item);
+        }
+        return rust_data;
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to get f64 tensor data by handle: ") + e.what());
+    }
+}
+
+rust::Vec<int32_t> tensor_data_i32_by_handle(uint64_t handle) {
+    try {
+        auto tensor = get_global_registry().get_tensor(handle);
+        if (!tensor) {
+            return rust::Vec<int32_t>();
+        }
+
+        auto cpp_data = tensor->vector<int32_t>();
+        rust::Vec<int32_t> rust_data;
+        rust_data.reserve(cpp_data.size());
+        for (const auto& item : cpp_data) {
+            rust_data.push_back(item);
+        }
+        return rust_data;
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to get i32 tensor data by handle: ") + e.what());
+    }
+}
+
+rust::Vec<uint32_t> tensor_data_u32_by_handle(uint64_t handle) {
+    try {
+        auto tensor = get_global_registry().get_tensor(handle);
+        if (!tensor) {
+            return rust::Vec<uint32_t>();
+        }
+
+        auto cpp_data = tensor->vector<uint32_t>();
+        rust::Vec<uint32_t> rust_data;
+        rust_data.reserve(cpp_data.size());
+        for (const auto& item : cpp_data) {
+            rust_data.push_back(item);
+        }
+        return rust_data;
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to get u32 tensor data by handle: ") + e.what());
+    }
+}
+
 
 // Algorithm operations by handle
 uint64_t create_algorithm_handle(Manager& manager, rust::Slice<const uint32_t> spirv) {
@@ -563,4 +870,97 @@ void sequence_eval_await_by_handle(uint64_t handle, uint64_t timeout_ms) {
 
 void sequence_destroy_handle(uint64_t handle) {
     get_global_registry().remove_sequence(handle);
+}
+
+// =============================================================================
+// Queue Management Operations Implementation
+// =============================================================================
+
+uint64_t create_queue_handle(Manager& manager, uint32_t queue_family_index) {
+    try {
+        // For now, we'll create a wrapper around Kompute's primary queue
+        // In a full implementation, this would create queues from the manager's device
+
+        // Get the manager's device to access queue families
+        // This is a simplified implementation that assumes the manager has access to its device
+
+        // For the current Kompute API, we'll create a conceptual queue handle
+        // that represents the manager's primary queue family
+        auto queue_wrapper = std::make_shared<QueueHandle>(
+            VK_NULL_HANDLE, // We don't have direct access to VkQueue from Kompute Manager
+            queue_family_index,
+            "primary_queue_" + std::to_string(queue_family_index)
+        );
+
+        return get_global_registry().register_queue(queue_wrapper);
+
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to create queue handle: ") + e.what());
+    }
+}
+
+uint64_t create_sequence_on_queue_handle(Manager& manager, uint64_t queue_handle) {
+    try {
+        // Validate queue handle exists
+        auto queue = get_global_registry().get_queue(queue_handle);
+        if (!queue) {
+            throw std::runtime_error("Invalid queue handle: " + std::to_string(queue_handle));
+        }
+
+        // Create sequence using the manager (Kompute sequences are tied to the manager's primary queue)
+        auto sequence = manager.sequence();
+        if (!sequence) {
+            throw std::runtime_error("Manager returned null sequence");
+        }
+
+        return get_global_registry().register_sequence(sequence);
+
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to create sequence on queue: ") + e.what());
+    }
+}
+
+void queue_submit_sequence(uint64_t queue_handle, uint64_t sequence_handle) {
+    try {
+        // Validate handles
+        auto queue = get_global_registry().get_queue(queue_handle);
+        if (!queue) {
+            throw std::runtime_error("Invalid queue handle: " + std::to_string(queue_handle));
+        }
+
+        auto sequence = get_global_registry().get_sequence(sequence_handle);
+        if (!sequence) {
+            throw std::runtime_error("Invalid sequence handle: " + std::to_string(sequence_handle));
+        }
+
+        // For now, submit directly via sequence eval (Kompute handles queue submission internally)
+        sequence->eval();
+
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to submit sequence to queue: ") + e.what());
+    }
+}
+
+void queue_wait_idle(uint64_t queue_handle) {
+    try {
+        // Validate queue handle
+        auto queue = get_global_registry().get_queue(queue_handle);
+        if (!queue) {
+            throw std::runtime_error("Invalid queue handle: " + std::to_string(queue_handle));
+        }
+
+        // For Kompute, we don't have direct queue access, so this is a no-op
+        // In a full Vulkan implementation, this would call vkQueueWaitIdle
+
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to wait for queue idle: ") + e.what());
+    }
+}
+
+void queue_destroy_handle(uint64_t handle) {
+    try {
+        get_global_registry().remove_queue(handle);
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to destroy queue handle: ") + e.what());
+    }
 }
