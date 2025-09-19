@@ -702,6 +702,46 @@ rust::Vec<uint32_t> tensor_data_u32_by_handle(uint64_t handle) {
     }
 }
 
+uint32_t tensor_data_type_by_handle(uint64_t handle) {
+    try {
+        auto tensor = get_global_registry().get_tensor(handle);
+        if (!tensor) {
+            throw std::runtime_error("Invalid tensor handle: " + std::to_string(handle));
+        }
+
+        // Get the tensor's data type through Kompute's type system
+        // Since Kompute tensors are templated, we need to determine the type at runtime
+        // This is a simplified approach - in a full implementation, we'd store type info in the registry
+
+        // For now, we'll use memory size and element count to infer the type
+        size_t memory_size = tensor->memorySize();
+        size_t element_count = tensor->size();
+
+        if (element_count == 0) {
+            return 0; // Unknown type for empty tensor
+        }
+
+        size_t bytes_per_element = memory_size / element_count;
+
+        // Map bytes per element to data types
+        // 0: Unknown, 1: F32, 2: F64, 3: I32, 4: U32, 5: I8, 6: U8
+        switch (bytes_per_element) {
+            case 4:
+                // Could be f32, i32, or u32 - default to f32 for backward compatibility
+                return 1; // F32
+            case 8:
+                return 2; // F64
+            case 1:
+                return 5; // I8 (could also be U8, but we'll default to I8)
+            default:
+                return 0; // Unknown
+        }
+
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to get tensor data type by handle: ") + e.what());
+    }
+}
+
 
 // Algorithm operations by handle
 uint64_t create_algorithm_handle(Manager& manager, rust::Slice<const uint32_t> spirv) {

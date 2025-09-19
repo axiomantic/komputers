@@ -86,6 +86,7 @@ pub mod ffi {
         fn tensor_size_by_handle(handle: u64) -> usize;
         fn tensor_size_bytes_by_handle(handle: u64) -> usize;
         fn tensor_data_f32_by_handle(handle: u64) -> Vec<f32>;
+        fn tensor_data_type_by_handle(handle: u64) -> u32; // DataType enum as u32
         fn tensor_destroy_handle(handle: u64);
 
         // Algorithm operations by handle

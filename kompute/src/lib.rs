@@ -79,14 +79,18 @@
 #![warn(rust_2018_idioms)]
 
 pub mod algorithm;
+pub mod algorithm_binding;
 pub mod error;
+pub mod error_recovery;
 pub mod handle_tracker;
 pub mod manager;
+pub mod memory_optimizer;
 pub mod multi_queue;
 pub mod operations;
 pub mod platform;
 pub mod queue;
 pub mod sequence;
+pub mod spirv_shaders;
 pub mod spirv_utils;
 pub mod tensor;
 pub mod vulkan_setup;
@@ -100,10 +104,18 @@ pub mod async_gpu;
 
 // Re-export main types
 pub use algorithm::Algorithm;
+pub use algorithm_binding::{
+    AccessPattern, AlgorithmBinding, BindingTemplate, BindingValidationReport,
+    CommonBindingTemplates, ParameterSpec, TensorBinding, TensorDataType, ValidationRule,
+};
 pub use error::{KomputeError, Result};
+pub use error_recovery::{
+    DiagnosticReport, ErrorCategory, ErrorRecoveryManager, ErrorSeverity, RecoveryResult,
+};
 pub use handle_tracker::{HandleStatistics, HandleTracker, TrackedHandle};
 pub use manager::Manager;
 pub use multi_queue::{DeviceCapabilities, MultiQueueManager, MultiQueueWorkflow};
+pub use memory_optimizer::{AllocationStrategy, MemoryOptimizer, MemoryPool, PerformanceMetric, PerformanceMetrics};
 pub use operations::{DeviceInfo, GpuOperations, MemoryPatterns, WorkgroupConfig};
 pub use platform::{
     EnvironmentValidator, GpuSupport, PlatformInfo, RuntimeUtils, ValidationReport,

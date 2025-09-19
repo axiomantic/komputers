@@ -148,6 +148,7 @@ rust::Vec<uint8_t> tensor_data_u8_by_handle(uint64_t handle);
 size_t tensor_size_by_handle(uint64_t handle);
 size_t tensor_size_bytes_by_handle(uint64_t handle);
 rust::Vec<float> tensor_data_f32_by_handle(uint64_t handle);
+uint32_t tensor_data_type_by_handle(uint64_t handle);
 void tensor_destroy_handle(uint64_t handle);
 
 // Algorithm operations by handle

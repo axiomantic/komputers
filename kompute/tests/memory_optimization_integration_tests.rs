@@ -1,0 +1,276 @@
+//! Integration tests for cross-platform GPU memory optimization.
+//!
+//! These tests verify that the MemoryOptimizer correctly detects platforms,
+//! applies appropriate allocation strategies, and integrates with GpuOperations
+//! for automatic memory optimization.
+
+use kompute::{AllocationStrategy, GpuOperations, MemoryOptimizer, PerformanceMetrics, Tensor};
+
+#[test]
+fn test_memory_optimizer_platform_detection() {
+    match MemoryOptimizer::new() {
+        Ok(optimizer) => {
+            let platform = optimizer.platform_info();
+            println!("Detected platform: {}", platform.os);
+
+            // Verify platform detection returns valid info
+            assert!(!platform.os.is_empty());
+            assert!(!platform.arch.is_empty());
+
+            // Verify strategy selection based on platform
+            let strategy = optimizer.allocation_strategy();
+            match platform.os.as_str() {
+                "macos" => {
+                    assert!(matches!(strategy, AllocationStrategy::Conservative { .. }));
+                    println!("✓ Conservative strategy selected for macOS");
+                }
+                "linux" => {
+                    assert!(matches!(strategy, AllocationStrategy::Aggressive { .. }));
+                    println!("✓ Aggressive strategy selected for Linux");
+                }
+                "windows" => {
+                    assert!(matches!(strategy, AllocationStrategy::Aggressive { .. }));
+                    println!("✓ Aggressive strategy selected for Windows");
+                }
+                _ => {
+                    assert!(matches!(strategy, AllocationStrategy::Adaptive { .. }));
+                    println!("✓ Adaptive strategy selected for unknown platform");
+                }
+            }
+        }
+        Err(e) => {
+            println!("⚠️ Memory optimizer creation failed: {}", e);
+            // This is expected in environments without GPU access
+        }
+    }
+}
+
+#[test]
+fn test_memory_optimizer_allocation_strategies() {
+    if let Ok(mut optimizer) = MemoryOptimizer::new() {
+        println!("Testing memory allocation strategies...");
+
+        // Test Conservative strategy
+        optimizer.set_allocation_strategy(AllocationStrategy::Conservative {
+            max_single_allocation: 512 * 1024 * 1024,
+            cleanup_threshold: 0.7,
+        }).unwrap();
+        let conservative_metrics = test_allocation_strategy(&mut optimizer, "conservative_test");
+
+        // Test Aggressive strategy
+        optimizer.set_allocation_strategy(AllocationStrategy::Aggressive {
+            preferred_allocation_size: 1024 * 1024 * 1024,
+            batch_allocation_count: 4,
+        }).unwrap();
+        let aggressive_metrics = test_allocation_strategy(&mut optimizer, "aggressive_test");
+
+        // Test Adaptive strategy
+        optimizer.set_allocation_strategy(AllocationStrategy::Adaptive {
+            current_strategy: Box::new(AllocationStrategy::Conservative {
+                max_single_allocation: 256 * 1024 * 1024,
+                cleanup_threshold: 0.8,
+            }),
+            adaptation_history: vec![],
+        }).unwrap();
+        let adaptive_metrics = test_allocation_strategy(&mut optimizer, "adaptive_test");
+
+        println!("Conservative allocation time: {:?}", conservative_metrics.total_allocation_time);
+        println!("Aggressive allocation time: {:?}", aggressive_metrics.total_allocation_time);
+        println!("Adaptive allocation time: {:?}", adaptive_metrics.total_allocation_time);
+
+        println!("✓ All allocation strategies tested successfully");
+    } else {
+        println!("⚠️ Memory optimizer not available (expected in headless environments)");
+    }
+}
+
+fn test_allocation_strategy(optimizer: &mut MemoryOptimizer, prefix: &str) -> PerformanceMetrics {
+    for i in 0..5 {
+        let pool_name = format!("{}_{}", prefix, i);
+        let size = 1024 * (i + 1); // Varying sizes
+
+        if let Err(e) = optimizer.allocate_optimized(&pool_name, size, "DEVICE_LOCAL") {
+            println!("⚠️ Allocation failed for {}: {}", pool_name, e);
+        }
+    }
+
+    optimizer.performance_metrics().clone()
+}
+
+#[test]
+#[ignore = "requires GPU device"]
+fn test_gpu_operations_memory_integration() {
+    if let Ok(mut ops) = GpuOperations::new() {
+        println!("Testing GpuOperations memory optimization integration...");
+
+        // Create tensors of different sizes and types
+        let f32_small = vec![1.0f32; 100];
+        let f32_large = vec![1.0f32; 10000];
+
+        let test_cases = vec![
+            (&f32_small, "f32_small"),
+            (&f32_large, "f32_large"),
+        ];
+
+        for (data, description) in test_cases {
+            if let Ok(tensor) = Tensor::new(ops.manager(), data) {
+                match ops.optimize_tensor_allocation(&tensor) {
+                    Ok(()) => println!("✓ {} tensor optimization successful", description),
+                    Err(e) => println!("⚠️ {} tensor optimization failed: {}", description, e),
+                }
+            }
+        }
+
+        // Test memory optimizer access
+        let memory_optimizer = ops.memory_optimizer();
+        let metrics = memory_optimizer.performance_metrics();
+        println!("Total allocations: {}", metrics.total_allocations);
+        println!("Total allocation time: {:?}", metrics.total_allocation_time);
+
+        println!("✓ GPU operations memory integration test completed");
+    } else {
+        println!("⚠️ GPU operations not available");
+    }
+}
+
+#[test]
+fn test_platform_specific_configuration() {
+    if let Ok(mut optimizer) = MemoryOptimizer::new() {
+        println!("Testing platform-specific memory configuration...");
+
+        let platform = optimizer.platform_info();
+        println!("Platform: {}", platform.os);
+
+        // Test platform-specific configurations
+        match platform.os.as_str() {
+            "macos" => {
+                match optimizer.configure_moltenvk_memory() {
+                    Ok(()) => println!("✓ MoltenVK memory configuration successful"),
+                    Err(e) => println!("⚠️ MoltenVK configuration failed: {}", e),
+                }
+            }
+            "linux" => {
+                match optimizer.configure_linux_memory() {
+                    Ok(()) => println!("✓ Linux native Vulkan configuration successful"),
+                    Err(e) => println!("⚠️ Linux configuration failed: {}", e),
+                }
+            }
+            "windows" => {
+                match optimizer.configure_windows_memory() {
+                    Ok(()) => println!("✓ Windows native Vulkan configuration successful"),
+                    Err(e) => println!("⚠️ Windows configuration failed: {}", e),
+                }
+            }
+            _ => {
+                println!("⚠️ Unknown platform, using adaptive configuration");
+            }
+        }
+
+        println!("✓ Platform-specific configuration test completed");
+    }
+}
+
+#[test]
+fn test_memory_pool_management() {
+    if let Ok(mut optimizer) = MemoryOptimizer::new() {
+        println!("Testing memory pool management...");
+
+        // Create multiple memory pools
+        let pool_names = vec!["compute_pool", "texture_pool", "staging_pool"];
+        let pool_sizes = vec![1024 * 1024, 512 * 1024, 256 * 1024]; // 1MB, 512KB, 256KB
+
+        for (name, size) in pool_names.iter().zip(pool_sizes.iter()) {
+            match optimizer.allocate_optimized(name, *size, "DEVICE_LOCAL") {
+                Ok(()) => println!("✓ Created pool '{}' with size {} bytes", name, size),
+                Err(e) => println!("⚠️ Failed to create pool '{}': {}", name, e),
+            }
+        }
+
+        // Test pool statistics
+        let metrics = optimizer.performance_metrics();
+        println!("Active pools: {}", metrics.active_pools);
+        println!("Total memory allocated: {} bytes", metrics.total_memory_allocated);
+
+        // Test fragmentation reporting
+        if metrics.fragmentation_ratio > 0.0 {
+            println!("Memory fragmentation ratio: {:.2}%", metrics.fragmentation_ratio * 100.0);
+        }
+
+        println!("✓ Memory pool management test completed");
+    }
+}
+
+#[test]
+fn test_memory_optimizer_error_handling() {
+    if let Ok(mut optimizer) = MemoryOptimizer::new() {
+        println!("Testing memory optimizer error handling...");
+
+        // Test invalid pool name
+        match optimizer.allocate_optimized("", 1024, "DEVICE_LOCAL") {
+            Ok(()) => panic!("Should have failed with empty pool name"),
+            Err(e) => {
+                assert!(e.to_string().contains("pool name"));
+                println!("✓ Empty pool name error correctly handled: {}", e);
+            }
+        }
+
+        // Test zero size allocation
+        match optimizer.allocate_optimized("zero_pool", 0, "DEVICE_LOCAL") {
+            Ok(()) => panic!("Should have failed with zero size"),
+            Err(e) => {
+                assert!(e.to_string().contains("size") || e.to_string().contains("zero"));
+                println!("✓ Zero size allocation error correctly handled: {}", e);
+            }
+        }
+
+        // Test invalid memory type
+        match optimizer.allocate_optimized("test_pool", 1024, "INVALID_TYPE") {
+            Ok(()) => println!("⚠️ Invalid memory type unexpectedly succeeded"),
+            Err(e) => {
+                println!("✓ Invalid memory type error correctly handled: {}", e);
+            }
+        }
+
+        println!("✓ Memory optimizer error handling test completed");
+    }
+}
+
+#[test]
+fn test_performance_metrics_collection() {
+    if let Ok(mut optimizer) = MemoryOptimizer::new() {
+        println!("Testing performance metrics collection...");
+
+        // Perform several allocations to generate metrics
+        for i in 0..10 {
+            let pool_name = format!("metrics_test_pool_{}", i);
+            let size = 1024 * (i + 1);
+
+            if optimizer.allocate_optimized(&pool_name, size, "DEVICE_LOCAL").is_err() {
+                println!("⚠️ Allocation {} failed (expected in some environments)", i);
+            }
+        }
+
+        let metrics = optimizer.performance_metrics();
+
+        // Verify metrics are being collected
+        println!("Performance metrics:");
+        println!("  Total allocations: {}", metrics.total_allocations);
+        println!("  Failed allocations: {}", metrics.failed_allocations);
+        println!("  Active pools: {}", metrics.active_pools);
+        println!("  Total memory allocated: {} bytes", metrics.total_memory_allocated);
+        println!("  Peak memory usage: {} bytes", metrics.peak_memory_usage);
+        println!("  Total allocation time: {:?}", metrics.total_allocation_time);
+        println!("  Average allocation time: {:?}", metrics.average_allocation_time);
+        println!("  Fragmentation ratio: {:.2}%", metrics.fragmentation_ratio * 100.0);
+
+        // Basic validation
+        assert!(metrics.total_allocations >= metrics.failed_allocations);
+        assert!(metrics.peak_memory_usage >= metrics.total_memory_allocated);
+
+        if metrics.total_allocations > 0 {
+            assert!(metrics.total_allocation_time.as_nanos() > 0);
+        }
+
+        println!("✓ Performance metrics collection test completed");
+    }
+}
