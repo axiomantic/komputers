@@ -86,7 +86,7 @@ fn example_neural_layer(manager: &mut Manager, profiler: &mut PerformanceProfile
     )?;
 
     // Execute the computation
-    let mut sequence = manager.create_sequence()?;
+    let mut sequence = manager.sequence()?;
     sequence.record_algorithm_dispatch(&algorithm, &[batch_size as u32, 1, 1])?;
     sequence.eval()?;
 
@@ -94,7 +94,7 @@ fn example_neural_layer(manager: &mut Manager, profiler: &mut PerformanceProfile
 
     // Retrieve and validate results
     profiler.begin_operation("result_validation")?;
-    let output_data = output_tensor.data()?;
+    let output_data = output_tensor.to_vec()?;
 
     // Validate that ReLU was applied (no negative values)
     let negative_count = output_data.iter().filter(|&&x| x < 0.0).count();
@@ -176,7 +176,7 @@ fn example_convolution(manager: &mut Manager, profiler: &mut PerformanceProfiler
         &[&image_tensor, &kernel_tensor, &output_tensor],
     )?;
 
-    let mut sequence = manager.create_sequence()?;
+    let mut sequence = manager.sequence()?;
     // Dispatch with 2D workgroups for image processing
     let workgroup_x = (output_width + 15) / 16; // 16x16 workgroup size
     let workgroup_y = (output_height + 15) / 16;
@@ -187,7 +187,7 @@ fn example_convolution(manager: &mut Manager, profiler: &mut PerformanceProfiler
 
     // Analyze results
     profiler.begin_operation("convolution_analysis")?;
-    let output_data = output_tensor.data()?;
+    let output_data = output_tensor.to_vec()?;
 
     let max_value = output_data.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
     let min_value = output_data.iter().fold(f32::INFINITY, |a, &b| a.min(b));
@@ -251,16 +251,16 @@ fn example_gradient_descent(
         ],
     )?;
 
-    let mut sequence = manager.create_sequence()?;
+    let mut sequence = manager.sequence()?;
     let workgroups = (param_count + 255) / 256; // 256 threads per workgroup
-    sequence.record_algorithm_dispatch(&algorithm, &[workgroups as u32, 1, 1])?;
+    sequence.record_algorithm_dispatch(&algorithm, &[workgroups, 1, 1])?;
     sequence.eval()?;
 
     profiler.end_operation("gradient_descent_compute")?;
 
     // Verify optimization step
     profiler.begin_operation("optimization_verification")?;
-    let updated_weights = updated_weights_tensor.data()?;
+    let updated_weights = updated_weights_tensor.to_vec()?;
 
     // Calculate parameter update statistics
     let mut total_update = 0.0f32;

@@ -160,7 +160,7 @@ fn example_gaussian_blur(
         ],
     )?;
 
-    let mut sequence = manager.create_sequence()?;
+    let mut sequence = manager.sequence()?;
     let workgroup_x = (width + 15) / 16;
     let workgroup_y = (height + 15) / 16;
     sequence.record_algorithm_dispatch(&algorithm, &[workgroup_x as u32, workgroup_y as u32, 1])?;
@@ -170,7 +170,7 @@ fn example_gaussian_blur(
 
     // Analyze smoothing effect
     profiler.begin_operation("gaussian_analysis")?;
-    let blurred = output_tensor.data()?;
+    let blurred = output_tensor.to_vec()?;
 
     let original_variance = calculate_image_variance(image_data, width, height);
     let blurred_variance = calculate_image_variance(&blurred, width, height);
@@ -235,7 +235,7 @@ fn example_edge_detection(
         ],
     )?;
 
-    let mut sequence = manager.create_sequence()?;
+    let mut sequence = manager.sequence()?;
     let workgroup_x = (width + 15) / 16;
     let workgroup_y = (height + 15) / 16;
     sequence.record_algorithm_dispatch(&algorithm, &[workgroup_x as u32, workgroup_y as u32, 1])?;
@@ -245,7 +245,7 @@ fn example_edge_detection(
 
     // Analyze edge detection results
     profiler.begin_operation("edge_analysis")?;
-    let edges = edge_magnitude.data()?;
+    let edges = edge_magnitude.to_vec()?;
 
     let max_edge = edges.iter().fold(0.0f32, |acc, &x| acc.max(x));
     let avg_edge = edges.iter().sum::<f32>() / edges.len() as f32;
@@ -307,7 +307,7 @@ fn example_histogram_equalization(
         &[&grayscale_tensor, &params_tensor, &histogram],
     )?;
 
-    let mut sequence = manager.create_sequence()?;
+    let mut sequence = manager.sequence()?;
     let workgroup_x = (total_pixels + 255) / 256;
     sequence.record_algorithm_dispatch(&algorithm, &[workgroup_x as u32, 1, 1])?;
     sequence.eval()?;
@@ -316,7 +316,7 @@ fn example_histogram_equalization(
 
     // Calculate cumulative distribution function (CDF) and apply equalization
     profiler.begin_operation("equalization_compute")?;
-    let hist_data = histogram.data()?;
+    let hist_data = histogram.to_vec()?;
 
     // Calculate CDF (cumulative sum)
     let mut cdf = vec![0.0f32; num_bins];
@@ -343,7 +343,7 @@ fn example_histogram_equalization(
         &[&image_tensor, &cdf_tensor, &params_tensor, &equalized],
     )?;
 
-    let mut sequence = manager.create_sequence()?;
+    let mut sequence = manager.sequence()?;
     let workgroup_x = (total_pixels + 255) / 256;
     sequence.record_algorithm_dispatch(&algorithm, &[workgroup_x as u32, 1, 1])?;
     sequence.eval()?;
@@ -352,7 +352,7 @@ fn example_histogram_equalization(
 
     // Analyze contrast enhancement
     profiler.begin_operation("contrast_analysis")?;
-    let equalized_data = equalized.data()?;
+    let equalized_data = equalized.to_vec()?;
 
     let original_contrast = calculate_image_contrast(image_data, width, height);
     let enhanced_contrast = calculate_image_contrast(&equalized_data, width, height);
@@ -418,7 +418,7 @@ fn example_morphological_operations(
         &[&binary_tensor, &struct_tensor, &params_tensor, &eroded],
     )?;
 
-    let mut sequence = manager.create_sequence()?;
+    let mut sequence = manager.sequence()?;
     let workgroup_x = (width + 15) / 16;
     let workgroup_y = (height + 15) / 16;
     sequence.record_algorithm_dispatch(&algorithm, &[workgroup_x as u32, workgroup_y as u32, 1])?;
@@ -434,15 +434,15 @@ fn example_morphological_operations(
         &[&binary_tensor, &struct_tensor, &params_tensor, &dilated],
     )?;
 
-    let mut sequence = manager.create_sequence()?;
+    let mut sequence = manager.sequence()?;
     sequence.record_algorithm_dispatch(&algorithm, &[workgroup_x as u32, workgroup_y as u32, 1])?;
     sequence.eval()?;
     profiler.end_operation("dilation_compute")?;
 
     // Analyze morphological operations
     profiler.begin_operation("morphology_analysis")?;
-    let eroded_data = eroded.data()?;
-    let dilated_data = dilated.data()?;
+    let eroded_data = eroded.to_vec()?;
+    let dilated_data = dilated.to_vec()?;
 
     let original_white_pixels = binary_image.iter().filter(|&&x| x > 0.5).count();
     let eroded_white_pixels = eroded_data.iter().filter(|&&x| x > 0.5).count();
@@ -503,7 +503,7 @@ fn example_color_space_conversion(
         &[&image_tensor, &params_tensor, &hsv_tensor],
     )?;
 
-    let mut sequence = manager.create_sequence()?;
+    let mut sequence = manager.sequence()?;
     let workgroup_x = (total_pixels + 255) / 256;
     sequence.record_algorithm_dispatch(&algorithm, &[workgroup_x as u32, 1, 1])?;
     sequence.eval()?;
@@ -512,7 +512,7 @@ fn example_color_space_conversion(
 
     // Analyze color distribution in HSV space
     profiler.begin_operation("hsv_analysis")?;
-    let hsv_data = hsv_tensor.data()?;
+    let hsv_data = hsv_tensor.to_vec()?;
 
     let mut hue_sum = 0.0f32;
     let mut saturation_sum = 0.0f32;

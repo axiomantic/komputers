@@ -153,8 +153,8 @@ fn demonstrate_multi_queue_operations(manager: &mut Manager) -> Result<()> {
     println!("   Created tensors for parallel processing");
 
     // Create sequences on different queues
-    let mut sequence1 = manager.create_sequence_on_queue(queue1)?;
-    let mut sequence2 = manager.create_sequence_on_queue(queue2)?;
+    let mut sequence1 = manager.sequence_on_queue(queue1)?;
+    let mut sequence2 = manager.sequence_on_queue(queue2)?;
 
     // Record operations on each queue
     sequence1.record_tensor_sync_device(&tensor1)?;

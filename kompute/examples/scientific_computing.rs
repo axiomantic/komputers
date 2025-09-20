@@ -72,7 +72,7 @@ fn example_monte_carlo_pi(manager: &mut Manager, profiler: &mut PerformanceProfi
         &[&x_tensor, &y_tensor, &results_tensor],
     )?;
 
-    let mut sequence = manager.create_sequence()?;
+    let mut sequence = manager.sequence()?;
     let workgroups = (num_samples + 255) / 256;
     sequence.record_algorithm_dispatch(&algorithm, &[workgroups as u32, 1, 1])?;
     sequence.eval()?;
@@ -81,7 +81,7 @@ fn example_monte_carlo_pi(manager: &mut Manager, profiler: &mut PerformanceProfi
 
     // Calculate π estimate
     profiler.begin_operation("pi_calculation")?;
-    let results = results_tensor.data()?;
+    let results = results_tensor.to_vec()?;
     let hits_in_circle = results.iter().sum::<f32>() as usize;
     let pi_estimate = 4.0 * hits_in_circle as f32 / num_samples as f32;
     let error = ((pi_estimate - PI) / PI * 100.0).abs();
@@ -174,7 +174,7 @@ fn example_nbody_simulation(
         ],
     )?;
 
-    let mut sequence = manager.create_sequence()?;
+    let mut sequence = manager.sequence()?;
     let workgroups = (num_bodies + 63) / 64; // 64 threads per workgroup for good occupancy
     sequence.record_algorithm_dispatch(&algorithm, &[workgroups as u32, 1, 1])?;
     sequence.eval()?;
@@ -183,9 +183,9 @@ fn example_nbody_simulation(
 
     // Analyze simulation results
     profiler.begin_operation("nbody_analysis")?;
-    let forces_x = force_x_tensor.data()?;
-    let forces_y = force_y_tensor.data()?;
-    let forces_z = force_z_tensor.data()?;
+    let forces_x = force_x_tensor.to_vec()?;
+    let forces_y = force_y_tensor.to_vec()?;
+    let forces_z = force_z_tensor.to_vec()?;
 
     let total_force_magnitude: f32 = forces_x
         .iter()
@@ -249,7 +249,7 @@ fn example_numerical_integration(
     let algorithm =
         Algorithm::with_tensors(manager, &function_eval_spirv, &[&x_tensor, &fx_tensor])?;
 
-    let mut sequence = manager.create_sequence()?;
+    let mut sequence = manager.sequence()?;
     let workgroups = ((n + 1) + 255) / 256;
     sequence.record_algorithm_dispatch(&algorithm, &[workgroups as u32, 1, 1])?;
     sequence.eval()?;
@@ -258,7 +258,7 @@ fn example_numerical_integration(
 
     // Apply trapezoidal rule
     profiler.begin_operation("trapezoidal_integration")?;
-    let fx_values = fx_tensor.data()?;
+    let fx_values = fx_tensor.to_vec()?;
 
     // Trapezoidal rule: h * (f(a)/2 + f(x1) + f(x2) + ... + f(xn-1) + f(b)/2)
     let mut integral = fx_values[0] / 2.0 + fx_values[n] / 2.0; // End points
@@ -323,7 +323,7 @@ fn example_frequency_analysis(
     let algorithm =
         Algorithm::with_tensors(manager, &dft_spirv, &[&signal_tensor, &magnitude_spectrum])?;
 
-    let mut sequence = manager.create_sequence()?;
+    let mut sequence = manager.sequence()?;
     let workgroups = ((n / 2) + 63) / 64;
     sequence.record_algorithm_dispatch(&algorithm, &[workgroups as u32, 1, 1])?;
     sequence.eval()?;
@@ -332,7 +332,7 @@ fn example_frequency_analysis(
 
     // Analyze frequency spectrum
     profiler.begin_operation("spectrum_analysis")?;
-    let spectrum = magnitude_spectrum.data()?;
+    let spectrum = magnitude_spectrum.to_vec()?;
 
     // Find peak frequencies
     let freq_resolution = sample_rate / n as f32;
@@ -435,7 +435,7 @@ fn example_heat_equation(manager: &mut Manager, profiler: &mut PerformanceProfil
             &[&initial_temp_tensor, &params_tensor, &new_temp_tensor],
         )?;
 
-        let mut sequence = manager.create_sequence()?;
+        let mut sequence = manager.sequence()?;
         let workgroups_x = (nx + 15) / 16;
         let workgroups_y = (ny + 15) / 16;
         sequence.record_algorithm_dispatch(
@@ -454,7 +454,7 @@ fn example_heat_equation(manager: &mut Manager, profiler: &mut PerformanceProfil
 
     // Analyze final temperature distribution
     profiler.begin_operation("heat_analysis")?;
-    let final_temps = new_temp_tensor.data()?;
+    let final_temps = new_temp_tensor.to_vec()?;
 
     let max_temp = final_temps.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
     let min_temp = final_temps.iter().fold(f32::INFINITY, |a, &b| a.min(b));
