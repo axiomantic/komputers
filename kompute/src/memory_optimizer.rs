@@ -46,17 +46,23 @@ pub struct MemoryPool {
 pub enum AllocationStrategy {
     /// Conservative strategy for MoltenVK - smaller allocations, frequent cleanup
     Conservative {
+        /// Maximum size for a single allocation in bytes
         max_single_allocation: usize,
+        /// Threshold (0.0-1.0) for triggering cleanup operations
         cleanup_threshold: f32,
     },
     /// Aggressive strategy for native Vulkan - larger allocations, batch operations
     Aggressive {
+        /// Preferred size for bulk allocations in bytes
         preferred_allocation_size: usize,
+        /// Number of allocations to batch together
         batch_allocation_count: usize,
     },
     /// Adaptive strategy that adjusts based on runtime behavior
     Adaptive {
+        /// Current active allocation strategy
         current_strategy: Box<AllocationStrategy>,
+        /// History of performance metrics for adaptation
         adaptation_history: Vec<PerformanceMetric>,
     },
 }
@@ -64,10 +70,15 @@ pub enum AllocationStrategy {
 /// Performance metrics for adaptive memory management
 #[derive(Debug, Clone, PartialEq)]
 pub struct PerformanceMetric {
+    /// When this metric was recorded
     pub timestamp: std::time::Instant,
+    /// Time taken for allocation in milliseconds
     pub allocation_time_ms: f64,
+    /// Size of allocation in bytes
     pub allocation_size: usize,
+    /// Whether the allocation succeeded
     pub success: bool,
+    /// Additional platform-specific performance data
     pub platform_specific_data: HashMap<String, String>,
 }
 
@@ -740,13 +751,21 @@ impl MemoryOptimizer {
 /// Performance metrics structure for the integration tests
 #[derive(Debug, Clone)]
 pub struct PerformanceMetrics {
+    /// Total number of allocations attempted
     pub total_allocations: u64,
+    /// Number of allocations that failed
     pub failed_allocations: u64,
+    /// Number of active memory pools
     pub active_pools: usize,
+    /// Total memory allocated in bytes
     pub total_memory_allocated: usize,
+    /// Peak memory usage in bytes
     pub peak_memory_usage: usize,
+    /// Total time spent on allocations
     pub total_allocation_time: std::time::Duration,
+    /// Average time per allocation
     pub average_allocation_time: std::time::Duration,
+    /// Memory fragmentation ratio (0.0-1.0)
     pub fragmentation_ratio: f32,
 }
 

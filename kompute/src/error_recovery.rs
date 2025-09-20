@@ -102,23 +102,34 @@ pub struct ErrorContext {
 pub enum RecoveryStrategy {
     /// Retry operation with exponential backoff
     RetryWithBackoff {
+        /// Maximum number of retry attempts
         max_attempts: u32,
+        /// Initial delay before first retry
         initial_delay: Duration,
+        /// Maximum delay between retry attempts
         max_delay: Duration,
     },
     /// Fall back to CPU computation
     FallbackToCpu,
     /// Use alternative GPU device
-    SwitchDevice { preferred_devices: Vec<u32> },
+    SwitchDevice {
+        /// List of preferred device IDs to try
+        preferred_devices: Vec<u32>,
+    },
     /// Reduce memory usage and retry
     ReduceMemoryAndRetry {
+        /// Factor by which to reduce memory usage (0.0-1.0)
         reduction_factor: f32,
+        /// Maximum number of retry attempts
         max_attempts: u32,
     },
     /// Reinitialize GPU subsystem
     ReinitializeGpu,
     /// Use alternative algorithm or shader
-    UseAlternativeAlgorithm { alternatives: Vec<String> },
+    UseAlternativeAlgorithm {
+        /// List of alternative algorithm names to try
+        alternatives: Vec<String>,
+    },
     /// Graceful degradation with reduced functionality
     GracefulDegradation,
     /// No recovery - fail fast
@@ -129,22 +140,42 @@ pub enum RecoveryStrategy {
 #[derive(Debug, Clone)]
 pub enum RecoveryAction {
     /// Retried operation with specified parameters
-    Retry { attempt: u32, delay: Duration },
+    Retry {
+        /// Attempt number (1-based)
+        attempt: u32,
+        /// Delay before this retry
+        delay: Duration,
+    },
     /// Switched to CPU fallback
     CpuFallback,
     /// Switched to alternative GPU device
-    DeviceSwitch { from_device: u32, to_device: u32 },
+    DeviceSwitch {
+        /// Original device ID
+        from_device: u32,
+        /// New device ID
+        to_device: u32,
+    },
     /// Reduced memory allocation
     MemoryReduction {
+        /// Original allocation size in bytes
         original_size: usize,
+        /// Reduced allocation size in bytes
         reduced_size: usize,
     },
     /// Reinitialized GPU subsystem
     GpuReinit,
     /// Used alternative algorithm
-    AlgorithmSwitch { from: String, to: String },
+    AlgorithmSwitch {
+        /// Original algorithm name
+        from: String,
+        /// Alternative algorithm name
+        to: String,
+    },
     /// Applied graceful degradation
-    Degradation { features_disabled: Vec<String> },
+    Degradation {
+        /// List of features that were disabled
+        features_disabled: Vec<String>,
+    },
 }
 
 /// Current diagnostic state of the system.

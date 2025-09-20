@@ -105,11 +105,19 @@ pub enum ValidationRule {
     /// All tensors must have the same size
     SameSizeRequired(Vec<String>),
     /// One tensor size must be multiple of another
-    SizeMultiple { base: String, multiple: String },
+    SizeMultiple {
+        /// Base tensor name for size comparison
+        base: String,
+        /// Tensor that must be a multiple of base
+        multiple: String,
+    },
     /// Matrix dimensions must be compatible
     MatrixCompatible {
+        /// First matrix tensor name
         a: String,
+        /// Second matrix tensor name
         b: String,
+        /// Output matrix tensor name
         output: String,
     },
     /// Custom validation function name
