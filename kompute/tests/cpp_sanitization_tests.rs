@@ -434,7 +434,6 @@ fn test_vulkan_resource_cleanup_verification() {
 /// Test sanitizer integration with actual GPU operations.
 /// Verifies sanitizers work correctly with real GPU calls.
 #[test]
-#[ignore = "requires Vulkan-capable device and asan"]
 fn test_sanitizer_integration_with_gpu_operations() {
     println!("Testing sanitizer integration with GPU operations...");
 

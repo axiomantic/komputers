@@ -6,7 +6,6 @@
 use kompute::{GpuOperations, MemoryPatterns, Tensor, WorkgroupConfig};
 
 #[test]
-#[ignore = "requires GPU device"]
 fn test_gpu_operations_creation() {
     let result = GpuOperations::new();
     match result {
@@ -23,7 +22,6 @@ fn test_gpu_operations_creation() {
 }
 
 #[test]
-#[ignore = "requires GPU device"]
 fn test_gpu_operations_with_specific_device() {
     let result = GpuOperations::with_device(0);
     match result {
@@ -40,7 +38,6 @@ fn test_gpu_operations_with_specific_device() {
 }
 
 #[test]
-#[ignore = "requires GPU device"]
 fn test_tensor_copy_workflow() {
     if let Ok(mut ops) = GpuOperations::new() {
         let source_data = vec![1.0f32, 2.0, 3.0, 4.0, 5.0];
@@ -85,7 +82,6 @@ fn test_tensor_copy_workflow() {
 }
 
 #[test]
-#[ignore = "requires GPU device"]
 fn test_elementwise_add_error_handling() {
     if let Ok(mut ops) = GpuOperations::new() {
         let data_a = vec![1.0f32, 2.0, 3.0];
@@ -116,7 +112,6 @@ fn test_elementwise_add_error_handling() {
 }
 
 #[test]
-#[ignore = "requires GPU device"]
 fn test_tensor_size_mismatch_validation() {
     if let Ok(mut ops) = GpuOperations::new() {
         let data_a = vec![1.0f32, 2.0, 3.0];
@@ -236,7 +231,6 @@ fn test_optimal_buffer_size_calculation() {
 }
 
 #[test]
-#[ignore = "requires GPU device"]
 fn test_multi_type_tensor_operations() {
     if let Ok(mut ops) = GpuOperations::new() {
         // Test f32 tensors

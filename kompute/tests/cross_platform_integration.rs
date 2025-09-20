@@ -191,7 +191,6 @@ fn test_environment_configuration_recommendations() {
 }
 
 #[test]
-#[ignore = "requires GPU device"]
 fn test_cross_platform_device_detection() {
     let platform = PlatformInfo::detect();
 

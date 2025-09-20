@@ -4,8 +4,8 @@
 //! ensuring all components work together seamlessly for production GPU computing.
 
 use kompute::{
-    Algorithm, AlgorithmBinding, AllocationStrategy, CommonBindingTemplates,
-    ErrorCategory, ErrorRecoveryManager, GpuOperations, Manager, MemoryOptimizer, Tensor,
+    Algorithm, AlgorithmBinding, AllocationStrategy, CommonBindingTemplates, ErrorCategory,
+    ErrorRecoveryManager, GpuOperations, Manager, MemoryOptimizer, Tensor,
 };
 use std::collections::HashMap;
 
@@ -53,7 +53,10 @@ fn test_multi_type_tensor_integration() {
     ];
 
     let successful_types = test_results.iter().filter(|&success| *success).count();
-    println!("  ✅ Multi-type tensor support: {}/4 types successful", successful_types);
+    println!(
+        "  ✅ Multi-type tensor support: {}/4 types successful",
+        successful_types
+    );
 
     if successful_types > 0 {
         println!("  🎯 Multi-type tensor bridge: PASSED");
@@ -69,7 +72,10 @@ fn test_tensor_type<T: kompute::TensorData + Clone>(data: &[T], type_name: &str)
             return true;
         }
     }
-    println!("    ⚠️ {} tensor creation failed (expected without GPU)", type_name);
+    println!(
+        "    ⚠️ {} tensor creation failed (expected without GPU)",
+        type_name
+    );
     false
 }
 
@@ -82,16 +88,52 @@ fn test_gpu_operations_spirv_integration() {
 
             // Test SPIR-V shader availability
             let spirv_validation_results = vec![
-                ("f32 elementwise add", kompute::spirv_shaders::validate_spirv(kompute::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV)),
-                ("f64 elementwise add", kompute::spirv_shaders::validate_spirv(kompute::spirv_shaders::ELEMENTWISE_ADD_F64_SPIRV)),
-                ("i32 elementwise add", kompute::spirv_shaders::validate_spirv(kompute::spirv_shaders::ELEMENTWISE_ADD_I32_SPIRV)),
-                ("u32 elementwise add", kompute::spirv_shaders::validate_spirv(kompute::spirv_shaders::ELEMENTWISE_ADD_U32_SPIRV)),
-                ("matrix multiply", kompute::spirv_shaders::validate_spirv(kompute::spirv_shaders::MATRIX_MULT_F32_SPIRV)),
-                ("reduction sum", kompute::spirv_shaders::validate_spirv(kompute::spirv_shaders::REDUCTION_SUM_F32_SPIRV)),
+                (
+                    "f32 elementwise add",
+                    kompute::spirv_shaders::validate_spirv(
+                        kompute::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV,
+                    ),
+                ),
+                (
+                    "f64 elementwise add",
+                    kompute::spirv_shaders::validate_spirv(
+                        kompute::spirv_shaders::ELEMENTWISE_ADD_F64_SPIRV,
+                    ),
+                ),
+                (
+                    "i32 elementwise add",
+                    kompute::spirv_shaders::validate_spirv(
+                        kompute::spirv_shaders::ELEMENTWISE_ADD_I32_SPIRV,
+                    ),
+                ),
+                (
+                    "u32 elementwise add",
+                    kompute::spirv_shaders::validate_spirv(
+                        kompute::spirv_shaders::ELEMENTWISE_ADD_U32_SPIRV,
+                    ),
+                ),
+                (
+                    "matrix multiply",
+                    kompute::spirv_shaders::validate_spirv(
+                        kompute::spirv_shaders::MATRIX_MULT_F32_SPIRV,
+                    ),
+                ),
+                (
+                    "reduction sum",
+                    kompute::spirv_shaders::validate_spirv(
+                        kompute::spirv_shaders::REDUCTION_SUM_F32_SPIRV,
+                    ),
+                ),
             ];
 
-            let valid_shaders = spirv_validation_results.iter().filter(|(_, valid)| *valid).count();
-            println!("    ✓ SPIR-V shader validation: {}/6 shaders valid", valid_shaders);
+            let valid_shaders = spirv_validation_results
+                .iter()
+                .filter(|(_, valid)| *valid)
+                .count();
+            println!(
+                "    ✓ SPIR-V shader validation: {}/6 shaders valid",
+                valid_shaders
+            );
 
             // Test enhanced GPU operations with validation
             if let Ok(data) = create_test_tensors(&mut ops) {
@@ -107,7 +149,9 @@ fn test_gpu_operations_spirv_integration() {
     }
 }
 
-fn create_test_tensors(ops: &mut GpuOperations) -> Result<(Tensor<f32>, Tensor<f32>, Tensor<f32>), String> {
+fn create_test_tensors(
+    ops: &mut GpuOperations,
+) -> Result<(Tensor<f32>, Tensor<f32>, Tensor<f32>), String> {
     let a_data = vec![1.0f32, 2.0, 3.0];
     let b_data = vec![4.0f32, 5.0, 6.0];
 
@@ -118,7 +162,10 @@ fn create_test_tensors(ops: &mut GpuOperations) -> Result<(Tensor<f32>, Tensor<f
     Ok((tensor_a, tensor_b, tensor_out))
 }
 
-fn test_enhanced_gpu_operations(ops: &mut GpuOperations, (a, b, mut output): (Tensor<f32>, Tensor<f32>, Tensor<f32>)) {
+fn test_enhanced_gpu_operations(
+    ops: &mut GpuOperations,
+    (a, b, mut output): (Tensor<f32>, Tensor<f32>, Tensor<f32>),
+) {
     println!("    Testing enhanced GPU operations...");
 
     // Test standard elementwise addition
@@ -131,8 +178,11 @@ fn test_enhanced_gpu_operations(ops: &mut GpuOperations, (a, b, mut output): (Te
     match ops.elementwise_add_validated(&a, &b, &mut output) {
         Ok(report) => {
             println!("      ✓ Validated elementwise addition successful");
-            println!("        - Validation report: valid={}, warnings={}",
-                     report.is_valid, report.performance_warnings.len());
+            println!(
+                "        - Validation report: valid={}, warnings={}",
+                report.is_valid,
+                report.performance_warnings.len()
+            );
         }
         Err(_) => println!("      ⚠️ Validated elementwise addition failed (expected without GPU)"),
     }
@@ -152,15 +202,24 @@ fn test_memory_optimization_integration() {
             println!("    ✓ Memory optimizer created");
 
             let platform = optimizer.platform_info();
-            println!("    ✓ Platform detected: {} ({})", platform.os, platform.arch);
+            println!(
+                "    ✓ Platform detected: {} ({})",
+                platform.os, platform.arch
+            );
 
             // Test allocation strategies
             let strategies_tested = test_allocation_strategies(&mut optimizer);
-            println!("    ✓ Allocation strategies tested: {}/3 successful", strategies_tested);
+            println!(
+                "    ✓ Allocation strategies tested: {}/3 successful",
+                strategies_tested
+            );
 
             // Test performance metrics
             let metrics = optimizer.performance_metrics();
-            println!("    ✓ Performance metrics collected: {} allocations tracked", metrics.total_allocations);
+            println!(
+                "    ✓ Performance metrics collected: {} allocations tracked",
+                metrics.total_allocations
+            );
 
             println!("  🎯 Cross-Platform Memory Management: PASSED");
         }
@@ -175,31 +234,40 @@ fn test_allocation_strategies(optimizer: &mut MemoryOptimizer) -> usize {
     let mut successful_strategies = 0;
 
     // Test Conservative strategy
-    if optimizer.set_allocation_strategy(AllocationStrategy::Conservative {
-        max_single_allocation: 512 * 1024 * 1024,
-        cleanup_threshold: 0.7,
-    }).is_ok() {
+    if optimizer
+        .set_allocation_strategy(AllocationStrategy::Conservative {
+            max_single_allocation: 512 * 1024 * 1024,
+            cleanup_threshold: 0.7,
+        })
+        .is_ok()
+    {
         successful_strategies += 1;
         println!("      ✓ Conservative allocation strategy set");
     }
 
     // Test Aggressive strategy
-    if optimizer.set_allocation_strategy(AllocationStrategy::Aggressive {
-        preferred_allocation_size: 1024 * 1024 * 1024,
-        batch_allocation_count: 4,
-    }).is_ok() {
+    if optimizer
+        .set_allocation_strategy(AllocationStrategy::Aggressive {
+            preferred_allocation_size: 1024 * 1024 * 1024,
+            batch_allocation_count: 4,
+        })
+        .is_ok()
+    {
         successful_strategies += 1;
         println!("      ✓ Aggressive allocation strategy set");
     }
 
     // Test Adaptive strategy
-    if optimizer.set_allocation_strategy(AllocationStrategy::Adaptive {
-        current_strategy: Box::new(AllocationStrategy::Conservative {
-            max_single_allocation: 256 * 1024 * 1024,
-            cleanup_threshold: 0.8,
-        }),
-        adaptation_history: vec![],
-    }).is_ok() {
+    if optimizer
+        .set_allocation_strategy(AllocationStrategy::Adaptive {
+            current_strategy: Box::new(AllocationStrategy::Conservative {
+                max_single_allocation: 256 * 1024 * 1024,
+                cleanup_threshold: 0.8,
+            }),
+            adaptation_history: vec![],
+        })
+        .is_ok()
+    {
         successful_strategies += 1;
         println!("      ✓ Adaptive allocation strategy set");
     }
@@ -212,7 +280,10 @@ fn test_algorithm_binding_integration() {
 
     // Test binding templates
     let templates_tested = test_binding_templates();
-    println!("    ✓ Binding templates tested: {}/3 successful", templates_tested);
+    println!(
+        "    ✓ Binding templates tested: {}/3 successful",
+        templates_tested
+    );
 
     // Test algorithm binding with GPU operations
     if let Ok(mut manager) = Manager::new() {
@@ -267,7 +338,10 @@ fn test_algorithm_binding_with_gpu(manager: &mut Manager) {
                     println!("      ✓ Algorithm binding with template successful");
 
                     let validation_report = binding.validation_report();
-                    println!("      ✓ Binding validation report generated: valid={}", validation_report.is_valid);
+                    println!(
+                        "      ✓ Binding validation report generated: valid={}",
+                        validation_report.is_valid
+                    );
                 }
                 Err(_) => println!("      ⚠️ Algorithm binding creation failed"),
             }
@@ -285,17 +359,29 @@ fn test_error_recovery_integration() {
 
             // Test error categorization
             let categorization_tests = test_error_categorization();
-            println!("    ✓ Error categorization: {}/5 categories tested", categorization_tests);
+            println!(
+                "    ✓ Error categorization: {}/5 categories tested",
+                categorization_tests
+            );
 
             // Test error handling
             let recovery_tests = test_error_recovery_handling(&mut recovery_manager);
-            println!("    ✓ Error recovery handling: {}/3 error types tested", recovery_tests);
+            println!(
+                "    ✓ Error recovery handling: {}/3 error types tested",
+                recovery_tests
+            );
 
             // Test diagnostic reporting
             match recovery_manager.diagnostic_report() {
                 Ok(report) => {
-                    println!("    ✓ Diagnostic report generated: health_score={:.2}", report.health_score);
-                    println!("      Platform: {} ({})", report.platform_info.os, report.platform_info.arch);
+                    println!(
+                        "    ✓ Diagnostic report generated: health_score={:.2}",
+                        report.health_score
+                    );
+                    println!(
+                        "      Platform: {} ({})",
+                        report.platform_info.os, report.platform_info.arch
+                    );
                     println!("      Recommendations: {}", report.recommendations.len());
                 }
                 Err(_) => println!("    ⚠️ Diagnostic report generation failed"),
@@ -312,11 +398,26 @@ fn test_error_recovery_integration() {
 
 fn test_error_categorization() -> usize {
     let test_errors = vec![
-        (kompute::KomputeError::device("GPU device not found"), ErrorCategory::DeviceUnavailable),
-        (kompute::KomputeError::memory("Out of GPU memory"), ErrorCategory::OutOfMemory),
-        (kompute::KomputeError::shader("SPIR-V validation failed"), ErrorCategory::ShaderError),
-        (kompute::KomputeError::compute("Vulkan runtime error"), ErrorCategory::VulkanRuntime),
-        (kompute::KomputeError::compute("Platform compatibility issue"), ErrorCategory::PlatformCompatibility),
+        (
+            kompute::KomputeError::device("GPU device not found"),
+            ErrorCategory::DeviceUnavailable,
+        ),
+        (
+            kompute::KomputeError::memory("Out of GPU memory"),
+            ErrorCategory::OutOfMemory,
+        ),
+        (
+            kompute::KomputeError::shader("SPIR-V validation failed"),
+            ErrorCategory::ShaderError,
+        ),
+        (
+            kompute::KomputeError::compute("Vulkan runtime error"),
+            ErrorCategory::VulkanRuntime,
+        ),
+        (
+            kompute::KomputeError::compute("Platform compatibility issue"),
+            ErrorCategory::PlatformCompatibility,
+        ),
     ];
 
     let mut successful_categorizations = 0;
@@ -350,7 +451,7 @@ fn test_error_recovery_handling(recovery_manager: &mut ErrorRecoveryManager) -> 
 
         match recovery_manager.handle_error(error, context) {
             Ok(_) => successful_recoveries += 1,
-            Err(_) => {}, // Expected for some error types
+            Err(_) => {} // Expected for some error types
         }
     }
 
@@ -364,15 +465,24 @@ fn test_complete_end_to_end_workflow() {
 
     // Initialize all major components
     let components_initialized = initialize_all_components();
-    println!("    ✓ Components initialized: {}/5 successful", components_initialized);
+    println!(
+        "    ✓ Components initialized: {}/5 successful",
+        components_initialized
+    );
 
     // Test component integration
     let integration_tests = test_component_integration();
-    println!("    ✓ Component integration tests: {}/3 successful", integration_tests);
+    println!(
+        "    ✓ Component integration tests: {}/3 successful",
+        integration_tests
+    );
 
     // Test quality validation
     let quality_checks = perform_quality_validation();
-    println!("    ✓ Quality validation checks: {}/4 passed", quality_checks);
+    println!(
+        "    ✓ Quality validation checks: {}/4 passed",
+        quality_checks
+    );
 
     if components_initialized >= 3 && integration_tests >= 2 && quality_checks >= 3 {
         println!("  🎯 Complete End-to-End Workflow: PASSED");
@@ -419,9 +529,8 @@ fn initialize_all_components() -> usize {
     }
 
     // 5. SPIR-V Shaders
-    let spirv_valid = kompute::spirv_shaders::validate_spirv(
-        kompute::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV
-    );
+    let spirv_valid =
+        kompute::spirv_shaders::validate_spirv(kompute::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV);
     if spirv_valid {
         successful_initializations += 1;
         println!("      ✓ SPIR-V shader validation successful");
@@ -494,9 +603,7 @@ fn test_multi_component_workflow() -> bool {
             // Check error recovery is ready
             let diagnostic = recovery.diagnostic_report();
 
-            return tensor.size() == 3 &&
-                   metrics.total_allocations >= 0 &&
-                   diagnostic.is_ok();
+            return tensor.size() == 3 && metrics.total_allocations >= 0 && diagnostic.is_ok();
         }
     }
     false
@@ -545,7 +652,8 @@ fn validate_api_consistency() -> bool {
     let manager_result = Manager::new().is_ok() || Manager::new().is_err();
     let gpu_ops_result = GpuOperations::new().is_ok() || GpuOperations::new().is_err();
     let memory_opt_result = MemoryOptimizer::new().is_ok() || MemoryOptimizer::new().is_err();
-    let error_recovery_result = ErrorRecoveryManager::new().is_ok() || ErrorRecoveryManager::new().is_err();
+    let error_recovery_result =
+        ErrorRecoveryManager::new().is_ok() || ErrorRecoveryManager::new().is_err();
 
     // All components should at least return deterministic results
     manager_result && gpu_ops_result && memory_opt_result && error_recovery_result
@@ -572,11 +680,14 @@ fn validate_cross_platform_compatibility() -> bool {
         let strategy = memory_opt.allocation_strategy();
 
         // Should have valid platform detection and appropriate strategy
-        return !platform.os.is_empty() &&
-               !platform.arch.is_empty() &&
-               matches!(strategy, AllocationStrategy::Conservative { .. } |
-                                AllocationStrategy::Aggressive { .. } |
-                                AllocationStrategy::Adaptive { .. });
+        return !platform.os.is_empty()
+            && !platform.arch.is_empty()
+            && matches!(
+                strategy,
+                AllocationStrategy::Conservative { .. }
+                    | AllocationStrategy::Aggressive { .. }
+                    | AllocationStrategy::Adaptive { .. }
+            );
     }
     false
 }
@@ -587,10 +698,10 @@ fn validate_performance_characteristics() -> bool {
         let metrics = memory_opt.performance_metrics();
 
         // Performance metrics should be available and sensible
-        return metrics.total_allocations >= 0 &&
-               metrics.failed_allocations <= metrics.total_allocations &&
-               metrics.fragmentation_ratio >= 0.0 &&
-               metrics.fragmentation_ratio <= 1.0;
+        return metrics.total_allocations >= 0
+            && metrics.failed_allocations <= metrics.total_allocations
+            && metrics.fragmentation_ratio >= 0.0
+            && metrics.fragmentation_ratio <= 1.0;
     }
     false
 }
@@ -618,7 +729,11 @@ fn test_phase_2_quality_assurance() {
         }
     }
 
-    println!("\n📊 Quality Assurance Summary: {}/{} checks passed", passed_qa, qa_results.len());
+    println!(
+        "\n📊 Quality Assurance Summary: {}/{} checks passed",
+        passed_qa,
+        qa_results.len()
+    );
 
     if passed_qa >= 4 {
         println!("🎯 Phase 2 Quality Assurance: EXCELLENT");

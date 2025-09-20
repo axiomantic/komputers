@@ -7,7 +7,6 @@ use kompute::{Manager, Tensor, TensorData};
 use std::collections::HashMap;
 
 #[test]
-#[ignore = "requires GPU device"]
 fn test_f64_tensor_precision_preservation() {
     if let Ok(mut manager) = Manager::new() {
         let high_precision_data = vec![
@@ -32,10 +31,15 @@ fn test_f64_tensor_precision_preservation() {
                     Ok(retrieved) => {
                         assert_eq!(retrieved.len(), high_precision_data.len());
 
-                        for (i, (orig, retr)) in high_precision_data.iter().zip(retrieved.iter()).enumerate() {
+                        for (i, (orig, retr)) in
+                            high_precision_data.iter().zip(retrieved.iter()).enumerate()
+                        {
                             // Use strict equality for exact preservation
-                            assert_eq!(*orig, *retr,
-                                     "f64 precision lost at index {}: {} != {}", i, orig, retr);
+                            assert_eq!(
+                                *orig, *retr,
+                                "f64 precision lost at index {}: {} != {}",
+                                i, orig, retr
+                            );
                         }
                         println!("✓ f64 tensor preserves high precision values exactly");
 
@@ -43,13 +47,19 @@ fn test_f64_tensor_precision_preservation() {
                         assert!(retrieved[0].is_finite(), "Pi should be finite");
                         assert!(retrieved[1].is_finite(), "E should be finite");
                         assert!(retrieved[2].is_finite(), "Large value should be finite");
-                        assert!(retrieved[3] > 0.0, "Small positive value should be positive");
+                        assert!(
+                            retrieved[3] > 0.0,
+                            "Small positive value should be positive"
+                        );
                         assert!(retrieved[5] == 0.0, "Zero should be preserved exactly");
                     }
                     Err(e) => panic!("f64 tensor data retrieval failed: {}", e),
                 }
             }
-            Err(e) if e.to_string().contains("not implemented") || e.to_string().contains("unsupported") => {
+            Err(e)
+                if e.to_string().contains("not implemented")
+                    || e.to_string().contains("unsupported") =>
+            {
                 println!("⚠️ f64 tensors not yet implemented: {}", e);
             }
             Err(e) => panic!("f64 tensor creation failed unexpectedly: {}", e),
@@ -60,20 +70,9 @@ fn test_f64_tensor_precision_preservation() {
 }
 
 #[test]
-#[ignore = "requires GPU device"]
 fn test_i32_tensor_extreme_values() {
     if let Ok(mut manager) = Manager::new() {
-        let extreme_i32_data = vec![
-            i32::MAX,
-            i32::MIN,
-            0,
-            -1,
-            1,
-            1_000_000,
-            -1_000_000,
-            42,
-            -42,
-        ];
+        let extreme_i32_data = vec![i32::MAX, i32::MIN, 0, -1, 1, 1_000_000, -1_000_000, 42, -42];
 
         match Tensor::new(&mut manager, &extreme_i32_data) {
             Ok(tensor) => {
@@ -84,9 +83,14 @@ fn test_i32_tensor_extreme_values() {
                     Ok(retrieved) => {
                         assert_eq!(retrieved.len(), extreme_i32_data.len());
 
-                        for (i, (orig, retr)) in extreme_i32_data.iter().zip(retrieved.iter()).enumerate() {
-                            assert_eq!(*orig, *retr,
-                                     "i32 value corrupted at index {}: {} != {}", i, orig, retr);
+                        for (i, (orig, retr)) in
+                            extreme_i32_data.iter().zip(retrieved.iter()).enumerate()
+                        {
+                            assert_eq!(
+                                *orig, *retr,
+                                "i32 value corrupted at index {}: {} != {}",
+                                i, orig, retr
+                            );
                         }
                         println!("✓ i32 tensor handles extreme values correctly");
 
@@ -100,7 +104,10 @@ fn test_i32_tensor_extreme_values() {
                     Err(e) => panic!("i32 tensor data retrieval failed: {}", e),
                 }
             }
-            Err(e) if e.to_string().contains("not implemented") || e.to_string().contains("unsupported") => {
+            Err(e)
+                if e.to_string().contains("not implemented")
+                    || e.to_string().contains("unsupported") =>
+            {
                 println!("⚠️ i32 tensors not yet implemented: {}", e);
             }
             Err(e) => panic!("i32 tensor creation failed unexpectedly: {}", e),
@@ -111,7 +118,6 @@ fn test_i32_tensor_extreme_values() {
 }
 
 #[test]
-#[ignore = "requires GPU device"]
 fn test_u32_tensor_unsigned_range() {
     if let Ok(mut manager) = Manager::new() {
         let unsigned_data = vec![
@@ -134,21 +140,32 @@ fn test_u32_tensor_unsigned_range() {
                     Ok(retrieved) => {
                         assert_eq!(retrieved.len(), unsigned_data.len());
 
-                        for (i, (orig, retr)) in unsigned_data.iter().zip(retrieved.iter()).enumerate() {
-                            assert_eq!(*orig, *retr,
-                                     "u32 value corrupted at index {}: {} != {}", i, orig, retr);
+                        for (i, (orig, retr)) in
+                            unsigned_data.iter().zip(retrieved.iter()).enumerate()
+                        {
+                            assert_eq!(
+                                *orig, *retr,
+                                "u32 value corrupted at index {}: {} != {}",
+                                i, orig, retr
+                            );
                         }
                         println!("✓ u32 tensor handles full unsigned range correctly");
 
                         // Verify specific unsigned values
                         assert_eq!(retrieved[0], 0u32, "Zero preserved");
                         assert_eq!(retrieved[2], u32::MAX, "MAX value preserved");
-                        assert_eq!(retrieved[6], 2_147_483_648u32, "Large unsigned value preserved");
+                        assert_eq!(
+                            retrieved[6], 2_147_483_648u32,
+                            "Large unsigned value preserved"
+                        );
                     }
                     Err(e) => panic!("u32 tensor data retrieval failed: {}", e),
                 }
             }
-            Err(e) if e.to_string().contains("not implemented") || e.to_string().contains("unsupported") => {
+            Err(e)
+                if e.to_string().contains("not implemented")
+                    || e.to_string().contains("unsupported") =>
+            {
                 println!("⚠️ u32 tensors not yet implemented: {}", e);
             }
             Err(e) => panic!("u32 tensor creation failed unexpectedly: {}", e),
@@ -159,7 +176,6 @@ fn test_u32_tensor_unsigned_range() {
 }
 
 #[test]
-#[ignore = "requires GPU device"]
 fn test_multi_type_tensor_size_calculations() {
     if let Ok(mut manager) = Manager::new() {
         let test_data_f32 = vec![1.0f32; 100];
@@ -205,13 +221,15 @@ fn test_multi_type_tensor_size_calculations() {
         if created_tensors.is_empty() {
             println!("⚠️ No multi-type tensors could be created - may not be implemented yet");
         } else {
-            println!("✓ Multi-type tensor size calculations verified for {} types", created_tensors.len());
+            println!(
+                "✓ Multi-type tensor size calculations verified for {} types",
+                created_tensors.len()
+            );
         }
     }
 }
 
 #[test]
-#[ignore = "requires GPU device"]
 fn test_tensor_data_type_detection() {
     if let Ok(mut manager) = Manager::new() {
         let mut type_tests = Vec::new();
@@ -252,13 +270,15 @@ fn test_tensor_data_type_detection() {
         if type_tests.is_empty() {
             println!("⚠️ No tensors created for type detection test");
         } else {
-            println!("✓ Type detection test completed for {} data types", type_tests.len());
+            println!(
+                "✓ Type detection test completed for {} data types",
+                type_tests.len()
+            );
         }
     }
 }
 
 #[test]
-#[ignore = "requires GPU device"]
 fn test_uninitialized_multi_type_tensors() {
     if let Ok(mut manager) = Manager::new() {
         let tensor_size = 1000;
@@ -267,7 +287,10 @@ fn test_uninitialized_multi_type_tensors() {
         match Tensor::<f64>::uninit(&mut manager, tensor_size) {
             Ok(tensor) => {
                 assert_eq!(tensor.size(), tensor_size);
-                println!("✓ Uninitialized f64 tensor created with size: {}", tensor.size());
+                println!(
+                    "✓ Uninitialized f64 tensor created with size: {}",
+                    tensor.size()
+                );
 
                 // Verify we can read the data (should be zeros)
                 match tensor.to_vec() {
@@ -275,7 +298,10 @@ fn test_uninitialized_multi_type_tensors() {
                         assert_eq!(data.len(), tensor_size);
                         // Check that data is initialized (should be zeros)
                         let zero_count = data.iter().filter(|&&x| x == 0.0).count();
-                        println!("  f64 tensor initialized with {} zeros out of {} elements", zero_count, tensor_size);
+                        println!(
+                            "  f64 tensor initialized with {} zeros out of {} elements",
+                            zero_count, tensor_size
+                        );
                     }
                     Err(e) => println!("⚠️ Could not read uninitialized f64 tensor data: {}", e),
                 }
@@ -290,7 +316,10 @@ fn test_uninitialized_multi_type_tensors() {
         match Tensor::<i32>::uninit(&mut manager, tensor_size) {
             Ok(tensor) => {
                 assert_eq!(tensor.size(), tensor_size);
-                println!("✓ Uninitialized i32 tensor created with size: {}", tensor.size());
+                println!(
+                    "✓ Uninitialized i32 tensor created with size: {}",
+                    tensor.size()
+                );
             }
             Err(e) if e.to_string().contains("not implemented") => {
                 println!("⚠️ Uninitialized i32 tensors not yet implemented: {}", e);
@@ -302,7 +331,10 @@ fn test_uninitialized_multi_type_tensors() {
         match Tensor::<u32>::uninit(&mut manager, tensor_size) {
             Ok(tensor) => {
                 assert_eq!(tensor.size(), tensor_size);
-                println!("✓ Uninitialized u32 tensor created with size: {}", tensor.size());
+                println!(
+                    "✓ Uninitialized u32 tensor created with size: {}",
+                    tensor.size()
+                );
             }
             Err(e) if e.to_string().contains("not implemented") => {
                 println!("⚠️ Uninitialized u32 tensors not yet implemented: {}", e);
@@ -313,10 +345,9 @@ fn test_uninitialized_multi_type_tensors() {
 }
 
 #[test]
-#[ignore = "requires GPU device"]
 fn test_multi_type_tensor_concurrent_creation() {
-    use std::thread;
     use std::sync::Arc;
+    use std::thread;
 
     if let Ok(manager) = Manager::new() {
         let manager = Arc::new(std::sync::Mutex::new(manager));
@@ -385,7 +416,10 @@ fn test_multi_type_tensor_concurrent_creation() {
         }
 
         if total_successes > 0 {
-            println!("✓ Concurrent multi-type tensor creation: {} successful operations", total_successes);
+            println!(
+                "✓ Concurrent multi-type tensor creation: {} successful operations",
+                total_successes
+            );
         } else {
             println!("⚠️ No concurrent tensor creations succeeded - may need implementation");
         }
@@ -393,7 +427,6 @@ fn test_multi_type_tensor_concurrent_creation() {
 }
 
 #[test]
-#[ignore = "requires GPU device"]
 fn test_large_multi_type_tensors() {
     if let Ok(mut manager) = Manager::new() {
         let large_size = 100_000; // 100K elements

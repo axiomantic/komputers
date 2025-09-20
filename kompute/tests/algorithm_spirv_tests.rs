@@ -11,7 +11,7 @@ use std::time::Instant;
 /// Test algorithm SPIR-V corruption detection with various invalid patterns.
 /// Verifies robust SPIR-V validation and error handling.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_algorithm_spirv_corruption_detection() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing SPIR-V corruption detection...");
@@ -118,7 +118,7 @@ fn test_algorithm_spirv_corruption_detection() {
 /// Test algorithm-tensor binding verification (will fail until Phase 2).
 /// Verifies that algorithms can be associated with tensors for computation.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_algorithm_tensor_binding_verification() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing algorithm-tensor binding...");
@@ -207,7 +207,7 @@ fn test_algorithm_tensor_binding_verification() {
 /// Test algorithm workgroup specification limits and validation.
 /// Verifies GPU workgroup constraints and compute dispatch parameters.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_algorithm_workgroup_specification_limits() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing algorithm workgroup specification...");
@@ -283,7 +283,7 @@ fn test_algorithm_workgroup_specification_limits() {
 /// Test algorithm multiple creation and resource limits.
 /// Verifies resource management with many algorithm instances.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_algorithm_multiple_creation_resource_limits() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing multiple algorithm creation limits...");
@@ -398,7 +398,7 @@ fn test_algorithm_multiple_creation_resource_limits() {
 /// Test algorithm reuse with different tensors.
 /// Verifies algorithm flexibility and tensor rebinding (future feature).
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_algorithm_reuse_different_tensors() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing algorithm reuse with different tensors...");
@@ -477,7 +477,7 @@ fn test_algorithm_reuse_different_tensors() {
 /// Test SPIR-V validation edge cases and boundary conditions.
 /// Verifies thorough validation of shader code.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_spirv_validation_edge_cases() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing SPIR-V validation edge cases...");
@@ -568,7 +568,7 @@ fn test_spirv_validation_edge_cases() {
 /// Test algorithm creation performance and consistency.
 /// Verifies algorithm creation performance doesn't degrade.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_algorithm_creation_performance() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing algorithm creation performance...");
@@ -651,7 +651,7 @@ fn test_algorithm_creation_performance() {
 /// Test concurrent algorithm creation across multiple threads.
 /// Verifies thread safety of algorithm operations.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_algorithm_concurrent_creation() {
     println!("Testing concurrent algorithm creation...");
 

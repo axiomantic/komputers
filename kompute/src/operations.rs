@@ -31,14 +31,20 @@ impl GpuOperations {
     pub fn new() -> Result<Self> {
         let manager = Manager::new()?;
         let memory_optimizer = MemoryOptimizer::new()?;
-        Ok(Self { manager, memory_optimizer })
+        Ok(Self {
+            manager,
+            memory_optimizer,
+        })
     }
 
     /// Create GPU operations manager with a specific device.
     pub fn with_device(device_id: u32) -> Result<Self> {
         let manager = Manager::with_device(device_id)?;
         let memory_optimizer = MemoryOptimizer::new()?;
-        Ok(Self { manager, memory_optimizer })
+        Ok(Self {
+            manager,
+            memory_optimizer,
+        })
     }
 
     /// Perform element-wise addition of two tensors.
@@ -90,7 +96,7 @@ impl GpuOperations {
         // Validate the SPIR-V bytecode
         if !spirv_shaders::validate_spirv(spirv_data) {
             return Err(KomputeError::compute(
-                "Invalid SPIR-V bytecode for element-wise addition"
+                "Invalid SPIR-V bytecode for element-wise addition",
             ));
         }
 
@@ -343,7 +349,7 @@ impl GpuOperations {
         // Validate the SPIR-V bytecode
         if !spirv_shaders::validate_spirv(spirv_data) {
             return Err(KomputeError::compute(
-                "Invalid SPIR-V bytecode for element-wise addition"
+                "Invalid SPIR-V bytecode for element-wise addition",
             ));
         }
 
@@ -446,7 +452,7 @@ impl GpuOperations {
         // Validate the SPIR-V bytecode
         if !spirv_shaders::validate_spirv(spirv_data) {
             return Err(KomputeError::compute(
-                "Invalid SPIR-V bytecode for matrix multiplication"
+                "Invalid SPIR-V bytecode for matrix multiplication",
             ));
         }
 
@@ -501,7 +507,7 @@ impl GpuOperations {
         self.memory_optimizer.allocate_optimized(
             &format!("tensor_{}", tensor.handle()),
             size_bytes,
-            "DEVICE_LOCAL"
+            "DEVICE_LOCAL",
         )?;
         Ok(())
     }

@@ -90,6 +90,17 @@ fn build_kompute_library(
         }
         "macos" => {
             cmake_config.define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15");
+            // Fix for Kompute + MoltenVK compatibility issue
+            // Reference: https://github.com/KhronosGroup/MoltenVK/issues/2292
+            cmake_config.define("KOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK", "ON");
+            // Disable all debugging and validation features for MoltenVK compatibility
+            cmake_config.define("KOMPUTE_DISABLE_VK_DEBUG_LAYERS", "ON");
+            cmake_config.define("CMAKE_BUILD_TYPE", "Release");
+            // CRITICAL FIX: Force Vulkan API 1.2 for MoltenVK compatibility
+            // "For anyone coming across this in the future, ensure that vk::ApplicationInfo.apiVersion is 1.2 or lower.
+            // MoltenVK will gladly load with 1.3 but that causes issues like this."
+            cmake_config.define("KOMPUTE_VK_API_MAJOR_VERSION", "1");
+            cmake_config.define("KOMPUTE_VK_API_MINOR_VERSION", "2");
         }
         _ => {}
     }
@@ -182,6 +193,18 @@ fn build_cxx_bridge(out_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
         .flag_if_supported("-DFMT_HEADER_ONLY=1")
         .flag_if_supported("-DVULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1");
 
+    // Add Vulkan API version defines for platform compatibility
+    #[cfg(target_os = "macos")]
+    {
+        // CRITICAL: Force Vulkan API 1.2 for MoltenVK compatibility on macOS
+        // Reference: https://github.com/KhronosGroup/MoltenVK/issues/2292
+        // Override the version BEFORE Kompute headers are included
+        cxx_builder
+            .flag_if_supported("-DKOMPUTE_VK_API_MAJOR_VERSION=1")
+            .flag_if_supported("-DKOMPUTE_VK_API_MINOR_VERSION=2")
+            .flag_if_supported("-DKOMPUTE_VK_API_VERSION=VK_MAKE_VERSION(1,2,0)");
+    }
+
     // Add AddressSanitizer flags to C++ compilation if asan feature is enabled
     if cfg!(feature = "asan") {
         cxx_builder
@@ -272,7 +295,7 @@ include(FetchContent)
 FetchContent_Declare(
   kompute
   GIT_REPOSITORY https://github.com/KomputeProject/kompute.git
-  GIT_TAG v0.9.0
+  GIT_TAG master
   GIT_SHALLOW TRUE
 )
 

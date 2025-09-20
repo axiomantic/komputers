@@ -7,7 +7,7 @@ use kompute::{Manager, Result, Sequence, Tensor};
 
 /// Test a complete GPU compute workflow with multiple tensors and operations.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_comprehensive_gpu_workflow() -> Result<()> {
     println!("Starting comprehensive GPU workflow test...");
 
@@ -85,7 +85,7 @@ fn test_comprehensive_gpu_workflow() -> Result<()> {
 
 /// Test tensor lifecycle and resource management.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_tensor_lifecycle() -> Result<()> {
     println!("Starting tensor lifecycle test...");
 
@@ -131,7 +131,7 @@ fn test_tensor_lifecycle() -> Result<()> {
 
 /// Test edge cases and error conditions.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_edge_cases() -> Result<()> {
     println!("Starting edge cases test...");
 
@@ -220,7 +220,7 @@ fn test_edge_cases() -> Result<()> {
 
 /// Test concurrent tensor operations.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_concurrent_operations() -> Result<()> {
     use std::sync::{Arc, Mutex};
     use std::thread;
@@ -342,7 +342,6 @@ fn test_device_capabilities() {
 
 /// Stress test with many tensors and operations.
 #[test]
-#[ignore = "requires Vulkan-capable device and sufficient memory"]
 fn test_stress_operations() -> Result<()> {
     println!("Starting stress test...");
 

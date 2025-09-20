@@ -468,7 +468,7 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore = "requires Vulkan-capable device"]
+
     fn test_multi_queue_creation() {
         if let Ok(mut multi_manager) = MultiQueueManager::new() {
             // Test queue creation
@@ -488,7 +488,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires Vulkan-capable device"]
+
     fn test_device_capabilities() {
         if let Ok(multi_manager) = MultiQueueManager::new() {
             if let Ok(capabilities) = multi_manager.device_capabilities() {
@@ -500,7 +500,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires Vulkan-capable device"]
+
     fn test_workflow_builder() {
         if let Ok(workflow) = MultiQueueWorkflow::new() {
             let result = workflow

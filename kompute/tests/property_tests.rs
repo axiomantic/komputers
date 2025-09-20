@@ -13,7 +13,7 @@ mod tensor_properties {
 
     proptest! {
         #[test]
-        #[ignore = "requires Vulkan-capable device"]
+
         fn prop_tensor_data_consistency(data in prop::collection::vec(any::<f32>(), 1..1000)) {
             if let Ok(mut manager) = Manager::new() {
                 if let Ok(tensor) = Tensor::new(&mut manager, &data) {
@@ -34,7 +34,7 @@ mod tensor_properties {
         }
 
         #[test]
-        #[ignore = "requires Vulkan-capable device"]
+
         fn prop_tensor_size_properties(data in prop::collection::vec(any::<f32>(), 0..10000)) {
             if let Ok(mut manager) = Manager::new() {
                 if let Ok(tensor) = Tensor::new(&mut manager, &data) {
@@ -51,7 +51,7 @@ mod tensor_properties {
         }
 
         #[test]
-        #[ignore = "requires Vulkan-capable device"]
+
         fn prop_tensor_handle_uniqueness(
             data1 in prop::collection::vec(any::<f32>(), 1..100),
             data2 in prop::collection::vec(any::<f32>(), 1..100)
@@ -84,7 +84,7 @@ mod tensor_properties {
         }
 
         #[test]
-        #[ignore = "requires Vulkan-capable device"]
+
         fn prop_multiple_tensor_creation(
             tensor_count in 1usize..50,
             size_per_tensor in 1usize..100
@@ -130,7 +130,7 @@ mod float_properties {
 
     proptest! {
         #[test]
-        #[ignore = "requires Vulkan-capable device"]
+
         fn prop_special_float_values(
             normal_vals in prop::collection::vec(prop::num::f32::NORMAL, 1..100),
             inf_count in 0usize..10,
@@ -178,7 +178,7 @@ mod float_properties {
         }
 
         #[test]
-        #[ignore = "requires Vulkan-capable device"]
+
         fn prop_extreme_float_values(
             data in prop::collection::vec(
                 prop::num::f32::ANY.prop_filter("finite values only", |x| x.is_finite()),
@@ -260,7 +260,7 @@ mod concurrency_properties {
     use std::thread;
 
     #[test]
-    #[ignore = "requires Vulkan-capable device"]
+
     fn prop_concurrent_tensor_creation() {
         let thread_count = 3;
         let tensors_per_thread = 5;

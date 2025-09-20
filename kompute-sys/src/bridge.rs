@@ -78,6 +78,28 @@ pub mod ffi {
         fn create_tensor_uninit_i32_handle(manager: Pin<&mut Manager>, size: usize) -> u64;
         fn create_tensor_uninit_u32_handle(manager: Pin<&mut Manager>, size: usize) -> u64;
 
+        // Filled tensor creation by handle
+        fn create_tensor_filled_f32_handle(
+            manager: Pin<&mut Manager>,
+            size: usize,
+            fill_value: f32,
+        ) -> u64;
+        fn create_tensor_filled_f64_handle(
+            manager: Pin<&mut Manager>,
+            size: usize,
+            fill_value: f64,
+        ) -> u64;
+        fn create_tensor_filled_i32_handle(
+            manager: Pin<&mut Manager>,
+            size: usize,
+            fill_value: i32,
+        ) -> u64;
+        fn create_tensor_filled_u32_handle(
+            manager: Pin<&mut Manager>,
+            size: usize,
+            fill_value: u32,
+        ) -> u64;
+
         // Multi-type tensor data retrieval
         fn tensor_data_f64_by_handle(handle: u64) -> Vec<f64>;
         fn tensor_data_i32_by_handle(handle: u64) -> Vec<i32>;
@@ -92,6 +114,8 @@ pub mod ffi {
         // Algorithm operations by handle
         fn create_algorithm_handle(manager: Pin<&mut Manager>, spirv: &[u32]) -> u64;
         fn algorithm_destroy_handle(handle: u64);
+        fn algorithm_set_specialization_constants(algo_handle: u64, constants: &[f32]) -> bool;
+        fn algorithm_set_push_constants(algo_handle: u64, constants: &[f32]) -> bool;
 
         // Sequence operations by handle
         fn create_sequence_handle(manager: Pin<&mut Manager>) -> u64;

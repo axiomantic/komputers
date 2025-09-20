@@ -1,5 +1,6 @@
 //! Automatic Vulkan environment setup for cross-platform compatibility.
 
+use crate::platform::MetalGpuDetection;
 use std::env;
 use std::path::Path;
 
@@ -27,13 +28,39 @@ fn configure_macos_vulkan() -> Result<(), String> {
     if let Ok(vulkan_sdk) = env::var("VULKAN_SDK") {
         println!("Using Vulkan SDK: {}", vulkan_sdk);
 
-        // Set up MoltenVK ICD
-        let icd_path = format!("{}/share/vulkan/icd.d/MoltenVK_icd.json", vulkan_sdk);
-        if Path::new(&icd_path).exists() {
-            env::set_var("VK_ICD_FILENAMES", &icd_path);
-            println!("Set VK_ICD_FILENAMES: {}", icd_path);
+        // Set up MoltenVK ICD - check if already correctly set first
+        if let Ok(existing_icd) = env::var("VK_ICD_FILENAMES") {
+            if Path::new(&existing_icd).exists() {
+                println!("Using existing VK_ICD_FILENAMES: {}", existing_icd);
+            } else {
+                return Err(format!(
+                    "Existing VK_ICD_FILENAMES points to non-existent file: {}",
+                    existing_icd
+                ));
+            }
         } else {
-            return Err(format!("MoltenVK ICD file not found at: {}", icd_path));
+            // Try common locations for MoltenVK ICD
+            let icd_candidates = [
+                format!("{}/etc/vulkan/icd.d/MoltenVK_icd.json", vulkan_sdk),
+                format!("{}/share/vulkan/icd.d/MoltenVK_icd.json", vulkan_sdk),
+            ];
+
+            let mut found_icd = false;
+            for icd_path in &icd_candidates {
+                if Path::new(icd_path).exists() {
+                    env::set_var("VK_ICD_FILENAMES", icd_path);
+                    println!("Set VK_ICD_FILENAMES: {}", icd_path);
+                    found_icd = true;
+                    break;
+                }
+            }
+
+            if !found_icd {
+                return Err(format!(
+                    "MoltenVK ICD file not found in any of: {:?}",
+                    icd_candidates
+                ));
+            }
         }
 
         // Set up layer path
@@ -138,6 +165,153 @@ fn configure_windows_vulkan() -> Result<(), String> {
 
     println!("No explicit Vulkan configuration needed for Windows (using registry)");
     Ok(())
+}
+
+/// Intelligent Vulkan configuration with automatic MoltenVK setup and helpful error handling.
+///
+/// This function provides the new Phase 0 intelligent GPU configuration:
+/// - Auto-detects Metal GPU support on compatible systems
+/// - Auto-configures MoltenVK when appropriate
+/// - Respects user override via KOMPUTE_DISABLE_MOLTENVK_AUTO
+/// - Provides detailed, helpful error messages when configuration fails
+/// - Validates device availability with comprehensive diagnostics
+pub fn configure_vulkan_environment_intelligent() -> Result<(), String> {
+    // Step 1: Check if auto-MoltenVK configuration should be applied
+    if MetalGpuDetection::should_auto_configure_moltenvk() {
+        match configure_moltenvk_auto() {
+            Ok(()) => {
+                println!("✓ Auto-configured MoltenVK for Metal GPU support");
+            }
+            Err(e) => {
+                println!("⚠️ Auto-MoltenVK configuration failed: {}", e);
+                // Continue with fallback configuration
+            }
+        }
+    }
+
+    // Step 2: Apply standard Vulkan configuration
+    configure_vulkan_environment()?;
+
+    // Step 3: Validate that devices are available with helpful diagnostics
+    validate_device_availability()
+}
+
+/// Auto-configure MoltenVK for systems with Metal GPU support.
+fn configure_moltenvk_auto() -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        println!("🔧 Auto-configuring MoltenVK for macOS Metal GPU...");
+        configure_macos_vulkan()
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        // Future: support for Linux ARM systems with Metal
+        Err("MoltenVK auto-configuration only supported on macOS currently".to_string())
+    }
+}
+
+/// Validate that Vulkan devices are available and provide helpful errors if not.
+fn validate_device_availability() -> Result<(), String> {
+    match crate::Manager::device_count() {
+        Ok(count) => {
+            if count == 0 {
+                Err(generate_helpful_device_error())
+            } else {
+                println!(
+                    "✓ Vulkan validation successful: {} device(s) available",
+                    count
+                );
+                Ok(())
+            }
+        }
+        Err(e) => {
+            let mut error = format!("Vulkan device enumeration failed: {}", e);
+            error.push_str("\n\n");
+            error.push_str(&generate_helpful_device_error());
+            Err(error)
+        }
+    }
+}
+
+/// Generate helpful, platform-specific error messages when no devices are found.
+fn generate_helpful_device_error() -> String {
+    let mut error = String::from("No Vulkan devices found.\n\n");
+
+    if MetalGpuDetection::detect_metal_gpu_support() {
+        error.push_str("🍎 Metal-capable system detected!\n");
+        error.push_str("To resolve this issue:\n\n");
+        error.push_str("1️⃣ Install MoltenVK:\n");
+        error.push_str("   • Via Homebrew: brew install molten-vk\n");
+        error.push_str("   • Via Vulkan SDK: Download from https://vulkan.lunarg.com/\n\n");
+
+        error.push_str("2️⃣ Verify MoltenVK installation:\n");
+        error.push_str("   • Run: vulkaninfo\n");
+        error.push_str("   • Check for MoltenVK in the output\n\n");
+
+        error.push_str("3️⃣ Environment configuration:\n");
+        error.push_str("   • VK_ICD_FILENAMES should point to MoltenVK_icd.json\n");
+        error
+            .push_str("   • Auto-configuration handles this if MoltenVK is properly installed\n\n");
+
+        error.push_str("4️⃣ Alternative GPU configuration:\n");
+        error.push_str("   • If you have discrete GPUs and prefer not to use MoltenVK:\n");
+        error.push_str("   • Set: export KOMPUTE_DISABLE_MOLTENVK_AUTO=1\n");
+        error.push_str("   • Ensure discrete GPU drivers support Vulkan\n\n");
+
+        error.push_str("🔍 Troubleshooting:\n");
+        error.push_str("   • Check system_profiler SPDisplaysDataType for GPU info\n");
+        error.push_str("   • Verify macOS version (10.11+ required for Metal)\n");
+    } else {
+        // Non-Metal systems (Linux, Windows, or older macOS)
+        let platform = crate::platform::PlatformInfo::detect();
+
+        match platform.os.as_str() {
+            "linux" => {
+                error.push_str("🐧 Linux system detected.\n");
+                error.push_str("To resolve this issue:\n\n");
+                error.push_str("1️⃣ Install Vulkan drivers:\n");
+                error.push_str("   • NVIDIA: install nvidia-vulkan-icd\n");
+                error.push_str("   • AMD: install mesa-vulkan-drivers or amdvlk\n");
+                error.push_str("   • Intel: install mesa-vulkan-drivers\n\n");
+                error.push_str("2️⃣ Install Vulkan tools:\n");
+                error.push_str("   • Ubuntu/Debian: apt install vulkan-tools\n");
+                error.push_str("   • Fedora: dnf install vulkan-tools\n");
+                error.push_str("   • Arch: pacman -S vulkan-tools\n\n");
+                error.push_str("3️⃣ Verify installation:\n");
+                error.push_str("   • Run: vulkaninfo\n");
+                error.push_str("   • Check: ls /dev/dri/\n");
+            }
+            "windows" => {
+                error.push_str("🪟 Windows system detected.\n");
+                error.push_str("To resolve this issue:\n\n");
+                error.push_str("1️⃣ Update GPU drivers:\n");
+                error.push_str("   • NVIDIA: Download from nvidia.com\n");
+                error.push_str("   • AMD: Download from amd.com\n");
+                error.push_str("   • Intel: Download from intel.com\n\n");
+                error.push_str("2️⃣ Install Vulkan SDK:\n");
+                error.push_str("   • Download from https://vulkan.lunarg.com/\n");
+                error.push_str("   • Includes vulkaninfo tool for testing\n\n");
+                error.push_str("3️⃣ Verify installation:\n");
+                error.push_str("   • Run: vulkaninfo\n");
+                error.push_str("   • Check Device Manager for GPU status\n");
+            }
+            _ => {
+                error.push_str("❓ Unknown or unsupported platform.\n");
+                error.push_str("General Vulkan installation guidance:\n\n");
+                error.push_str("1️⃣ Install Vulkan drivers for your GPU\n");
+                error.push_str("2️⃣ Install Vulkan SDK from https://vulkan.lunarg.com/\n");
+                error.push_str("3️⃣ Run vulkaninfo to test installation\n");
+            }
+        }
+
+        error.push_str("\n🔍 Additional troubleshooting:\n");
+        error.push_str("   • Ensure your GPU supports Vulkan 1.0+\n");
+        error.push_str("   • Check that GPU drivers are not in compatibility mode\n");
+        error.push_str("   • Verify no conflicting graphics software is installed\n");
+    }
+
+    error
 }
 
 /// Check if Vulkan is properly configured and available.
@@ -295,6 +469,95 @@ mod tests {
             Err(e) => {
                 println!("⚠️  Vulkan verification failed: {}", e);
                 // Don't panic in test - this might be expected in some environments
+            }
+        }
+    }
+
+    #[test]
+    fn test_intelligent_vulkan_configuration() {
+        println!("🧪 Testing intelligent Vulkan configuration...");
+
+        match configure_vulkan_environment_intelligent() {
+            Ok(()) => {
+                println!("✅ Intelligent Vulkan configuration succeeded");
+            }
+            Err(e) => {
+                println!("⚠️ Intelligent Vulkan configuration failed: {}", e);
+
+                // Verify error message contains helpful guidance
+                assert!(
+                    e.contains("Install")
+                        || e.contains("MoltenVK")
+                        || e.contains("drivers")
+                        || e.contains("Metal"),
+                    "Error message should contain helpful guidance"
+                );
+                println!("✓ Error message contains helpful guidance");
+            }
+        }
+    }
+
+    #[test]
+    fn test_helpful_error_generation() {
+        // Test the error message generation directly
+        let error_msg = generate_helpful_device_error();
+
+        println!("📝 Generated helpful error message:\n{}", error_msg);
+
+        // Verify the message contains helpful elements
+        assert!(!error_msg.is_empty(), "Error message should not be empty");
+        assert!(
+            error_msg.contains("Vulkan"),
+            "Error message should mention Vulkan"
+        );
+
+        // Check for platform-specific guidance
+        #[cfg(target_os = "macos")]
+        {
+            assert!(
+                error_msg.contains("Metal") || error_msg.contains("MoltenVK"),
+                "macOS error should mention Metal/MoltenVK"
+            );
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            assert!(
+                error_msg.contains("Linux")
+                    || error_msg.contains("apt")
+                    || error_msg.contains("mesa"),
+                "Linux error should contain Linux-specific guidance"
+            );
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            assert!(
+                error_msg.contains("Windows")
+                    || error_msg.contains("nvidia")
+                    || error_msg.contains("amd"),
+                "Windows error should contain Windows-specific guidance"
+            );
+        }
+
+        println!("✓ Helpful error message generation test passed");
+    }
+
+    #[test]
+    fn test_device_validation() {
+        println!("🧪 Testing device validation...");
+
+        match validate_device_availability() {
+            Ok(()) => {
+                println!("✅ Device validation passed");
+            }
+            Err(e) => {
+                println!("⚠️ Device validation failed: {}", e);
+                // Verify error contains helpful guidance
+                assert!(
+                    e.contains("Metal") || e.contains("Install") || e.contains("drivers"),
+                    "Validation error should contain helpful guidance"
+                );
             }
         }
     }

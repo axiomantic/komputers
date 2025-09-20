@@ -169,7 +169,7 @@ mod tests {
     use crate::manager::Manager;
 
     #[test]
-    #[ignore = "requires Vulkan-capable device"]
+
     fn test_queue_creation() {
         if let Ok(mut manager) = Manager::new() {
             let queue_result = Queue::new(&mut manager, 0);
@@ -190,7 +190,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires Vulkan-capable device"]
+
     fn test_named_queue_creation() {
         if let Ok(mut manager) = Manager::new() {
             let queue_result = Queue::with_name(&mut manager, 0, "test_compute_queue");
@@ -208,7 +208,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires Vulkan-capable device"]
+
     fn test_queue_sequence_creation() {
         if let Ok(mut manager) = Manager::new() {
             if let Ok(queue) = Queue::new(&mut manager, 0) {
@@ -230,7 +230,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires Vulkan-capable device"]
+
     fn test_queue_wait_idle() {
         if let Ok(mut manager) = Manager::new() {
             if let Ok(queue) = Queue::new(&mut manager, 0) {
@@ -248,7 +248,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires Vulkan-capable device"]
+
     fn test_queue_raii_cleanup() {
         // Test that queues are properly cleaned up when dropped
         if let Ok(mut manager) = Manager::new() {

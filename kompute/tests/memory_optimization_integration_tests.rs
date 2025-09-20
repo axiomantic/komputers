@@ -51,32 +51,47 @@ fn test_memory_optimizer_allocation_strategies() {
         println!("Testing memory allocation strategies...");
 
         // Test Conservative strategy
-        optimizer.set_allocation_strategy(AllocationStrategy::Conservative {
-            max_single_allocation: 512 * 1024 * 1024,
-            cleanup_threshold: 0.7,
-        }).unwrap();
+        optimizer
+            .set_allocation_strategy(AllocationStrategy::Conservative {
+                max_single_allocation: 512 * 1024 * 1024,
+                cleanup_threshold: 0.7,
+            })
+            .unwrap();
         let conservative_metrics = test_allocation_strategy(&mut optimizer, "conservative_test");
 
         // Test Aggressive strategy
-        optimizer.set_allocation_strategy(AllocationStrategy::Aggressive {
-            preferred_allocation_size: 1024 * 1024 * 1024,
-            batch_allocation_count: 4,
-        }).unwrap();
+        optimizer
+            .set_allocation_strategy(AllocationStrategy::Aggressive {
+                preferred_allocation_size: 1024 * 1024 * 1024,
+                batch_allocation_count: 4,
+            })
+            .unwrap();
         let aggressive_metrics = test_allocation_strategy(&mut optimizer, "aggressive_test");
 
         // Test Adaptive strategy
-        optimizer.set_allocation_strategy(AllocationStrategy::Adaptive {
-            current_strategy: Box::new(AllocationStrategy::Conservative {
-                max_single_allocation: 256 * 1024 * 1024,
-                cleanup_threshold: 0.8,
-            }),
-            adaptation_history: vec![],
-        }).unwrap();
+        optimizer
+            .set_allocation_strategy(AllocationStrategy::Adaptive {
+                current_strategy: Box::new(AllocationStrategy::Conservative {
+                    max_single_allocation: 256 * 1024 * 1024,
+                    cleanup_threshold: 0.8,
+                }),
+                adaptation_history: vec![],
+            })
+            .unwrap();
         let adaptive_metrics = test_allocation_strategy(&mut optimizer, "adaptive_test");
 
-        println!("Conservative allocation time: {:?}", conservative_metrics.total_allocation_time);
-        println!("Aggressive allocation time: {:?}", aggressive_metrics.total_allocation_time);
-        println!("Adaptive allocation time: {:?}", adaptive_metrics.total_allocation_time);
+        println!(
+            "Conservative allocation time: {:?}",
+            conservative_metrics.total_allocation_time
+        );
+        println!(
+            "Aggressive allocation time: {:?}",
+            aggressive_metrics.total_allocation_time
+        );
+        println!(
+            "Adaptive allocation time: {:?}",
+            adaptive_metrics.total_allocation_time
+        );
 
         println!("✓ All allocation strategies tested successfully");
     } else {
@@ -98,7 +113,6 @@ fn test_allocation_strategy(optimizer: &mut MemoryOptimizer, prefix: &str) -> Pe
 }
 
 #[test]
-#[ignore = "requires GPU device"]
 fn test_gpu_operations_memory_integration() {
     if let Ok(mut ops) = GpuOperations::new() {
         println!("Testing GpuOperations memory optimization integration...");
@@ -107,10 +121,7 @@ fn test_gpu_operations_memory_integration() {
         let f32_small = vec![1.0f32; 100];
         let f32_large = vec![1.0f32; 10000];
 
-        let test_cases = vec![
-            (&f32_small, "f32_small"),
-            (&f32_large, "f32_large"),
-        ];
+        let test_cases = vec![(&f32_small, "f32_small"), (&f32_large, "f32_large")];
 
         for (data, description) in test_cases {
             if let Ok(tensor) = Tensor::new(ops.manager(), data) {
@@ -143,24 +154,18 @@ fn test_platform_specific_configuration() {
 
         // Test platform-specific configurations
         match platform.os.as_str() {
-            "macos" => {
-                match optimizer.configure_moltenvk_memory() {
-                    Ok(()) => println!("✓ MoltenVK memory configuration successful"),
-                    Err(e) => println!("⚠️ MoltenVK configuration failed: {}", e),
-                }
-            }
-            "linux" => {
-                match optimizer.configure_linux_memory() {
-                    Ok(()) => println!("✓ Linux native Vulkan configuration successful"),
-                    Err(e) => println!("⚠️ Linux configuration failed: {}", e),
-                }
-            }
-            "windows" => {
-                match optimizer.configure_windows_memory() {
-                    Ok(()) => println!("✓ Windows native Vulkan configuration successful"),
-                    Err(e) => println!("⚠️ Windows configuration failed: {}", e),
-                }
-            }
+            "macos" => match optimizer.configure_moltenvk_memory() {
+                Ok(()) => println!("✓ MoltenVK memory configuration successful"),
+                Err(e) => println!("⚠️ MoltenVK configuration failed: {}", e),
+            },
+            "linux" => match optimizer.configure_linux_memory() {
+                Ok(()) => println!("✓ Linux native Vulkan configuration successful"),
+                Err(e) => println!("⚠️ Linux configuration failed: {}", e),
+            },
+            "windows" => match optimizer.configure_windows_memory() {
+                Ok(()) => println!("✓ Windows native Vulkan configuration successful"),
+                Err(e) => println!("⚠️ Windows configuration failed: {}", e),
+            },
             _ => {
                 println!("⚠️ Unknown platform, using adaptive configuration");
             }
@@ -189,11 +194,17 @@ fn test_memory_pool_management() {
         // Test pool statistics
         let metrics = optimizer.performance_metrics();
         println!("Active pools: {}", metrics.active_pools);
-        println!("Total memory allocated: {} bytes", metrics.total_memory_allocated);
+        println!(
+            "Total memory allocated: {} bytes",
+            metrics.total_memory_allocated
+        );
 
         // Test fragmentation reporting
         if metrics.fragmentation_ratio > 0.0 {
-            println!("Memory fragmentation ratio: {:.2}%", metrics.fragmentation_ratio * 100.0);
+            println!(
+                "Memory fragmentation ratio: {:.2}%",
+                metrics.fragmentation_ratio * 100.0
+            );
         }
 
         println!("✓ Memory pool management test completed");
@@ -245,7 +256,10 @@ fn test_performance_metrics_collection() {
             let pool_name = format!("metrics_test_pool_{}", i);
             let size = 1024 * (i + 1);
 
-            if optimizer.allocate_optimized(&pool_name, size, "DEVICE_LOCAL").is_err() {
+            if optimizer
+                .allocate_optimized(&pool_name, size, "DEVICE_LOCAL")
+                .is_err()
+            {
                 println!("⚠️ Allocation {} failed (expected in some environments)", i);
             }
         }
@@ -257,11 +271,23 @@ fn test_performance_metrics_collection() {
         println!("  Total allocations: {}", metrics.total_allocations);
         println!("  Failed allocations: {}", metrics.failed_allocations);
         println!("  Active pools: {}", metrics.active_pools);
-        println!("  Total memory allocated: {} bytes", metrics.total_memory_allocated);
+        println!(
+            "  Total memory allocated: {} bytes",
+            metrics.total_memory_allocated
+        );
         println!("  Peak memory usage: {} bytes", metrics.peak_memory_usage);
-        println!("  Total allocation time: {:?}", metrics.total_allocation_time);
-        println!("  Average allocation time: {:?}", metrics.average_allocation_time);
-        println!("  Fragmentation ratio: {:.2}%", metrics.fragmentation_ratio * 100.0);
+        println!(
+            "  Total allocation time: {:?}",
+            metrics.total_allocation_time
+        );
+        println!(
+            "  Average allocation time: {:?}",
+            metrics.average_allocation_time
+        );
+        println!(
+            "  Fragmentation ratio: {:.2}%",
+            metrics.fragmentation_ratio * 100.0
+        );
 
         // Basic validation
         assert!(metrics.total_allocations >= metrics.failed_allocations);

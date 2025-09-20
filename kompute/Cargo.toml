@@ -26,6 +26,20 @@ cxx = "1.0"
 tokio = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 
+# GLSL compilation support
+tempfile = { workspace = true, optional = true }
+
+# Debug tools dependencies
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", optional = true }
+uuid = { version = "1.0", features = ["v4"], optional = true }
+chrono = { version = "0.4", features = ["serde"], optional = true }
+
+# Crash debugging and analysis
+backtrace = { version = "0.3", optional = true }
+signal-hook = { version = "0.3", optional = true }
+libc = { version = "0.2", optional = true }
+
 [dev-dependencies]
 env_logger.workspace = true
 criterion.workspace = true
@@ -35,9 +49,44 @@ anyhow.workspace = true
 [features]
 default = []
 async = ["tokio", "futures"]
+glsl = ["tempfile"]
+debug = ["serde", "serde_json", "uuid", "chrono"]
 validation = ["kompute-sys/validation"]
 asan = ["kompute-sys/asan"]
+crash-debug = ["backtrace", "signal-hook", "libc"]
 test-utils = []
+
+[[example]]
+name = "defensive_guards_demo"
+path = "examples/defensive_guards_demo.rs"
+
+[[example]]
+name = "basic_gpu_computing"
+path = "examples/basic_gpu_computing.rs"
+
+[[example]]
+name = "advanced_gpu_operations"
+path = "examples/advanced_gpu_operations.rs"
+
+[[example]]
+name = "async_gpu_operations"
+path = "examples/async_gpu_operations.rs"
+
+[[example]]
+name = "image_processing_pipeline"
+path = "examples/image_processing_pipeline.rs"
+
+[[example]]
+name = "machine_learning_operations"
+path = "examples/machine_learning_operations.rs"
+
+[[example]]
+name = "multi_type_tensors"
+path = "examples/multi_type_tensors.rs"
+
+[[example]]
+name = "scientific_computing"
+path = "examples/scientific_computing.rs"
 
 # Benchmarks will be added later
 # [[bench]]

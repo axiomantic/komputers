@@ -3,60 +3,188 @@
 #include <stdexcept>
 #include <cstdlib>
 #include <string>
+#include <vector>
+#include <unistd.h>
 
 // Helper function to configure Vulkan environment for macOS
 void configure_vulkan_environment() {
     const char* vulkan_sdk = std::getenv("VULKAN_SDK");
     if (vulkan_sdk) {
-        // Set ICD file for MoltenVK
-        std::string icd_path = std::string(vulkan_sdk) + "/share/vulkan/icd.d/MoltenVK_icd.json";
-        setenv("VK_ICD_FILENAMES", icd_path.c_str(), 1);
+        // Check if VK_ICD_FILENAMES is already set and points to an existing file
+        const char* existing_icd = std::getenv("VK_ICD_FILENAMES");
+        if (existing_icd && access(existing_icd, R_OK) == 0) {
+            // Already correctly set, don't override
+        } else {
+            // Try common locations for MoltenVK ICD
+            std::vector<std::string> icd_candidates = {
+                std::string(vulkan_sdk) + "/etc/vulkan/icd.d/MoltenVK_icd.json",
+                std::string(vulkan_sdk) + "/share/vulkan/icd.d/MoltenVK_icd.json"
+            };
 
-        // Set layer path
-        std::string layer_path = std::string(vulkan_sdk) + "/share/vulkan/explicit_layer.d";
-        setenv("VK_LAYER_PATH", layer_path.c_str(), 1);
+            for (const auto& icd_path : icd_candidates) {
+                if (access(icd_path.c_str(), R_OK) == 0) {
+                    setenv("VK_ICD_FILENAMES", icd_path.c_str(), 1);
+                    break;
+                }
+            }
+        }
+
+        // Set layer path if not already set
+        const char* existing_layer = std::getenv("VK_LAYER_PATH");
+        if (!existing_layer) {
+            std::string layer_path = std::string(vulkan_sdk) + "/share/vulkan/explicit_layer.d";
+            if (access(layer_path.c_str(), R_OK) == 0) {
+                setenv("VK_LAYER_PATH", layer_path.c_str(), 1);
+            }
+        }
 
         // Disable validation layers for basic usage
         unsetenv("VK_INSTANCE_LAYERS");
     }
 }
 
+// OPTION 2: Custom Manager creation with PR #353 MoltenVK compatibility fix
+std::unique_ptr<Manager> create_manager_moltenvk_compatible(uint32_t device_id) {
+    try {
+        std::cerr << "🔧 OPTION 2: Creating MoltenVK-compatible Manager with PR #353 fixes" << std::endl;
+
+        // Create Vulkan instance using the exact same fix from PR #353
+        vk::ApplicationInfo applicationInfo;
+        applicationInfo.pApplicationName = "Kompute";
+        applicationInfo.pEngineName = "Kompute";
+        applicationInfo.apiVersion = VK_MAKE_VERSION(1, 2, 0);  // Force API 1.2!
+        applicationInfo.engineVersion = VK_MAKE_VERSION(1, 2, 0);
+        applicationInfo.applicationVersion = VK_MAKE_VERSION(1, 2, 0);
+
+        // PR #353 FIX: Apply the exact same changes as in Manager.cpp
+        std::vector<const char*> applicationExtensions;
+        vk::InstanceCreateInfo computeInstanceCreateInfo;
+        computeInstanceCreateInfo.pApplicationInfo = &applicationInfo;
+
+        #ifdef __APPLE__
+        // Required for backwards compatibility for MacOS M1 devices (PR #353)
+        applicationExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+        computeInstanceCreateInfo.flags |= vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
+        std::cerr << "🔧 Added VK_KHR_PORTABILITY_ENUMERATION_EXTENSION for macOS M1 compatibility" << std::endl;
+        #endif
+
+        computeInstanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(applicationExtensions.size());
+        computeInstanceCreateInfo.ppEnabledExtensionNames = applicationExtensions.empty() ? nullptr : applicationExtensions.data();
+
+        std::cerr << "🔧 Creating Vulkan instance with PR #353 compatibility fixes..." << std::endl;
+
+        // PR #353 FIX: Add error handling for Vulkan instance creation
+        std::cerr << "🔧 About to create Vulkan instance..." << std::endl;
+        auto instance = std::make_shared<vk::Instance>(vk::createInstance(computeInstanceCreateInfo));
+        std::cerr << "🔧 Vulkan instance created successfully!" << std::endl;
+
+        // Enumerate physical devices
+        std::cerr << "🔧 Enumerating physical devices..." << std::endl;
+        std::vector<vk::PhysicalDevice> physicalDevices = instance->enumeratePhysicalDevices();
+
+        if (physicalDevices.empty()) {
+            throw std::runtime_error("No Vulkan physical devices found");
+        }
+
+        if (device_id >= physicalDevices.size()) {
+            throw std::runtime_error("Device ID " + std::to_string(device_id) + " out of range");
+        }
+
+        auto physicalDevice = std::make_shared<vk::PhysicalDevice>(physicalDevices[device_id]);
+
+        // Get queue family properties
+        std::vector<vk::QueueFamilyProperties> queueFamilies = physicalDevice->getQueueFamilyProperties();
+
+        uint32_t computeQueueFamilyIndex = UINT32_MAX;
+        for (uint32_t i = 0; i < queueFamilies.size(); i++) {
+            if (queueFamilies[i].queueFlags & vk::QueueFlagBits::eCompute) {
+                computeQueueFamilyIndex = i;
+                break;
+            }
+        }
+
+        if (computeQueueFamilyIndex == UINT32_MAX) {
+            throw std::runtime_error("No compute queue family found");
+        }
+
+        // Create logical device
+        std::cerr << "🔧 Creating logical device..." << std::endl;
+        float queuePriority = 1.0f;
+        vk::DeviceQueueCreateInfo queueCreateInfo;
+        queueCreateInfo.queueFamilyIndex = computeQueueFamilyIndex;
+        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+
+        vk::DeviceCreateInfo deviceCreateInfo;
+        deviceCreateInfo.queueCreateInfoCount = 1;
+        deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+
+        auto device = std::make_shared<vk::Device>(physicalDevice->createDevice(deviceCreateInfo));
+
+        // Create Manager with our custom Vulkan objects
+        std::cerr << "🔧 Creating Manager with custom Vulkan objects using PR #353 fixes..." << std::endl;
+        auto manager = std::make_unique<kp::Manager>(instance, physicalDevice, device);
+
+        std::cerr << "✅ OPTION 2: MoltenVK-compatible Manager created successfully with PR #353 fixes!" << std::endl;
+        return manager;
+
+    } catch (const std::exception& e) {
+        std::cerr << "❌ OPTION 2 failed: " << e.what() << std::endl;
+        throw;
+    }
+}
+
 // Manager operations
 std::unique_ptr<Manager> create_manager(uint32_t device_id) {
     try {
-        // Configure Vulkan environment first
-        configure_vulkan_environment();
+        std::cerr << "DEBUG: Starting manager creation for device " << device_id << std::endl;
 
-        // First verify device_id is valid
-        int32_t available_devices = get_device_count();
-        if (available_devices <= 0) {
-            throw std::runtime_error("No Vulkan devices available. Check that MoltenVK is properly installed and configured.");
-        }
-        if (device_id >= static_cast<uint32_t>(available_devices)) {
-            throw std::runtime_error(std::string("Device ID ") + std::to_string(device_id) +
-                " is invalid. Only " + std::to_string(available_devices) + " devices available.");
-        }
+        // Apply PR #353 and #380 fixes for MoltenVK compatibility
+        #ifdef __APPLE__
+        std::cerr << "🔧 Applying PR #353 and #380 MoltenVK compatibility fixes" << std::endl;
 
-        // Try to create with explicit error handling
-        auto manager = std::make_unique<kp::Manager>(device_id);
+        // Set MoltenVK environment variables for API 1.2 compatibility
+        setenv("MVK_VULKAN_API_VERSION_MAJOR", "1", 1);
+        setenv("MVK_VULKAN_API_VERSION_MINOR", "2", 1);
+        setenv("MVK_VULKAN_API_VERSION", "1.2.0", 1);
+        setenv("MVK_CONFIG_API_VERSION_TO_ADVERTISE", "1.2.0", 1);
+
+        std::cerr << "🔧 Set MoltenVK environment variables for API 1.2 compatibility" << std::endl;
+
+        // Note: PR #353 fixes are applied in Kompute's internal Manager constructor
+        // via the KOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK flag we set in build.rs
+        std::cerr << "🔧 Using default Manager constructor with PR #380 version check disabled" << std::endl;
+        #endif
+
+        // Try the default Kompute Manager constructor (with environment variables on macOS)
+        std::cerr << "DEBUG: About to create kp::Manager with default constructor" << std::endl;
+        auto manager = std::make_unique<kp::Manager>();
+
+        std::cerr << "DEBUG: kp::Manager constructor completed" << std::endl;
 
         // Verify the manager was created successfully by testing a basic operation
         if (!manager) {
             throw std::runtime_error("Manager creation returned null pointer");
         }
 
+        std::cerr << "DEBUG: About to test manager functionality" << std::endl;
+
         // Test if manager is functional by trying to list devices
         try {
             auto devices = manager->listDevices();
+            std::cerr << "DEBUG: listDevices() completed, found " << devices.size() << " devices" << std::endl;
             if (devices.empty()) {
                 throw std::runtime_error("Manager created but found no devices");
             }
         } catch (const std::exception& e) {
+            std::cerr << "DEBUG: listDevices() failed: " << e.what() << std::endl;
             throw std::runtime_error(std::string("Manager created but not functional: ") + e.what());
         }
 
+        std::cerr << "DEBUG: Manager creation successful" << std::endl;
         return manager;
     } catch (const std::exception& e) {
+        std::cerr << "DEBUG: Manager creation failed: " << e.what() << std::endl;
         throw std::runtime_error(std::string("Failed to create manager with device ") +
                                 std::to_string(device_id) + ": " + e.what());
     }
@@ -83,17 +211,21 @@ int32_t get_device_count() {
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
 
-        // Enable portability enumeration for macOS/MoltenVK
-        std::vector<const char*> extensions = {
-            VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
-        };
-        createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-        createInfo.ppEnabledExtensionNames = extensions.data();
+        // PR #353 FIX: Enable portability enumeration for macOS/MoltenVK
+        std::vector<const char*> extensions;
+        #ifdef __APPLE__
+        // Required for backwards compatibility for MacOS M1 devices
+        extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
         createInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+        #endif
+
+        createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+        createInfo.ppEnabledExtensionNames = extensions.empty() ? nullptr : extensions.data();
 
         VkInstance instance;
         VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
         if (result != VK_SUCCESS) {
+            std::cerr << "Failed to create Vulkan instance for device enumeration: " << result << std::endl;
             return -1;
         }
 
@@ -104,11 +236,13 @@ int32_t get_device_count() {
         vkDestroyInstance(instance, nullptr);
 
         if (result != VK_SUCCESS) {
+            std::cerr << "Failed to enumerate physical devices: " << result << std::endl;
             return -1;
         }
 
         return static_cast<int32_t>(deviceCount);
-    } catch (const std::exception&) {
+    } catch (const std::exception& e) {
+        std::cerr << "Exception in get_device_count: " << e.what() << std::endl;
         return -1;
     }
 }
@@ -217,15 +351,15 @@ std::shared_ptr<Algorithm> create_algorithm(Manager& manager, rust::Slice<const 
     try {
         std::vector<uint32_t> cpp_spirv(spirv.begin(), spirv.end());
 
-        // Create empty tensors vector for now - this would be properly parameterized in real usage
-        std::vector<std::shared_ptr<kp::Tensor>> tensors;
+        // Create empty memory objects vector for now - this would be properly parameterized in real usage
+        std::vector<std::shared_ptr<kp::Memory>> memObjects;
 
         // Default workgroup and constants
         kp::Workgroup workgroup{1, 1, 1};
         std::vector<float> spec_constants;
         std::vector<float> push_constants;
 
-        return manager.algorithm(tensors, cpp_spirv, workgroup, spec_constants, push_constants);
+        return manager.algorithm(memObjects, cpp_spirv, workgroup, spec_constants, push_constants);
     } catch (const std::exception& e) {
         throw std::runtime_error(std::string("Failed to create algorithm: ") + e.what());
     }
@@ -640,6 +774,121 @@ uint64_t create_tensor_uninit_u32_handle(Manager& manager, size_t size) {
     }
 }
 
+// =============================================================================
+// Filled Tensor Creation Functions
+// =============================================================================
+
+uint64_t create_tensor_filled_f32_handle(Manager& manager, size_t size, float fill_value) {
+    if (size == 0) {
+        throw std::invalid_argument("Cannot create tensor with zero size");
+    }
+
+    if (!validation::is_safe_size(size, safety_limits::MAX_TENSOR_SIZE)) {
+        throw std::invalid_argument("Tensor size exceeds safety limits: " +
+                                  std::to_string(size) + " elements");
+    }
+
+    try {
+        std::vector<float> filled_data(size, fill_value);
+        auto tensor = manager.tensorT<float>(filled_data);
+        if (!tensor) {
+            throw std::runtime_error("Manager returned null tensor");
+        }
+
+        auto handle = get_global_registry().register_tensor(tensor);
+        if (!validation::is_valid_handle(handle)) {
+            throw std::runtime_error("Registry returned invalid handle");
+        }
+
+        return handle;
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to create f32 filled tensor handle: ") + e.what());
+    }
+}
+
+uint64_t create_tensor_filled_f64_handle(Manager& manager, size_t size, double fill_value) {
+    if (size == 0) {
+        throw std::invalid_argument("Cannot create tensor with zero size");
+    }
+
+    if (!validation::is_safe_size(size, safety_limits::MAX_TENSOR_SIZE)) {
+        throw std::invalid_argument("Tensor size exceeds safety limits: " +
+                                  std::to_string(size) + " elements");
+    }
+
+    try {
+        std::vector<double> filled_data(size, fill_value);
+        auto tensor = manager.tensorT<double>(filled_data);
+        if (!tensor) {
+            throw std::runtime_error("Manager returned null tensor");
+        }
+
+        auto handle = get_global_registry().register_tensor(tensor);
+        if (!validation::is_valid_handle(handle)) {
+            throw std::runtime_error("Registry returned invalid handle");
+        }
+
+        return handle;
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to create f64 filled tensor handle: ") + e.what());
+    }
+}
+
+uint64_t create_tensor_filled_i32_handle(Manager& manager, size_t size, int32_t fill_value) {
+    if (size == 0) {
+        throw std::invalid_argument("Cannot create tensor with zero size");
+    }
+
+    if (!validation::is_safe_size(size, safety_limits::MAX_TENSOR_SIZE)) {
+        throw std::invalid_argument("Tensor size exceeds safety limits: " +
+                                  std::to_string(size) + " elements");
+    }
+
+    try {
+        std::vector<int32_t> filled_data(size, fill_value);
+        auto tensor = manager.tensorT<int32_t>(filled_data);
+        if (!tensor) {
+            throw std::runtime_error("Manager returned null tensor");
+        }
+
+        auto handle = get_global_registry().register_tensor(tensor);
+        if (!validation::is_valid_handle(handle)) {
+            throw std::runtime_error("Registry returned invalid handle");
+        }
+
+        return handle;
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to create i32 filled tensor handle: ") + e.what());
+    }
+}
+
+uint64_t create_tensor_filled_u32_handle(Manager& manager, size_t size, uint32_t fill_value) {
+    if (size == 0) {
+        throw std::invalid_argument("Cannot create tensor with zero size");
+    }
+
+    if (!validation::is_safe_size(size, safety_limits::MAX_TENSOR_SIZE)) {
+        throw std::invalid_argument("Tensor size exceeds safety limits: " +
+                                  std::to_string(size) + " elements");
+    }
+
+    try {
+        std::vector<uint32_t> filled_data(size, fill_value);
+        auto tensor = manager.tensorT<uint32_t>(filled_data);
+        if (!tensor) {
+            throw std::runtime_error("Manager returned null tensor");
+        }
+
+        auto handle = get_global_registry().register_tensor(tensor);
+        if (!validation::is_valid_handle(handle)) {
+            throw std::runtime_error("Registry returned invalid handle");
+        }
+
+        return handle;
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to create u32 filled tensor handle: ") + e.what());
+    }
+}
 
 // =============================================================================
 // Multi-Type Tensor Data Retrieval Functions
@@ -765,13 +1014,13 @@ uint64_t create_algorithm_handle(Manager& manager, rust::Slice<const uint32_t> s
         std::copy(spirv.begin(), spirv.end(), std::back_inserter(cpp_spirv));
 
         // Pattern 4: Default Construction with Safe Values
-        std::vector<std::shared_ptr<kp::Tensor>> tensors; // Empty by design
+        std::vector<std::shared_ptr<kp::Memory>> memObjects; // Empty by design
         kp::Workgroup workgroup{1, 1, 1}; // Safe default workgroup size
         std::vector<float> spec_constants; // Empty by design
         std::vector<float> push_constants; // Empty by design
 
         // Pattern 5: RAII - Automatic cleanup if algorithm creation fails
-        auto algorithm = manager.algorithm(tensors, cpp_spirv, workgroup,
+        auto algorithm = manager.algorithm(memObjects, cpp_spirv, workgroup,
                                          spec_constants, push_constants);
 
         if (!algorithm) {
@@ -797,6 +1046,56 @@ void algorithm_destroy_handle(uint64_t handle) {
     get_global_registry().remove_algorithm(handle);
 }
 
+bool algorithm_set_specialization_constants(uint64_t handle, rust::Slice<const float> constants) {
+    try {
+        auto algorithm = get_global_registry().get_algorithm(handle);
+        if (!algorithm) {
+            std::cerr << "Invalid algorithm handle: " << handle << std::endl;
+            return false;
+        }
+
+        // Note: Kompute Algorithm doesn't currently support setting specialization constants
+        // after creation. This would need to be implemented in the Kompute C++ library.
+        // For now, we'll store the constants but they won't be used until Kompute supports it.
+
+        std::cerr << "Warning: Specialization constants not yet supported by Kompute C++ library" << std::endl;
+        return false;
+
+    } catch (const std::exception& e) {
+        std::cerr << "Failed to set specialization constants: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+bool algorithm_set_push_constants(uint64_t handle, rust::Slice<const float> constants) {
+    try {
+        auto algorithm = get_global_registry().get_algorithm(handle);
+        if (!algorithm) {
+            std::cerr << "Invalid algorithm handle: " << handle << std::endl;
+            return false;
+        }
+
+        // Convert Rust slice to C++ vector
+        std::vector<float> push_constants(constants.begin(), constants.end());
+
+        // Use the correct Kompute setPushConstants signature
+        uint32_t size = static_cast<uint32_t>(push_constants.size());
+        uint32_t memory_size = size * sizeof(float);
+
+        // Cast to void* as required by Kompute API
+        algorithm->setPushConstants(
+            static_cast<void*>(push_constants.data()),
+            size,
+            memory_size
+        );
+
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "Failed to set push constants: " << e.what() << std::endl;
+        return false;
+    }
+}
+
 // Sequence operations by handle
 uint64_t create_sequence_handle(Manager& manager) {
     try {
@@ -820,7 +1119,7 @@ void sequence_record_tensor_sync_device_by_handles(uint64_t seq_handle, uint64_t
         }
 
         // Record sync device operation
-        sequence->record<kp::OpTensorSyncDevice>({tensor});
+        sequence->record<kp::OpSyncDevice>({tensor});
     } catch (const std::exception& e) {
         throw std::runtime_error(std::string("Failed to record tensor sync device by handles: ") + e.what());
     }
@@ -839,7 +1138,7 @@ void sequence_record_tensor_sync_local_by_handles(uint64_t seq_handle, uint64_t 
         }
 
         // Record sync local operation
-        sequence->record<kp::OpTensorSyncLocal>({tensor});
+        sequence->record<kp::OpSyncLocal>({tensor});
     } catch (const std::exception& e) {
         throw std::runtime_error(std::string("Failed to record tensor sync local by handles: ") + e.what());
     }

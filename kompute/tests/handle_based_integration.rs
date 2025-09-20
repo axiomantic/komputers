@@ -6,7 +6,7 @@
 use kompute::{Manager, Result, Sequence, Tensor};
 
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_complete_handle_based_workflow() -> Result<()> {
     // Create GPU manager
     let mut manager = Manager::new()?;
@@ -63,7 +63,7 @@ fn test_complete_handle_based_workflow() -> Result<()> {
 }
 
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_handle_based_async_operations() -> Result<()> {
     let mut manager = Manager::new()?;
 
@@ -87,7 +87,7 @@ fn test_handle_based_async_operations() -> Result<()> {
 }
 
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_handle_based_memory_management() -> Result<()> {
     let mut manager = Manager::new()?;
 
@@ -108,7 +108,7 @@ fn test_handle_based_memory_management() -> Result<()> {
 }
 
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_handle_compatibility() {
     // Test that we can still use the old SharedPtr-based API alongside handle-based
     if let Ok(mut manager) = Manager::new() {

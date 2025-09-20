@@ -6,7 +6,7 @@
 use kompute::{Manager, MultiQueueManager, Result, Sequence, Tensor};
 
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_complete_shareptr_solution() -> Result<()> {
     println!("🚀 Testing complete SharedPtr mutable access solution");
 
@@ -78,7 +78,7 @@ fn test_complete_shareptr_solution() -> Result<()> {
 }
 
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_multiqueue_parallel_execution() -> Result<()> {
     println!("🔀 Testing Multi-queue parallel execution");
 
@@ -135,7 +135,7 @@ fn test_multiqueue_parallel_execution() -> Result<()> {
 }
 
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_error_handling_and_robustness() -> Result<()> {
     println!("🛡️  Testing error handling and robustness");
 
@@ -170,7 +170,7 @@ fn test_error_handling_and_robustness() -> Result<()> {
 }
 
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_performance_and_memory() -> Result<()> {
     println!("⚡ Testing performance and memory efficiency");
 

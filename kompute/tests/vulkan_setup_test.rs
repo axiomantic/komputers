@@ -53,7 +53,6 @@ fn test_device_count_with_setup() {
 }
 
 #[test]
-#[ignore = "requires proper Vulkan setup"]
 fn test_manager_creation_with_setup() {
     test_vulkan_environment_setup();
 

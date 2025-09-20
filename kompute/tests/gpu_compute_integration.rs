@@ -3,7 +3,7 @@
 use kompute::{Manager, Result};
 
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_gpu_compute_workflow() -> Result<()> {
     // Create GPU manager
     let mut manager = Manager::new()?;
@@ -46,7 +46,7 @@ fn test_gpu_compute_workflow() -> Result<()> {
 }
 
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_algorithm_creation_with_minimal_spirv() -> Result<()> {
     let mut manager = Manager::new()?;
 
@@ -74,7 +74,7 @@ fn test_algorithm_creation_with_minimal_spirv() -> Result<()> {
 }
 
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_multiple_tensor_types() -> Result<()> {
     let mut manager = Manager::new()?;
 
@@ -94,7 +94,7 @@ fn test_multiple_tensor_types() -> Result<()> {
 }
 
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_large_tensor_allocation() -> Result<()> {
     let mut manager = Manager::new()?;
 
@@ -130,7 +130,7 @@ fn test_device_enumeration() {
 }
 
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_manager_factory_methods() -> Result<()> {
     let mut manager = Manager::new()?;
 

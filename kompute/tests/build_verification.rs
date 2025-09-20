@@ -39,7 +39,7 @@ fn test_ffi_bindings() {
 
 /// Test manager creation and destruction (RAII).
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_manager_raii() {
     // Test that Manager properly manages C++ resources
     match Manager::new() {
@@ -105,7 +105,7 @@ fn test_validation_layers() {
 
 /// Test error handling for invalid operations.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_error_handling() {
     // Test that errors are properly propagated from C++ to Rust
     match Manager::with_device(999) {

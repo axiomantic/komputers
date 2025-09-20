@@ -135,7 +135,10 @@ pub enum RecoveryAction {
     /// Switched to alternative GPU device
     DeviceSwitch { from_device: u32, to_device: u32 },
     /// Reduced memory allocation
-    MemoryReduction { original_size: usize, reduced_size: usize },
+    MemoryReduction {
+        original_size: usize,
+        reduced_size: usize,
+    },
     /// Reinitialized GPU subsystem
     GpuReinit,
     /// Used alternative algorithm
@@ -363,7 +366,8 @@ impl ErrorRecoveryManager {
 
     /// Attempt recovery for a specific error event.
     fn attempt_recovery(&mut self, error_event: &ErrorEvent) -> Result<RecoveryResult> {
-        let strategy = self.recovery_strategies
+        let strategy = self
+            .recovery_strategies
             .get(&error_event.category)
             .cloned()
             .unwrap_or(RecoveryStrategy::FailFast);
@@ -376,12 +380,11 @@ impl ErrorRecoveryManager {
                     delay: initial_delay,
                 })
             }
-            RecoveryStrategy::FallbackToCpu => {
-                Some(RecoveryAction::CpuFallback)
-            }
+            RecoveryStrategy::FallbackToCpu => Some(RecoveryAction::CpuFallback),
             RecoveryStrategy::SwitchDevice { preferred_devices } => {
                 if let Some(current_device) = self.get_current_device() {
-                    let next_device = preferred_devices.iter()
+                    let next_device = preferred_devices
+                        .iter()
                         .find(|&&device| device != current_device)
                         .copied()
                         .unwrap_or(0);
@@ -394,9 +397,13 @@ impl ErrorRecoveryManager {
                     None
                 }
             }
-            RecoveryStrategy::ReduceMemoryAndRetry { reduction_factor, .. } => {
+            RecoveryStrategy::ReduceMemoryAndRetry {
+                reduction_factor, ..
+            } => {
                 // Extract memory size from context if available
-                let original_size = error_event.context.parameters
+                let original_size = error_event
+                    .context
+                    .parameters
                     .get("tensor_size")
                     .and_then(|s| s.parse::<usize>().ok())
                     .unwrap_or(1024);
@@ -408,11 +415,10 @@ impl ErrorRecoveryManager {
                     reduced_size,
                 })
             }
-            RecoveryStrategy::ReinitializeGpu => {
-                Some(RecoveryAction::GpuReinit)
-            }
+            RecoveryStrategy::ReinitializeGpu => Some(RecoveryAction::GpuReinit),
             RecoveryStrategy::UseAlternativeAlgorithm { alternatives } => {
-                let alternative = alternatives.first()
+                let alternative = alternatives
+                    .first()
                     .unwrap_or(&"default_fallback".to_string())
                     .clone();
 
@@ -421,11 +427,9 @@ impl ErrorRecoveryManager {
                     to: alternative,
                 })
             }
-            RecoveryStrategy::GracefulDegradation => {
-                Some(RecoveryAction::Degradation {
-                    features_disabled: vec!["gpu_acceleration".to_string()],
-                })
-            }
+            RecoveryStrategy::GracefulDegradation => Some(RecoveryAction::Degradation {
+                features_disabled: vec!["gpu_acceleration".to_string()],
+            }),
             RecoveryStrategy::FailFast => None,
         };
 
@@ -477,13 +481,17 @@ impl ErrorRecoveryManager {
 
         if error_str.contains("fatal") && error_str.contains("immediate shutdown") {
             ErrorSeverity::Fatal
-        } else if error_str.contains("fatal") || error_str.contains("panic") || error_str.contains("critical") {
+        } else if error_str.contains("fatal")
+            || error_str.contains("panic")
+            || error_str.contains("critical")
+        {
             ErrorSeverity::Critical
         } else if *category == ErrorCategory::DeviceUnavailable {
             ErrorSeverity::Critical
         } else if error_str.contains("failed") || *category == ErrorCategory::OutOfMemory {
             ErrorSeverity::Error
-        } else if error_str.contains("warning") || *category == ErrorCategory::PlatformCompatibility {
+        } else if error_str.contains("warning") || *category == ErrorCategory::PlatformCompatibility
+        {
             ErrorSeverity::Warning
         } else {
             ErrorSeverity::Info
@@ -492,9 +500,10 @@ impl ErrorRecoveryManager {
 
     /// Record an error event in the history.
     fn record_error_event(&mut self, event: ErrorEvent) -> Result<()> {
-        let mut history = self.error_history.lock().map_err(|_| {
-            KomputeError::memory("Failed to acquire error history lock")
-        })?;
+        let mut history = self
+            .error_history
+            .lock()
+            .map_err(|_| KomputeError::memory("Failed to acquire error history lock"))?;
 
         history.push(event);
 
@@ -514,9 +523,10 @@ impl ErrorRecoveryManager {
 
     /// Update diagnostic state based on error history.
     fn update_diagnostic_state(&mut self, history: &[ErrorEvent]) -> Result<()> {
-        let mut diagnostic_state = self.diagnostic_state.lock().map_err(|_| {
-            KomputeError::memory("Failed to acquire diagnostic state lock")
-        })?;
+        let mut diagnostic_state = self
+            .diagnostic_state
+            .lock()
+            .map_err(|_| KomputeError::memory("Failed to acquire diagnostic state lock"))?;
 
         // Count errors by category in the last hour
         let recent_cutoff = Instant::now() - Duration::from_secs(60 * 60); // 1 hour
@@ -547,12 +557,13 @@ impl ErrorRecoveryManager {
 
         data.insert("platform_os".to_string(), self.platform_info.os.clone());
         data.insert("platform_arch".to_string(), self.platform_info.arch.clone());
-        data.insert("vulkan_available".to_string(),
-                   self.platform_info.vulkan_runtime_available.to_string());
+        data.insert(
+            "vulkan_available".to_string(),
+            self.platform_info.vulkan_runtime_available.to_string(),
+        );
 
         // Add timestamp
-        data.insert("timestamp".to_string(),
-                   format!("{:?}", Instant::now()));
+        data.insert("timestamp".to_string(), format!("{:?}", Instant::now()));
 
         data
     }
@@ -565,7 +576,7 @@ impl ErrorRecoveryManager {
             ErrorCategory::ShaderError => self.configuration.cpu_fallback_enabled,
             ErrorCategory::VulkanRuntime => self.configuration.cpu_fallback_enabled,
             ErrorCategory::PlatformCompatibility => true, // Can degrade gracefully
-            ErrorCategory::TensorOperation => true, // Can retry with validation
+            ErrorCategory::TensorOperation => true,       // Can retry with validation
             ErrorCategory::AlgorithmExecution => self.configuration.cpu_fallback_enabled,
             ErrorCategory::NetworkIO => true, // Can retry
             ErrorCategory::Unknown => false,
@@ -607,20 +618,23 @@ impl ErrorRecoveryManager {
 
     /// Get current GPU device ID.
     fn get_current_device(&self) -> Option<u32> {
-        self.diagnostic_state.lock()
+        self.diagnostic_state
+            .lock()
             .ok()
             .and_then(|state| state.current_device)
     }
 
     /// Get comprehensive diagnostic report.
     pub fn diagnostic_report(&self) -> Result<DiagnosticReport> {
-        let diagnostic_state = self.diagnostic_state.lock().map_err(|_| {
-            KomputeError::memory("Failed to acquire diagnostic state lock")
-        })?;
+        let diagnostic_state = self
+            .diagnostic_state
+            .lock()
+            .map_err(|_| KomputeError::memory("Failed to acquire diagnostic state lock"))?;
 
-        let error_history = self.error_history.lock().map_err(|_| {
-            KomputeError::memory("Failed to acquire error history lock")
-        })?;
+        let error_history = self
+            .error_history
+            .lock()
+            .map_err(|_| KomputeError::memory("Failed to acquire error history lock"))?;
 
         Ok(DiagnosticReport {
             platform_info: self.platform_info.clone(),
@@ -630,14 +644,16 @@ impl ErrorRecoveryManager {
             recent_error_counts: diagnostic_state.error_counts.clone(),
             total_errors: error_history.len(),
             recovery_success_rate: self.calculate_recovery_success_rate(&error_history),
-            recommendations: self.generate_system_recommendations(&diagnostic_state, &error_history),
+            recommendations: self
+                .generate_system_recommendations(&diagnostic_state, &error_history),
             last_check: diagnostic_state.last_check,
         })
     }
 
     /// Calculate recovery success rate from error history.
     fn calculate_recovery_success_rate(&self, history: &[ErrorEvent]) -> f32 {
-        let recovery_attempts = history.iter()
+        let recovery_attempts = history
+            .iter()
             .filter(|e| e.recovery_attempted.is_some())
             .count();
 
@@ -645,7 +661,8 @@ impl ErrorRecoveryManager {
             return 1.0; // No failures mean 100% success
         }
 
-        let successful_recoveries = history.iter()
+        let successful_recoveries = history
+            .iter()
             .filter(|e| e.recovery_attempted.is_some() && e.recovery_successful)
             .count();
 
@@ -653,34 +670,41 @@ impl ErrorRecoveryManager {
     }
 
     /// Generate system-wide recommendations.
-    fn generate_system_recommendations(&self,
+    fn generate_system_recommendations(
+        &self,
         _diagnostic_state: &DiagnosticState,
-        error_history: &[ErrorEvent]
+        error_history: &[ErrorEvent],
     ) -> Vec<String> {
         let mut recommendations = Vec::new();
 
         // Analyze error patterns
-        let recent_errors: Vec<_> = error_history.iter()
+        let recent_errors: Vec<_> = error_history
+            .iter()
             .filter(|e| e.timestamp > Instant::now() - Duration::from_secs(60 * 60)) // 1 hour
             .collect();
 
         if recent_errors.len() > 5 {
-            recommendations.push("High error rate detected - consider system maintenance".to_string());
+            recommendations
+                .push("High error rate detected - consider system maintenance".to_string());
         }
 
         // Platform-specific recommendations
         match self.platform_info.os.as_str() {
             "macos" => {
-                recommendations.push("macOS detected - ensure MoltenVK is properly configured".to_string());
+                recommendations
+                    .push("macOS detected - ensure MoltenVK is properly configured".to_string());
             }
             "linux" => {
-                recommendations.push("Linux detected - verify Vulkan drivers are up to date".to_string());
+                recommendations
+                    .push("Linux detected - verify Vulkan drivers are up to date".to_string());
             }
             "windows" => {
-                recommendations.push("Windows detected - check Windows GPU driver versions".to_string());
+                recommendations
+                    .push("Windows detected - check Windows GPU driver versions".to_string());
             }
             _ => {
-                recommendations.push("Unknown platform - enable conservative fallback modes".to_string());
+                recommendations
+                    .push("Unknown platform - enable conservative fallback modes".to_string());
             }
         }
 
@@ -764,11 +788,17 @@ mod tests {
     #[test]
     fn test_severity_determination() {
         let fatal_error = KomputeError::device("Fatal GPU error");
-        let severity = ErrorRecoveryManager::determine_severity(&fatal_error, &ErrorCategory::DeviceUnavailable);
+        let severity = ErrorRecoveryManager::determine_severity(
+            &fatal_error,
+            &ErrorCategory::DeviceUnavailable,
+        );
         assert_eq!(severity, ErrorSeverity::Critical);
 
         let warning_error = KomputeError::compute("Platform compatibility warning");
-        let severity = ErrorRecoveryManager::determine_severity(&warning_error, &ErrorCategory::PlatformCompatibility);
+        let severity = ErrorRecoveryManager::determine_severity(
+            &warning_error,
+            &ErrorCategory::PlatformCompatibility,
+        );
         assert_eq!(severity, ErrorSeverity::Warning);
 
         println!("✓ Severity determination test passed");

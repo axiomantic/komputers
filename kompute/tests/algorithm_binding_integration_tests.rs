@@ -5,12 +5,11 @@
 //! reporting for production GPU compute workflows.
 
 use kompute::{
-    AccessPattern, Algorithm, AlgorithmBinding, BindingTemplate, CommonBindingTemplates,
-    Manager, ParameterSpec, Tensor, TensorDataType, ValidationRule,
+    AccessPattern, Algorithm, AlgorithmBinding, BindingTemplate, CommonBindingTemplates, Manager,
+    ParameterSpec, Tensor, TensorDataType, ValidationRule,
 };
 
 #[test]
-#[ignore = "requires GPU device and SPIR-V shaders"]
 fn test_algorithm_binding_with_template() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing algorithm binding with elementwise template...");
@@ -39,20 +38,39 @@ fn test_algorithm_binding_with_template() {
 
                                 // Test individual tensor binding with validation
                                 let bind_results = vec![
-                                    binding.bind_tensor_validated("input_a", &tensor_a, AccessPattern::Input),
-                                    binding.bind_tensor_validated("input_b", &tensor_b, AccessPattern::Input),
-                                    binding.bind_tensor_validated("output", &tensor_out, AccessPattern::Output),
+                                    binding.bind_tensor_validated(
+                                        "input_a",
+                                        &tensor_a,
+                                        AccessPattern::Input,
+                                    ),
+                                    binding.bind_tensor_validated(
+                                        "input_b",
+                                        &tensor_b,
+                                        AccessPattern::Input,
+                                    ),
+                                    binding.bind_tensor_validated(
+                                        "output",
+                                        &tensor_out,
+                                        AccessPattern::Output,
+                                    ),
                                 ];
 
-                                let successful_bindings = bind_results.iter().filter(|r| r.is_ok()).count();
-                                println!("✓ Successfully bound {} of 3 tensors", successful_bindings);
+                                let successful_bindings =
+                                    bind_results.iter().filter(|r| r.is_ok()).count();
+                                println!(
+                                    "✓ Successfully bound {} of 3 tensors",
+                                    successful_bindings
+                                );
 
                                 // Test validation report
                                 let report = binding.validation_report();
                                 println!("Binding validation report:");
                                 println!("  Valid: {}", report.is_valid);
                                 println!("  Missing required: {:?}", report.missing_required);
-                                println!("  Performance warnings: {}", report.performance_warnings.len());
+                                println!(
+                                    "  Performance warnings: {}",
+                                    report.performance_warnings.len()
+                                );
 
                                 if report.is_valid {
                                     println!("✓ All tensor bindings validated successfully");
@@ -74,7 +92,6 @@ fn test_algorithm_binding_with_template() {
 }
 
 #[test]
-#[ignore = "requires GPU device and SPIR-V shaders"]
 fn test_algorithm_binding_batch_operations() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing algorithm binding batch operations...");
@@ -110,13 +127,20 @@ fn test_algorithm_binding_batch_operations() {
                                         println!("✓ Batch tensor binding successful");
 
                                         // Verify all bindings are complete
-                                        assert!(binding.is_complete(), "All required parameters should be bound");
+                                        assert!(
+                                            binding.is_complete(),
+                                            "All required parameters should be bound"
+                                        );
 
                                         // Check individual bindings
                                         for param in ["matrix_a", "matrix_b", "matrix_c"] {
                                             if let Some(binding_info) = binding.get_binding(param) {
-                                                println!("  {}: {} elements, validated: {}",
-                                                    param, binding_info.tensor_size, binding_info.is_validated);
+                                                println!(
+                                                    "  {}: {} elements, validated: {}",
+                                                    param,
+                                                    binding_info.tensor_size,
+                                                    binding_info.is_validated
+                                                );
                                             }
                                         }
 
@@ -148,8 +172,11 @@ fn test_binding_template_validation() {
     assert_eq!(elementwise_template.optional_params.len(), 0);
 
     // Verify parameter specifications
-    let param_names: Vec<&String> = elementwise_template.required_params.iter()
-        .map(|p| &p.name).collect();
+    let param_names: Vec<&String> = elementwise_template
+        .required_params
+        .iter()
+        .map(|p| &p.name)
+        .collect();
     assert!(param_names.contains(&&"input_a".to_string()));
     assert!(param_names.contains(&&"input_b".to_string()));
     assert!(param_names.contains(&&"output".to_string()));
@@ -175,10 +202,14 @@ fn test_binding_template_validation() {
     assert_eq!(matrix_template.required_params.len(), 3);
 
     // Check for matrix compatibility validation rule
-    let has_matrix_rule = matrix_template.validation_rules.iter().any(|rule| {
-        matches!(rule, ValidationRule::MatrixCompatible { .. })
-    });
-    assert!(has_matrix_rule, "Matrix template should have matrix compatibility rule");
+    let has_matrix_rule = matrix_template
+        .validation_rules
+        .iter()
+        .any(|rule| matches!(rule, ValidationRule::MatrixCompatible { .. }));
+    assert!(
+        has_matrix_rule,
+        "Matrix template should have matrix compatibility rule"
+    );
 
     println!("✓ Matrix template validation passed");
 
@@ -189,11 +220,17 @@ fn test_binding_template_validation() {
     assert_eq!(reduction_template.required_params.len(), 2);
 
     // Verify output parameter has size constraint
-    let output_param = reduction_template.required_params.iter()
+    let output_param = reduction_template
+        .required_params
+        .iter()
         .find(|p| p.name == "output")
         .expect("Reduction template should have output parameter");
 
-    assert_eq!(output_param.max_size, Some(1), "Reduction output should be limited to 1 element");
+    assert_eq!(
+        output_param.max_size,
+        Some(1),
+        "Reduction output should be limited to 1 element"
+    );
 
     println!("✓ Reduction template validation passed");
     println!("✓ All binding template validation tests passed");
@@ -275,7 +312,6 @@ fn test_access_pattern_optimization() {
 }
 
 #[test]
-#[ignore = "requires GPU device"]
 fn test_binding_error_handling() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing algorithm binding error handling...");
@@ -290,10 +326,16 @@ fn test_binding_error_handling() {
                 let template = CommonBindingTemplates::elementwise_binary_op();
                 if let Ok(mut binding) = AlgorithmBinding::new(algorithm, Some(&template)) {
                     // Test binding to invalid parameter name
-                    match binding.bind_tensor_validated("invalid_param", &tensor, AccessPattern::Input) {
+                    match binding.bind_tensor_validated(
+                        "invalid_param",
+                        &tensor,
+                        AccessPattern::Input,
+                    ) {
                         Ok(_) => panic!("Should have failed with invalid parameter name"),
                         Err(e) => {
-                            assert!(e.to_string().contains("not defined in the binding template"));
+                            assert!(e
+                                .to_string()
+                                .contains("not defined in the binding template"));
                             println!("✓ Invalid parameter name error correctly handled");
                         }
                     }
@@ -309,8 +351,14 @@ fn test_binding_error_handling() {
 
                     // Test incomplete binding validation
                     let report = binding.validation_report();
-                    assert!(!report.is_valid, "Binding should be invalid with missing required parameters");
-                    assert!(!report.missing_required.is_empty(), "Should report missing required parameters");
+                    assert!(
+                        !report.is_valid,
+                        "Binding should be invalid with missing required parameters"
+                    );
+                    assert!(
+                        !report.missing_required.is_empty(),
+                        "Should report missing required parameters"
+                    );
 
                     println!("✓ Binding validation correctly reports incomplete state");
                     println!("  Missing required: {:?}", report.missing_required);
@@ -387,19 +435,17 @@ fn test_binding_template_custom_creation() {
                 description: "Output convolved image".to_string(),
             },
         ],
-        optional_params: vec![
-            ParameterSpec {
-                name: "bias".to_string(),
-                data_type: TensorDataType::F32,
-                min_size: 1,
-                max_size: Some(256), // Channel bias
-                access_pattern: AccessPattern::Input,
-                description: "Optional bias values".to_string(),
-            },
-        ],
-        validation_rules: vec![
-            ValidationRule::Custom("validate_convolution_dimensions".to_string()),
-        ],
+        optional_params: vec![ParameterSpec {
+            name: "bias".to_string(),
+            data_type: TensorDataType::F32,
+            min_size: 1,
+            max_size: Some(256), // Channel bias
+            access_pattern: AccessPattern::Input,
+            description: "Optional bias values".to_string(),
+        }],
+        validation_rules: vec![ValidationRule::Custom(
+            "validate_convolution_dimensions".to_string(),
+        )],
         performance_hints: vec![
             "Use shared memory for kernel access".to_string(),
             "Consider tiling for large images".to_string(),
@@ -415,14 +461,18 @@ fn test_binding_template_custom_creation() {
     assert_eq!(convolution_template.performance_hints.len(), 3);
 
     // Check parameter specifications
-    let kernel_param = convolution_template.required_params.iter()
+    let kernel_param = convolution_template
+        .required_params
+        .iter()
         .find(|p| p.name == "kernel")
         .expect("Should have kernel parameter");
 
     assert_eq!(kernel_param.max_size, Some(1024));
     assert_eq!(kernel_param.access_pattern, AccessPattern::Input);
 
-    let bias_param = convolution_template.optional_params.iter()
+    let bias_param = convolution_template
+        .optional_params
+        .iter()
         .find(|p| p.name == "bias")
         .expect("Should have bias parameter");
 
@@ -437,9 +487,18 @@ fn test_binding_template_custom_creation() {
     }
 
     println!("✓ Custom convolution template created successfully");
-    println!("  Required parameters: {}", convolution_template.required_params.len());
-    println!("  Optional parameters: {}", convolution_template.optional_params.len());
-    println!("  Performance hints: {}", convolution_template.performance_hints.len());
+    println!(
+        "  Required parameters: {}",
+        convolution_template.required_params.len()
+    );
+    println!(
+        "  Optional parameters: {}",
+        convolution_template.optional_params.len()
+    );
+    println!(
+        "  Performance hints: {}",
+        convolution_template.performance_hints.len()
+    );
 
     println!("✓ Custom binding template creation test passed");
 }

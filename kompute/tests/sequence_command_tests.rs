@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 /// Test sequence command execution ordering.
 /// Verifies that recorded operations execute in the correct order.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_sequence_command_execution_ordering() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing sequence command execution ordering...");
@@ -105,7 +105,7 @@ fn test_sequence_command_execution_ordering() {
 /// Test complex workflow with tensor-algorithm chains.
 /// Verifies end-to-end compute pipelines work correctly.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_sequence_complex_workflow_tensor_algorithm_chain() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing complex tensor-algorithm workflow...");
@@ -256,7 +256,7 @@ fn test_sequence_complex_workflow_tensor_algorithm_chain() {
 /// Test sequence async completion timing.
 /// Verifies eval_async() and eval_await() work correctly.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_sequence_async_completion_timing() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing sequence async completion...");
@@ -394,7 +394,7 @@ fn test_sequence_async_completion_timing() {
 /// Test sequence error recovery with partial failures.
 /// Verifies error handling and recovery mechanisms.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_sequence_error_recovery_partial_failure() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing sequence error recovery...");
@@ -536,7 +536,7 @@ fn test_sequence_error_recovery_partial_failure() {
 /// Test sequence command buffer limits with maximum operations.
 /// Verifies system behavior with many recorded operations.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_sequence_command_buffer_limits_maximum_operations() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing sequence command buffer limits...");
@@ -669,7 +669,7 @@ fn test_sequence_command_buffer_limits_maximum_operations() {
 /// Test sequence creation and basic properties.
 /// Verifies sequence lifecycle and handle management.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_sequence_creation_and_properties() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing sequence creation and properties...");
@@ -755,7 +755,7 @@ fn test_sequence_creation_and_properties() {
 /// Test concurrent sequence operations across multiple threads.
 /// Verifies thread safety of sequence operations.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_sequence_concurrent_operations() {
     println!("Testing concurrent sequence operations...");
 

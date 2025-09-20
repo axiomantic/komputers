@@ -80,19 +80,29 @@
 
 pub mod algorithm;
 pub mod algorithm_binding;
+pub mod convenience;
+#[cfg(feature = "crash-debug")]
+pub mod crash_debug;
+#[cfg(feature = "debug")]
+pub mod debug_tools;
 pub mod error;
 pub mod error_recovery;
+#[cfg(feature = "glsl")]
+pub mod glsl_compiler;
 pub mod handle_tracker;
 pub mod manager;
 pub mod memory_optimizer;
 pub mod multi_queue;
 pub mod operations;
+pub mod performance_profiler;
 pub mod platform;
 pub mod queue;
 pub mod sequence;
 pub mod spirv_shaders;
 pub mod spirv_utils;
 pub mod tensor;
+#[cfg(test)]
+pub mod test_utils;
 pub mod vulkan_setup;
 
 // Feature-gated async support
@@ -108,24 +118,53 @@ pub use algorithm_binding::{
     AccessPattern, AlgorithmBinding, BindingTemplate, BindingValidationReport,
     CommonBindingTemplates, ParameterSpec, TensorBinding, TensorDataType, ValidationRule,
 };
+pub use convenience::{
+    BenchmarkConfig, BenchmarkResults, BinaryOp, DevicePreference, GpuOps, MathOps,
+    OperationResult, ReductionOp, TensorExt,
+};
+#[cfg(feature = "crash-debug")]
+pub use crash_debug::{
+    debug_execute, install_crash_handlers, test_crash_debug, CrashAnalysis, CrashInfo, GpuContext,
+    MemoryInfo, ProcessInfo,
+};
+#[cfg(feature = "debug")]
+pub use debug_tools::{
+    DebugContext, DebugEvent, DebugEventType, DebugReport, DebugSeverity, DebugUtils,
+    MemorySnapshot, PerformanceCounters, ValidationError, ValidationErrorType,
+};
 pub use error::{KomputeError, Result};
 pub use error_recovery::{
     DiagnosticReport, ErrorCategory, ErrorRecoveryManager, ErrorSeverity, RecoveryResult,
 };
+#[cfg(feature = "glsl")]
+pub use glsl_compiler::{
+    BindingInfo, CompilationResult, CompilerOptions, DataType as GlslDataType, DescriptorType,
+    GlslCompiler, GlslTemplates, PushConstantInfo, PushConstantMember, ShaderReflection,
+    SpecConstantInfo,
+};
 pub use handle_tracker::{HandleStatistics, HandleTracker, TrackedHandle};
 pub use manager::Manager;
+pub use memory_optimizer::{
+    AllocationStrategy, MemoryOptimizer, MemoryPool, PerformanceMetric, PerformanceMetrics,
+};
 pub use multi_queue::{DeviceCapabilities, MultiQueueManager, MultiQueueWorkflow};
-pub use memory_optimizer::{AllocationStrategy, MemoryOptimizer, MemoryPool, PerformanceMetric, PerformanceMetrics};
 pub use operations::{DeviceInfo, GpuOperations, MemoryPatterns, WorkgroupConfig};
+pub use performance_profiler::{
+    GpuMetric, GpuUtilizationSummary, MemoryAllocationPattern, MemoryAnalysis,
+    MemorySnapshot as ProfilerMemorySnapshot, OperationSummary, OptimizationRecommendation,
+    PerformanceProfiler, PerformanceReport, RecommendationCategory, RecommendationPriority,
+};
 pub use platform::{
-    EnvironmentValidator, GpuSupport, PlatformInfo, RuntimeUtils, ValidationReport,
+    EnvironmentValidator, GpuSupport, MetalGpuDetection, PlatformInfo, RuntimeUtils,
+    ValidationReport,
 };
 pub use queue::Queue;
 pub use sequence::Sequence;
 pub use spirv_utils::{CommonKernels, ShaderCompilationGuide, SpirvUtils};
-pub use tensor::{Tensor, TensorData};
+pub use tensor::{DataType, Tensor, TensorData};
 pub use vulkan_setup::{
-    configure_vulkan_environment, diagnose_vulkan_environment, verify_vulkan_availability,
+    configure_vulkan_environment, configure_vulkan_environment_intelligent,
+    diagnose_vulkan_environment, verify_vulkan_availability,
 };
 
 // Feature-gated async support

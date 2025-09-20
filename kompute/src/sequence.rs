@@ -255,7 +255,7 @@ mod tests {
     use crate::Manager;
 
     #[test]
-    #[ignore = "requires Vulkan-capable device"]
+
     fn test_sequence_creation() {
         // This test may fail in environments without Vulkan support
         if let Ok(mut manager) = Manager::new() {

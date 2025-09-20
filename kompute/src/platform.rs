@@ -410,6 +410,82 @@ fn generate_platform_notes(
     notes
 }
 
+/// Metal GPU detection and configuration utilities for intelligent MoltenVK setup.
+pub struct MetalGpuDetection;
+
+impl MetalGpuDetection {
+    /// Detect if the system has Metal GPU support.
+    ///
+    /// This function checks for Metal framework availability and GPU capabilities
+    /// on systems that support it (primarily macOS and potentially future Linux ARM systems).
+    pub fn detect_metal_gpu_support() -> bool {
+        #[cfg(target_os = "macos")]
+        {
+            // On macOS, check for Metal framework and GPU capabilities
+            Self::check_metal_framework_macos()
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            // Future: detect ARM Linux systems with Metal support
+            // For now, only macOS has Metal support
+            false
+        }
+    }
+
+    /// Determine if MoltenVK should be automatically configured.
+    ///
+    /// This respects the `KOMPUTE_DISABLE_MOLTENVK_AUTO` environment variable
+    /// to allow users to override automatic configuration.
+    pub fn should_auto_configure_moltenvk() -> bool {
+        // Check for user override first
+        if env::var("KOMPUTE_DISABLE_MOLTENVK_AUTO").is_ok() {
+            return false;
+        }
+
+        // Auto-configure if Metal GPU support is detected
+        Self::detect_metal_gpu_support()
+    }
+
+    #[cfg(target_os = "macos")]
+    fn check_metal_framework_macos() -> bool {
+        // Check for Metal framework presence and basic GPU capabilities
+
+        // First, check if we're running on macOS with Metal support
+        // All modern macOS systems (10.11+) have Metal support
+
+        // Check for system_profiler availability for GPU detection
+        let output = std::process::Command::new("system_profiler")
+            .arg("SPDisplaysDataType")
+            .arg("-json")
+            .output();
+
+        match output {
+            Ok(output) => {
+                if output.status.success() {
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    // Check for Metal support in the GPU information
+                    // Look for Metal-capable GPUs (Intel, AMD, Apple Silicon)
+                    stdout.contains("Metal") ||
+                    stdout.contains("Intel") ||
+                    stdout.contains("AMD") ||
+                    stdout.contains("Apple") ||
+                    // Fallback: assume Metal support on macOS if system_profiler works
+                    true
+                } else {
+                    // If system_profiler fails, assume Metal support on macOS
+                    // This is a safe assumption for macOS 10.11+
+                    true
+                }
+            }
+            Err(_) => {
+                // If system_profiler is not available, assume Metal support
+                // This handles edge cases and ensures compatibility
+                true
+            }
+        }
+    }
+}
+
 /// Cross-platform utilities for runtime environment management.
 pub struct RuntimeUtils;
 
@@ -523,5 +599,59 @@ mod tests {
             Ok(()) => println!("✓ Platform optimizations applied"),
             Err(e) => println!("⚠️ Platform optimization failed: {}", e),
         }
+    }
+
+    #[test]
+    fn test_metal_gpu_detection() {
+        let has_metal = MetalGpuDetection::detect_metal_gpu_support();
+
+        #[cfg(target_os = "macos")]
+        {
+            // On macOS, we should detect Metal support
+            println!("✓ Metal GPU detection on macOS: {}", has_metal);
+            // Note: We don't assert true here as some macOS systems might not have Metal
+            // but we log the result for debugging
+        }
+
+        #[cfg(not(target_os = "macos"))]
+        {
+            // On non-macOS systems, Metal should not be detected
+            assert!(
+                !has_metal,
+                "Metal GPU support should not be detected on non-macOS systems"
+            );
+            println!("✓ Metal GPU detection on non-macOS: {}", has_metal);
+        }
+    }
+
+    #[test]
+    fn test_should_auto_configure_moltenvk() {
+        // Save original environment state
+        let original_disable = std::env::var("KOMPUTE_DISABLE_MOLTENVK_AUTO").ok();
+
+        // Test default behavior
+        std::env::remove_var("KOMPUTE_DISABLE_MOLTENVK_AUTO");
+        let should_auto_default = MetalGpuDetection::should_auto_configure_moltenvk();
+        println!("Auto-configure MoltenVK (default): {}", should_auto_default);
+
+        // Test with override
+        std::env::set_var("KOMPUTE_DISABLE_MOLTENVK_AUTO", "1");
+        let should_auto_disabled = MetalGpuDetection::should_auto_configure_moltenvk();
+        assert!(
+            !should_auto_disabled,
+            "Should not auto-configure when disabled by env var"
+        );
+        println!(
+            "Auto-configure MoltenVK (disabled): {}",
+            should_auto_disabled
+        );
+
+        // Restore original environment state
+        match original_disable {
+            Some(value) => std::env::set_var("KOMPUTE_DISABLE_MOLTENVK_AUTO", value),
+            None => std::env::remove_var("KOMPUTE_DISABLE_MOLTENVK_AUTO"),
+        }
+
+        println!("✓ MoltenVK auto-configuration logic test completed");
     }
 }

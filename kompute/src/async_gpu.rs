@@ -456,7 +456,7 @@ mod tests {
     use tokio::time::Duration;
 
     #[tokio::test]
-    #[ignore = "requires Vulkan-capable device"]
+
     async fn test_async_gpu_context() {
         if let Ok(mut context) = AsyncGpuContext::new() {
             let data = vec![1.0f32, 2.0, 3.0, 4.0];
@@ -477,7 +477,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "requires Vulkan-capable device"]
+
     async fn test_async_sequence_execution() {
         if let Ok(mut context) = AsyncGpuContext::new() {
             let data = vec![1.0f32, 2.0, 3.0, 4.0];

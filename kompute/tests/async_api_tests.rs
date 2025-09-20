@@ -10,7 +10,6 @@ mod async_tests {
     use tokio::time::timeout;
 
     #[tokio::test]
-    #[ignore = "requires Vulkan-capable device and async feature"]
     async fn test_async_sequence_basic() -> Result<()> {
         println!("Starting basic async sequence test...");
 
@@ -38,7 +37,6 @@ mod async_tests {
     }
 
     #[tokio::test]
-    #[ignore = "requires Vulkan-capable device and async feature"]
     async fn test_async_sequence_timeout() -> Result<()> {
         println!("Starting async sequence timeout test...");
 
@@ -72,7 +70,6 @@ mod async_tests {
     }
 
     #[tokio::test]
-    #[ignore = "requires Vulkan-capable device and async feature"]
     async fn test_async_gpu_executor() -> Result<()> {
         println!("Starting async GPU executor test...");
 
@@ -98,7 +95,6 @@ mod async_tests {
     }
 
     #[tokio::test]
-    #[ignore = "requires Vulkan-capable device and async feature"]
     async fn test_concurrent_async_operations() -> Result<()> {
         println!("Starting concurrent async operations test...");
 
@@ -142,7 +138,6 @@ mod async_tests {
     }
 
     #[tokio::test]
-    #[ignore = "requires Vulkan-capable device and async feature"]
     async fn test_async_error_handling() -> Result<()> {
         println!("Starting async error handling test...");
 
@@ -168,7 +163,6 @@ mod async_tests {
     }
 
     #[tokio::test]
-    #[ignore = "requires Vulkan-capable device and async feature"]
     async fn test_async_sequence_reuse() -> Result<()> {
         println!("Starting async sequence reuse test...");
 
@@ -196,7 +190,6 @@ mod async_tests {
     }
 
     #[tokio::test]
-    #[ignore = "requires Vulkan-capable device and async feature"]
     async fn test_async_cancellation() -> Result<()> {
         println!("Starting async cancellation test...");
 
@@ -244,7 +237,6 @@ mod async_tests {
     }
 
     #[tokio::test]
-    #[ignore = "requires Vulkan-capable device and async feature"]
     async fn test_async_resource_cleanup() -> Result<()> {
         println!("Starting async resource cleanup test...");
 
@@ -288,7 +280,6 @@ mod async_tests {
     }
 
     #[tokio::test]
-    #[ignore = "requires Vulkan-capable device and async feature"]
     async fn test_async_stress() -> Result<()> {
         println!("Starting async stress test...");
 

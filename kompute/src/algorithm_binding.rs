@@ -107,7 +107,11 @@ pub enum ValidationRule {
     /// One tensor size must be multiple of another
     SizeMultiple { base: String, multiple: String },
     /// Matrix dimensions must be compatible
-    MatrixCompatible { a: String, b: String, output: String },
+    MatrixCompatible {
+        a: String,
+        b: String,
+        output: String,
+    },
     /// Custom validation function name
     Custom(String),
 }
@@ -180,7 +184,8 @@ impl<T: TensorData> AlgorithmBinding<T> {
         // Check if parameter is recognized (if template is applied)
         if !self.required_parameters.is_empty() || !self.optional_parameters.is_empty() {
             if !self.required_parameters.contains(parameter_name)
-                && !self.optional_parameters.contains(parameter_name) {
+                && !self.optional_parameters.contains(parameter_name)
+            {
                 return Err(KomputeError::compute(format!(
                     "Parameter '{}' is not defined in the binding template",
                     parameter_name
@@ -205,7 +210,8 @@ impl<T: TensorData> AlgorithmBinding<T> {
         self.validate_tensor_binding(parameter_name, &binding)?;
 
         // Bind to underlying algorithm
-        self.algorithm.bind_tensor(parameter_name, tensor.handle())?;
+        self.algorithm
+            .bind_tensor(parameter_name, tensor.handle())?;
 
         // Store binding metadata
         self.bindings.insert(parameter_name.to_string(), binding);
@@ -224,7 +230,7 @@ impl<T: TensorData> AlgorithmBinding<T> {
     /// Returns error if any tensor binding fails or required parameters are missing.
     pub fn bind_tensors_batch(
         &mut self,
-        tensor_map: HashMap<String, (&Tensor<T>, AccessPattern)>
+        tensor_map: HashMap<String, (&Tensor<T>, AccessPattern)>,
     ) -> Result<()> {
         // Validate all required parameters are present
         for required_param in &self.required_parameters {
@@ -288,7 +294,10 @@ impl<T: TensorData> AlgorithmBinding<T> {
     }
 
     /// Generate performance hints for a tensor binding.
-    fn generate_performance_hints(tensor: &Tensor<T>, access_pattern: AccessPattern) -> Vec<String> {
+    fn generate_performance_hints(
+        tensor: &Tensor<T>,
+        access_pattern: AccessPattern,
+    ) -> Vec<String> {
         let mut hints = Vec::new();
 
         // Size-based hints
@@ -317,7 +326,8 @@ impl<T: TensorData> AlgorithmBinding<T> {
 
         // Memory alignment hints
         if (tensor.size() * std::mem::size_of::<T>()) % 256 != 0 {
-            hints.push("Consider padding to 256-byte alignment for optimal performance".to_string());
+            hints
+                .push("Consider padding to 256-byte alignment for optimal performance".to_string());
         }
 
         hints
@@ -356,7 +366,9 @@ impl<T: TensorData> AlgorithmBinding<T> {
 
     /// Check if all required parameters are bound.
     pub fn is_complete(&self) -> bool {
-        self.required_parameters.iter().all(|param| self.bindings.contains_key(param))
+        self.required_parameters
+            .iter()
+            .all(|param| self.bindings.contains_key(param))
     }
 
     /// Get validation report for current bindings.
@@ -380,15 +392,20 @@ impl<T: TensorData> AlgorithmBinding<T> {
         // Collect performance warnings from all bindings
         for (param_name, binding) in &self.bindings {
             for hint in &binding.performance_hints {
-                report.performance_warnings.push(format!("{}: {}", param_name, hint));
+                report
+                    .performance_warnings
+                    .push(format!("{}: {}", param_name, hint));
             }
 
-            report.binding_summary.insert(param_name.clone(), BindingSummary {
-                data_type: binding.data_type,
-                size: binding.tensor_size,
-                is_required: binding.is_required,
-                is_validated: binding.is_validated,
-            });
+            report.binding_summary.insert(
+                param_name.clone(),
+                BindingSummary {
+                    data_type: binding.data_type,
+                    size: binding.tensor_size,
+                    is_required: binding.is_required,
+                    is_validated: binding.is_validated,
+                },
+            );
         }
 
         report
@@ -468,13 +485,11 @@ impl CommonBindingTemplates {
                 },
             ],
             optional_params: vec![],
-            validation_rules: vec![
-                ValidationRule::SameSizeRequired(vec![
-                    "input_a".to_string(),
-                    "input_b".to_string(),
-                    "output".to_string(),
-                ]),
-            ],
+            validation_rules: vec![ValidationRule::SameSizeRequired(vec![
+                "input_a".to_string(),
+                "input_b".to_string(),
+                "output".to_string(),
+            ])],
             performance_hints: vec![
                 "Ensure all tensors have the same size for optimal performance".to_string(),
                 "Consider memory layout for coalesced access".to_string(),
@@ -513,13 +528,11 @@ impl CommonBindingTemplates {
                 },
             ],
             optional_params: vec![],
-            validation_rules: vec![
-                ValidationRule::MatrixCompatible {
-                    a: "matrix_a".to_string(),
-                    b: "matrix_b".to_string(),
-                    output: "matrix_c".to_string(),
-                },
-            ],
+            validation_rules: vec![ValidationRule::MatrixCompatible {
+                a: "matrix_a".to_string(),
+                b: "matrix_b".to_string(),
+                output: "matrix_c".to_string(),
+            }],
             performance_hints: vec![
                 "Use tiled matrix multiplication for large matrices".to_string(),
                 "Consider shared memory for better performance".to_string(),
@@ -578,22 +591,10 @@ mod tests {
     #[test]
     fn test_tensor_data_type_mapping() {
         // Test data type determination (this would normally use actual tensors)
-        assert_eq!(
-            std::mem::size_of::<f32>(), 4,
-            "f32 should be 4 bytes"
-        );
-        assert_eq!(
-            std::mem::size_of::<f64>(), 8,
-            "f64 should be 8 bytes"
-        );
-        assert_eq!(
-            std::mem::size_of::<i32>(), 4,
-            "i32 should be 4 bytes"
-        );
-        assert_eq!(
-            std::mem::size_of::<u32>(), 4,
-            "u32 should be 4 bytes"
-        );
+        assert_eq!(std::mem::size_of::<f32>(), 4, "f32 should be 4 bytes");
+        assert_eq!(std::mem::size_of::<f64>(), 8, "f64 should be 8 bytes");
+        assert_eq!(std::mem::size_of::<i32>(), 4, "i32 should be 4 bytes");
+        assert_eq!(std::mem::size_of::<u32>(), 4, "u32 should be 4 bytes");
 
         println!("✓ Tensor data type mapping test passed");
     }
@@ -603,11 +604,15 @@ mod tests {
         let template = CommonBindingTemplates::matrix_multiply();
 
         // Check that matrix multiplication template has matrix compatibility rule
-        let has_matrix_rule = template.validation_rules.iter().any(|rule| {
-            matches!(rule, ValidationRule::MatrixCompatible { .. })
-        });
+        let has_matrix_rule = template
+            .validation_rules
+            .iter()
+            .any(|rule| matches!(rule, ValidationRule::MatrixCompatible { .. }));
 
-        assert!(has_matrix_rule, "Matrix multiply template should have matrix compatibility rule");
+        assert!(
+            has_matrix_rule,
+            "Matrix multiply template should have matrix compatibility rule"
+        );
 
         println!("✓ Validation rule types test passed");
     }
@@ -621,7 +626,10 @@ mod tests {
         ];
 
         assert!(!hints.is_empty(), "Performance hints should be generated");
-        assert!(hints.iter().any(|h| h.contains("tensor")), "Hints should mention tensors");
+        assert!(
+            hints.iter().any(|h| h.contains("tensor")),
+            "Hints should mention tensors"
+        );
 
         println!("✓ Performance hint generation test passed");
     }

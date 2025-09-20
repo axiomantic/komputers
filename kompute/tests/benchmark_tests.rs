@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 /// Benchmark tensor creation performance.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn bench_tensor_creation() -> Result<()> {
     println!("Starting tensor creation benchmark...");
 
@@ -54,7 +54,7 @@ fn bench_tensor_creation() -> Result<()> {
 
 /// Benchmark tensor data transfer performance.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn bench_tensor_data_transfer() -> Result<()> {
     println!("Starting tensor data transfer benchmark...");
 
@@ -102,7 +102,7 @@ fn bench_tensor_data_transfer() -> Result<()> {
 
 /// Benchmark sequence operations.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn bench_sequence_operations() -> Result<()> {
     println!("Starting sequence operations benchmark...");
 
@@ -136,7 +136,7 @@ fn bench_sequence_operations() -> Result<()> {
 
 /// Benchmark concurrent operations.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn bench_concurrent_operations() -> Result<()> {
     use std::sync::{Arc, Mutex};
     use std::thread;
@@ -187,7 +187,7 @@ fn bench_concurrent_operations() -> Result<()> {
 
 /// Benchmark memory usage patterns.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn bench_memory_usage() -> Result<()> {
     println!("Starting memory usage benchmark...");
 
@@ -252,7 +252,7 @@ fn bench_memory_usage() -> Result<()> {
 
 /// Benchmark handle operations.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn bench_handle_operations() -> Result<()> {
     println!("Starting handle operations benchmark...");
 
@@ -317,7 +317,6 @@ fn bench_handle_operations() -> Result<()> {
 
 /// Stress test with realistic workload patterns.
 #[test]
-#[ignore = "requires Vulkan-capable device and sufficient time"]
 fn bench_realistic_workload() -> Result<()> {
     println!("Starting realistic workload benchmark...");
 

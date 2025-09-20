@@ -28,14 +28,9 @@ fn test_working_vulkan_setup() {
 }
 
 #[test]
-#[ignore = "requires working Vulkan setup"]
 fn test_basic_gpu_tensor_operations() -> Result<()> {
-    // First configure the environment
-    configure_vulkan_environment()
-        .map_err(|e| kompute::KomputeError::compute(format!("Vulkan config failed: {}", e)))?;
-
-    println!("Creating GPU manager...");
-    let mut manager = Manager::new()?;
+    println!("Creating GPU manager with MINIMAL configuration...");
+    let mut manager = Manager::with_device(0)?;
     println!("✓ GPU Manager created successfully");
 
     println!("Creating tensors...");

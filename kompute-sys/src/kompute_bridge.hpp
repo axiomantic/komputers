@@ -20,8 +20,8 @@
 #include "kompute/Tensor.hpp"
 #include "kompute/Algorithm.hpp"
 #include "kompute/Sequence.hpp"
-#include "kompute/operations/OpTensorSyncDevice.hpp"
-#include "kompute/operations/OpTensorSyncLocal.hpp"
+#include "kompute/operations/OpSyncDevice.hpp"
+#include "kompute/operations/OpSyncLocal.hpp"
 #include "kompute/operations/OpAlgoDispatch.hpp"
 
 // Standard library includes for safety patterns
@@ -35,6 +35,7 @@
 #include <string_view>
 #include <limits>
 #include <cassert>
+#include <iostream>
 
 // Type aliases for cleaner code and type safety
 using Manager = kp::Manager;
@@ -138,6 +139,12 @@ uint64_t create_tensor_uninit_u32_handle(Manager& manager, size_t size);
 uint64_t create_tensor_uninit_i8_handle(Manager& manager, size_t size);
 uint64_t create_tensor_uninit_u8_handle(Manager& manager, size_t size);
 
+// Filled tensor creation by handle
+uint64_t create_tensor_filled_f32_handle(Manager& manager, size_t size, float fill_value);
+uint64_t create_tensor_filled_f64_handle(Manager& manager, size_t size, double fill_value);
+uint64_t create_tensor_filled_i32_handle(Manager& manager, size_t size, int32_t fill_value);
+uint64_t create_tensor_filled_u32_handle(Manager& manager, size_t size, uint32_t fill_value);
+
 // Multi-type tensor data retrieval by handle
 rust::Vec<double> tensor_data_f64_by_handle(uint64_t handle);
 rust::Vec<int32_t> tensor_data_i32_by_handle(uint64_t handle);
@@ -154,6 +161,8 @@ void tensor_destroy_handle(uint64_t handle);
 // Algorithm operations by handle
 uint64_t create_algorithm_handle(Manager& manager, rust::Slice<const uint32_t> spirv);
 void algorithm_destroy_handle(uint64_t handle);
+bool algorithm_set_specialization_constants(uint64_t handle, rust::Slice<const float> constants);
+bool algorithm_set_push_constants(uint64_t handle, rust::Slice<const float> constants);
 
 // Sequence operations by handle
 uint64_t create_sequence_handle(Manager& manager);

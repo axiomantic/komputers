@@ -3,7 +3,7 @@
 use kompute::{Manager, Result, Sequence, Tensor};
 
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_handle_based_gpu_operations() -> Result<()> {
     println!("Starting handle-based GPU operations test...");
 

@@ -70,7 +70,7 @@ fn test_manager_thread_safety_concurrent_creation() {
 /// Test manager creation under resource pressure with many tensors.
 /// Verifies resource limit handling and memory management.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_manager_resource_limits_tensor_creation() {
     const MAX_TENSORS: usize = 1000;
     const TENSOR_SIZE: usize = 100;
@@ -231,7 +231,7 @@ fn test_manager_device_switching_all_available() {
 /// Test manager behavior under memory pressure conditions.
 /// Simulates low GPU memory scenarios.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_manager_memory_pressure_allocation_failure() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing memory pressure scenarios...");
@@ -309,7 +309,7 @@ fn test_manager_memory_pressure_allocation_failure() {
 /// Test manager factory methods with invalid inputs.
 /// Verifies input validation for tensor(), algorithm(), and sequence() methods.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_manager_factory_methods_invalid_inputs() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing factory method input validation...");
@@ -538,7 +538,7 @@ fn test_manager_device_id_validation() {
 /// Test manager state consistency across operations.
 /// Verifies that manager remains in valid state during various operations.
 #[test]
-#[ignore = "requires Vulkan-capable device"]
+
 fn test_manager_state_consistency() {
     if let Ok(mut manager) = Manager::new() {
         println!("Testing manager state consistency...");
