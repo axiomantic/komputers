@@ -334,7 +334,7 @@ impl<T: TensorData> AlgorithmBinding<T> {
     }
 
     /// Determine tensor data type from tensor instance.
-    fn tensor_data_type_from_tensor(tensor: &Tensor<T>) -> Result<TensorDataType> {
+    fn tensor_data_type_from_tensor(_tensor: &Tensor<T>) -> Result<TensorDataType> {
         use std::any::TypeId;
 
         let type_id = TypeId::of::<T>();

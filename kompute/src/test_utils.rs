@@ -4,7 +4,7 @@
 //! Missing Vulkan is a CATASTROPHIC FAILURE, not something to skip.
 
 #[cfg(test)]
-use crate::error::{KomputeError, Result};
+use crate::error::Result;
 #[cfg(test)]
 use crate::vulkan_setup;
 

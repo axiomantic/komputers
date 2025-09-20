@@ -1046,7 +1046,7 @@ void algorithm_destroy_handle(uint64_t handle) {
     get_global_registry().remove_algorithm(handle);
 }
 
-bool algorithm_set_specialization_constants(uint64_t handle, rust::Slice<const float> constants) {
+bool algorithm_set_specialization_constants(uint64_t handle, rust::Slice<const float> /* constants */) {
     try {
         auto algorithm = get_global_registry().get_algorithm(handle);
         if (!algorithm) {
@@ -1215,7 +1215,7 @@ void sequence_destroy_handle(uint64_t handle) {
 // Queue Management Operations Implementation
 // =============================================================================
 
-uint64_t create_queue_handle(Manager& manager, uint32_t queue_family_index) {
+uint64_t create_queue_handle(Manager& /* manager */, uint32_t queue_family_index) {
     try {
         // For now, we'll create a wrapper around Kompute's primary queue
         // In a full implementation, this would create queues from the manager's device

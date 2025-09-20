@@ -453,9 +453,9 @@ impl Manager {
     ///     Ok(())
     /// }
     /// ```
-    pub fn tensor_ones<T: TensorData + Clone>(&mut self, size: usize) -> Result<Tensor<T>>
+    pub fn tensor_ones<T>(&mut self, size: usize) -> Result<Tensor<T>>
     where
-        T: From<u8>,
+        T: TensorData + Clone + From<u8>,
     {
         let one = T::from(1u8);
         self.tensor_filled(size, one)
