@@ -52,8 +52,7 @@ pub fn require_vulkan() -> Result<()> {
                 if let Ok(entries) = std::fs::read_dir(dir) {
                     for entry in entries.flatten() {
                         let path = entry.path();
-                        if path.is_file() && path.file_name().map_or(false, |name| name == filename)
-                        {
+                        if path.is_file() && path.file_name().is_some_and(|name| name == filename) {
                             return Some(path);
                         } else if path.is_dir() {
                             if let Some(found) = find_file_recursive(&path, filename) {
@@ -106,7 +105,7 @@ pub fn require_vulkan() -> Result<()> {
             eprintln!("=== CRITICAL VULKAN FAILURE ===");
             eprintln!("Vulkan/MoltenVK is REQUIRED but not available!");
             eprintln!("Error: {}", e);
-            eprintln!("");
+            eprintln!();
             eprintln!("Environment:");
             eprintln!("  VULKAN_SDK: {:?}", std::env::var("VULKAN_SDK"));
             eprintln!(
@@ -114,14 +113,14 @@ pub fn require_vulkan() -> Result<()> {
                 std::env::var("VK_ICD_FILENAMES")
             );
             eprintln!("  VK_LAYER_PATH: {:?}", std::env::var("VK_LAYER_PATH"));
-            eprintln!("");
+            eprintln!();
 
             #[cfg(target_os = "macos")]
             eprintln!("On macOS: Ensure MoltenVK is installed via Homebrew:");
             #[cfg(target_os = "macos")]
             eprintln!("  brew install molten-vk");
 
-            eprintln!("");
+            eprintln!();
             eprintln!("This is a CATASTROPHIC TEST FAILURE.");
             eprintln!("All tests REQUIRE a Vulkan device.");
 

@@ -182,15 +182,14 @@ impl<T: TensorData> AlgorithmBinding<T> {
         }
 
         // Check if parameter is recognized (if template is applied)
-        if !self.required_parameters.is_empty() || !self.optional_parameters.is_empty() {
-            if !self.required_parameters.contains(parameter_name)
-                && !self.optional_parameters.contains(parameter_name)
-            {
-                return Err(KomputeError::compute(format!(
-                    "Parameter '{}' is not defined in the binding template",
-                    parameter_name
-                )));
-            }
+        if (!self.required_parameters.is_empty() || !self.optional_parameters.is_empty())
+            && !self.required_parameters.contains(parameter_name)
+            && !self.optional_parameters.contains(parameter_name)
+        {
+            return Err(KomputeError::compute(format!(
+                "Parameter '{}' is not defined in the binding template",
+                parameter_name
+            )));
         }
 
         // Determine tensor data type
@@ -620,7 +619,7 @@ mod tests {
     #[test]
     fn test_performance_hint_generation() {
         // Test performance hint generation logic
-        let hints = vec![
+        let hints = [
             "Small tensor - consider batching for efficiency".to_string(),
             "Read-only access - optimize for cache locality".to_string(),
         ];

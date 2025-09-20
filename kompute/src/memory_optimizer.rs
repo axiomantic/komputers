@@ -186,8 +186,7 @@ impl MemoryOptimizer {
                 } else {
                     // For large allocations, round up to nearest preferred chunk multiple
                     // but limit to at most 2x the requested size
-                    let chunks =
-                        (aligned_size + preferred_allocation_size - 1) / preferred_allocation_size;
+                    let chunks = aligned_size.div_ceil(*preferred_allocation_size);
                     let chunked_size = chunks * preferred_allocation_size;
                     chunked_size.min(aligned_size * 2)
                 }

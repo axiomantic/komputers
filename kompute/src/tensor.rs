@@ -754,7 +754,7 @@ mod tests {
                 }
                 Err(_e) => {
                     // Tensor creation failed - expected in headless environments
-                    assert!(true, "Tensor creation failed as expected");
+                    println!("Tensor creation failed as expected");
                 }
             }
         }

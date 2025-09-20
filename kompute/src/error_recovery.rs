@@ -484,9 +484,8 @@ impl ErrorRecoveryManager {
         } else if error_str.contains("fatal")
             || error_str.contains("panic")
             || error_str.contains("critical")
+            || *category == ErrorCategory::DeviceUnavailable
         {
-            ErrorSeverity::Critical
-        } else if *category == ErrorCategory::DeviceUnavailable {
             ErrorSeverity::Critical
         } else if error_str.contains("failed") || *category == ErrorCategory::OutOfMemory {
             ErrorSeverity::Error

@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn test_version_constants() {
-        assert!(!VERSION.is_empty());
-        assert!(!KOMPUTE_VERSION.is_empty());
+        assert!(!VERSION.trim().is_empty());
+        assert!(!KOMPUTE_VERSION.trim().is_empty());
     }
 }

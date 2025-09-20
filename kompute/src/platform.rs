@@ -465,12 +465,12 @@ impl MetalGpuDetection {
                     let stdout = String::from_utf8_lossy(&output.stdout);
                     // Check for Metal support in the GPU information
                     // Look for Metal-capable GPUs (Intel, AMD, Apple Silicon)
-                    stdout.contains("Metal") ||
-                    stdout.contains("Intel") ||
-                    stdout.contains("AMD") ||
-                    stdout.contains("Apple") ||
                     // Fallback: assume Metal support on macOS if system_profiler works
-                    true
+                    stdout.contains("Metal")
+                        || stdout.contains("Intel")
+                        || stdout.contains("AMD")
+                        || stdout.contains("Apple")
+                        || true
                 } else {
                     // If system_profiler fails, assume Metal support on macOS
                     // This is a safe assumption for macOS 10.11+

@@ -262,11 +262,11 @@ mod tests {
             match Sequence::new(&mut manager) {
                 Ok(_sequence) => {
                     // Sequence creation succeeded
-                    assert!(true, "Sequence creation succeeded");
+                    println!("Sequence creation succeeded");
                 }
                 Err(_e) => {
                     // Sequence creation failed - expected in headless environments
-                    assert!(true, "Sequence creation failed as expected");
+                    println!("Sequence creation failed as expected");
                 }
             }
         }
