@@ -28,8 +28,8 @@ You must utilize the following project files to guide your work. They are your p
 - **`SYSTEM_ARCHITECTURE.md`**
   This document serves as the definitive technical constitution and single source of truth for the system's design. You **MUST use curated excerpts** from this file as your primary reference for all implementation logic, ensuring perfect alignment with the canonical architecture.
 
-- **`CONTRIBUTING.md`**
-  This file defines the **exact, ritualized workflow** for how any contributor builds components. You should consult this to understand the overall process, especially the non-negotiable development methodology and the conflict resolution protocol.
+- **`CODING_ASSISTANT_GUIDE.md`**
+  This file defines the **exact, ritualized workflow** for how any coding assistant builds components. You should consult this to understand the overall process, especially the non-negotiable development methodology and the conflict resolution protocol.
 
 - **`GRIMOIRE.md`**
   This file serves as the master template for generating task-specific, ephemeral implementation plans, known as "Scrolls." Use this as a guide when commanded to "summon" a new plan for the coding assistant.

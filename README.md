@@ -2,7 +2,8 @@
 
 [![Crates.io](https://img.shields.io/crates/v/kompute.svg)](https://crates.io/crates/kompute)
 [![Documentation](https://docs.rs/kompute/badge.svg)](https://docs.rs/kompute)
-[![Build Status](https://github.com/axiomantic/komputers/workflows/CI/badge.svg)](https://github.com/axiomantic/komputers/actions)
+[![CI](https://github.com/axiomantic/komputers/workflows/CI/badge.svg)](https://github.com/axiomantic/komputers/actions/workflows/ci.yml)
+[![Security Audit](https://github.com/axiomantic/komputers/workflows/Security%20Audit/badge.svg)](https://github.com/axiomantic/komputers/actions/workflows/security.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 **Production-ready Rust bindings for the [Kompute](https://github.com/KomputeProject/kompute) GPU compute framework.**
@@ -15,11 +16,12 @@ Komputers provides memory-safe, high-performance GPU computing with zero-cost ab
 **Not Supported**: Official releases v0.8.1 and v0.9.0
 
 At time of this writing (September 2025), the current implementation is designed for the master branch. Older versions have known compatibility issues:
+
 - **macOS/MoltenVK**: Manager constructor segfaults in v0.8.1 and v0.9.0
 - **File Structure**: Missing headers and structural differences in v0.8.1/v0.9.0 vs master
 - **Cross-Platform**: Older versions have not been tested on non-macOS platforms with current bindings
 
-*Note: This status will likely change when the next official Kompute release is published.*
+_Note: This status will likely change when the next official Kompute release is published._
 
 ## 🚀 Production Status
 
@@ -277,11 +279,11 @@ Komputers delivers near-native performance through:
 ### Benchmarks
 
 | Operation       | Komputers | C++ Kompute | Overhead |
-| --------------- | ---------- | ----------- | -------- |
-| Tensor Creation | 0.12ms     | 0.11ms      | +9%      |
-| GPU Computation | 2.34ms     | 2.31ms      | +1.3%    |
-| Memory Transfer | 0.89ms     | 0.87ms      | +2.3%    |
-| Multi-Queue Ops | 1.45ms     | 1.41ms      | +2.8%    |
+| --------------- | --------- | ----------- | -------- |
+| Tensor Creation | 0.12ms    | 0.11ms      | +9%      |
+| GPU Computation | 2.34ms    | 2.31ms      | +1.3%    |
+| Memory Transfer | 0.89ms    | 0.87ms      | +2.3%    |
+| Multi-Queue Ops | 1.45ms    | 1.41ms      | +2.8%    |
 
 _Benchmarks on RTX 4080, 1M element f32 tensors_
 

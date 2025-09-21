@@ -3,7 +3,7 @@
 **Version:** 1.0
 **Generated:** September 2025
 **Purpose:** Systematic plan for achieving production-ready public release of Komputers
-**Context:** Following GRIMOIRE.md and CONTRIBUTING.md methodology for release readiness
+**Context:** Following GRIMOIRE.md and CODING_ASSISTANT_GUIDE.md methodology for release readiness
 
 ---
 
@@ -56,6 +56,7 @@ Based on direct codebase analysis (STATUS_MANIFEST.yaml), the project status is:
 #### 1.1. Core Functionality Validation
 
 **Tests to Run:**
+
 ```bash
 # Complete test suite validation
 cargo test --all-features --verbose
@@ -76,6 +77,7 @@ cargo bench
 ```
 
 **Evidence Collection:**
+
 - [ ] All 40+ test files pass consistently
 - [ ] Cross-platform compilation verified
 - [ ] Performance benchmarks established
@@ -87,6 +89,7 @@ cargo bench
 **Goal:** Verify every example in `/examples/` actually works
 
 **Examples to Validate:**
+
 - [ ] `basic_gpu_computing.rs` - Core tensor operations
 - [ ] `advanced_gpu_operations.rs` - Complex workflows
 - [ ] `async_gpu_operations.rs` - Async API functionality
@@ -96,6 +99,7 @@ cargo bench
 - [ ] `scientific_computing.rs` - Scientific computing
 
 **Validation Protocol:**
+
 ```bash
 # For each example
 cargo run --example [example_name] --features [required_features]
@@ -105,6 +109,7 @@ cargo run --example [example_name] --features [required_features]
 #### 1.3. Feature Flag Validation
 
 **Feature Combinations to Test:**
+
 - [ ] Default features only
 - [ ] `--features async`
 - [ ] `--features glsl`
@@ -113,6 +118,7 @@ cargo run --example [example_name] --features [required_features]
 - [ ] `--all-features`
 
 **Validation Commands:**
+
 ```bash
 cargo test --no-default-features
 cargo test --features async
@@ -129,12 +135,14 @@ cargo test --all-features
 #### 2.1. API Documentation Audit
 
 **Requirements:**
+
 - [ ] All public functions have comprehensive rustdoc
 - [ ] All examples compile and run
 - [ ] All complex concepts are explained
 - [ ] All error conditions are documented
 
 **Validation Commands:**
+
 ```bash
 # Generate docs with warnings as errors
 cargo doc --all-features --no-deps --document-private-items
@@ -151,18 +159,21 @@ cargo test --doc
 **Critical Documentation Needed:**
 
 **Installation Guide:**
+
 - [ ] Prerequisites (Vulkan SDK, platform-specific requirements)
 - [ ] Installation commands
 - [ ] Verification steps
 - [ ] Troubleshooting common issues
 
 **Quick Start Guide:**
+
 - [ ] 5-minute "Hello GPU" tutorial
 - [ ] Basic tensor operations
 - [ ] Simple compute shader execution
 - [ ] Error handling patterns
 
 **Advanced Guides:**
+
 - [ ] Multi-type tensor usage
 - [ ] Custom algorithm development
 - [ ] Async operations
@@ -173,6 +184,7 @@ cargo test --doc
 
 **Current State:** Already updated with version support info
 **Additional Sections Needed:**
+
 - [ ] Clear installation instructions
 - [ ] Feature showcase with code examples
 - [ ] Performance characteristics
@@ -188,14 +200,15 @@ cargo test --doc
 
 **Platforms to Validate:**
 
-| Platform | Rust Target | GPU Support | Status |
-|----------|-------------|-------------|--------|
-| macOS (Intel) | x86_64-apple-darwin | MoltenVK | TBD |
-| macOS (Apple Silicon) | aarch64-apple-darwin | MoltenVK | TBD |
-| Linux (Ubuntu) | x86_64-unknown-linux-gnu | Native Vulkan | TBD |
-| Windows | x86_64-pc-windows-msvc | Native Vulkan | TBD |
+| Platform              | Rust Target              | GPU Support   | Status |
+| --------------------- | ------------------------ | ------------- | ------ |
+| macOS (Intel)         | x86_64-apple-darwin      | MoltenVK      | TBD    |
+| macOS (Apple Silicon) | aarch64-apple-darwin     | MoltenVK      | TBD    |
+| Linux (Ubuntu)        | x86_64-unknown-linux-gnu | Native Vulkan | TBD    |
+| Windows               | x86_64-pc-windows-msvc   | Native Vulkan | TBD    |
 
 **Testing Protocol for Each Platform:**
+
 ```bash
 # Build verification
 cargo build --release
@@ -216,21 +229,23 @@ cargo bench
 
 **Testing Matrix:**
 
-| GPU Vendor | Platform | Driver | Status |
-|------------|----------|--------|--------|
-| NVIDIA | Linux/Windows | Latest | TBD |
-| AMD | Linux/Windows | Latest | TBD |
-| Intel | Linux/Windows | Latest | TBD |
-| Apple Silicon | macOS | MoltenVK | TBD |
+| GPU Vendor    | Platform      | Driver   | Status |
+| ------------- | ------------- | -------- | ------ |
+| NVIDIA        | Linux/Windows | Latest   | TBD    |
+| AMD           | Linux/Windows | Latest   | TBD    |
+| Intel         | Linux/Windows | Latest   | TBD    |
+| Apple Silicon | macOS         | MoltenVK | TBD    |
 
 #### 3.3. Memory Safety & Resource Leak Testing
 
 **Tools to Use:**
+
 - AddressSanitizer (already supported with `asan` feature)
 - Valgrind (Linux)
 - Instruments (macOS)
 
 **Testing Commands:**
+
 ```bash
 # AddressSanitizer testing
 cargo test --features asan
@@ -250,12 +265,14 @@ cargo test --release memory_safety_resource_leak_tests
 #### 4.1. Crate Metadata Finalization
 
 **Files to Update:**
+
 - [ ] `Cargo.toml` - Version, description, keywords, categories
 - [ ] `LICENSE` - Verify correct license text
 - [ ] `README.md` - Final polish and validation
 - [ ] `CHANGELOG.md` - Create initial release notes
 
 **Crate Configuration:**
+
 ```toml
 [package]
 name = "kompute"
@@ -268,6 +285,7 @@ categories = ["graphics", "science", "mathematics"]
 #### 4.2. Release Notes & Changelog
 
 **Structure:**
+
 ```markdown
 # Komputers v0.1.0 - Initial Release
 
@@ -298,6 +316,7 @@ categories = ["graphics", "science", "mathematics"]
 #### 4.3. Publication Checklist
 
 **Pre-Publication Validation:**
+
 - [ ] `cargo package` succeeds without warnings
 - [ ] `cargo publish --dry-run` passes
 - [ ] All dependencies are correctly specified
@@ -312,7 +331,8 @@ categories = ["graphics", "science", "mathematics"]
 #### 5.1. Contribution Guidelines
 
 **Files to Create/Update:**
-- [ ] `CONTRIBUTING.md` - Already exists and excellent
+
+- [ ] `CONTRIBUTING.md` - Human developer contribution guidelines (to be created)
 - [ ] `CODE_OF_CONDUCT.md` - Community standards
 - [ ] Issue templates for bug reports and feature requests
 - [ ] Pull request template
@@ -320,6 +340,7 @@ categories = ["graphics", "science", "mathematics"]
 #### 5.2. Community Documentation
 
 **Guides Needed:**
+
 - [ ] Getting Started tutorial
 - [ ] Architecture overview for contributors
 - [ ] Common use case patterns
@@ -329,6 +350,7 @@ categories = ["graphics", "science", "mathematics"]
 #### 5.3. Release Announcement Preparation
 
 **Content to Prepare:**
+
 - [ ] Technical blog post about capabilities
 - [ ] Social media announcement content
 - [ ] Community forum posts (Rust forums, Reddit, etc.)
@@ -426,6 +448,7 @@ cargo test --all-features
 For each phase, concrete evidence must be provided:
 
 ### Test Evidence Format:
+
 ```bash
 # Example evidence collection
 $ cargo test --all-features --verbose
@@ -434,6 +457,7 @@ test result: ok. 156 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
 ```
 
 ### Performance Evidence Format:
+
 ```
 Benchmark Results:
 - Tensor creation (1M f32): 0.05ms
@@ -442,6 +466,7 @@ Benchmark Results:
 ```
 
 ### Platform Evidence Format:
+
 ```
 Platform Validation Results:
 ✅ macOS (Apple Silicon): All tests pass
@@ -456,16 +481,19 @@ Platform Validation Results:
 ### 7.1. Identified Risks
 
 **HIGH RISK:**
+
 - Manager segfault on some macOS configurations
 - GPU driver compatibility issues
 - Performance regression on specific hardware
 
 **MEDIUM RISK:**
+
 - Documentation gaps leading to user confusion
 - Missing edge case handling
 - Platform-specific build issues
 
 **LOW RISK:**
+
 - Community adoption challenges
 - Feature request overwhelm
 - Maintenance burden
@@ -473,16 +501,19 @@ Platform Validation Results:
 ### 7.2. Mitigation Strategies
 
 **For Manager Segfault:**
+
 - Comprehensive testing on multiple macOS versions
 - Clear documentation of known limitations
 - Fallback error handling and user guidance
 
 **For GPU Compatibility:**
+
 - Test matrix across major GPU vendors
 - Clear system requirements documentation
 - Diagnostic tools for troubleshooting
 
 **For Documentation:**
+
 - User testing of documentation
 - Multiple review passes
 - Community feedback integration

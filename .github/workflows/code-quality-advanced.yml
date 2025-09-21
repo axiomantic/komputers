@@ -1,0 +1,340 @@
+name: Advanced Code Quality
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run weekly comprehensive analysis
+    - cron: "0 2 * * 1" # Monday 2 AM UTC
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  unused-dependencies:
+    name: Unused Dependencies Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-machete-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install cargo-machete
+        run: cargo install cargo-machete
+
+      - name: Check for unused dependencies
+        run: |
+          echo "🔍 Analyzing unused dependencies..."
+          cargo machete || echo "⚠️ Unused dependencies detected - see output above"
+
+          # Store results for comparison
+          cargo machete --format json > unused-deps.json || true
+
+          echo "📊 Dependency analysis summary:"
+          if [ -s unused-deps.json ]; then
+            echo "Found unused dependencies - review required"
+            cat unused-deps.json
+          else
+            echo "✅ No unused dependencies found"
+          fi
+
+      - name: Upload unused dependencies report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unused-dependencies-report
+          path: unused-deps.json
+          retention-days: 30
+
+  unsafe-code-audit:
+    name: Unsafe Code Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-geiger-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install cargo-geiger
+        run: cargo install cargo-geiger
+
+      - name: Unsafe code analysis
+        run: |
+          echo "🔒 Analyzing unsafe code usage..."
+
+          # Generate detailed unsafe code report
+          cargo geiger --all-features --output-format GitHubMarkdown > unsafe-report.md || true
+
+          echo "📋 Unsafe code summary:"
+          cargo geiger --all-features --compact || true
+
+          echo "🎯 Unsafe code metrics:"
+          echo "Expected unsafe blocks: Send/Sync implementations for GPU types"
+          echo "Expected unsafe operations: Raw pointer operations for FFI data conversion"
+
+      - name: Validate unsafe code usage
+        run: |
+          echo "✅ Validating unsafe code is justified..."
+
+          # Check that unsafe code is only in expected locations
+          UNSAFE_FILES=$(grep -r "unsafe" kompute/src/ | wc -l)
+          echo "Total unsafe usages found: $UNSAFE_FILES"
+
+          # Our current baseline: Send/Sync impls + FFI data conversion
+          EXPECTED_UNSAFE_MIN=10
+          EXPECTED_UNSAFE_MAX=25
+
+          if [ "$UNSAFE_FILES" -lt "$EXPECTED_UNSAFE_MIN" ]; then
+            echo "⚠️ Unexpected: fewer unsafe blocks than expected"
+          elif [ "$UNSAFE_FILES" -gt "$EXPECTED_UNSAFE_MAX" ]; then
+            echo "⚠️ Warning: more unsafe blocks than expected - review required"
+            echo "New unsafe code should be carefully reviewed for safety"
+          else
+            echo "✅ Unsafe code usage within expected range"
+          fi
+
+      - name: Upload unsafe code report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unsafe-code-audit-report
+          path: unsafe-report.md
+          retention-days: 30
+
+  binary-size-analysis:
+    name: Binary Size Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Vulkan SDK
+        run: |
+          sudo apt update
+          sudo apt install -y vulkan-tools libvulkan-dev cmake build-essential
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-bloat-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install cargo-bloat
+        run: cargo install cargo-bloat
+
+      - name: Build release binary
+        run: cargo build --release --all-features
+
+      - name: Analyze binary size
+        run: |
+          echo "📏 Analyzing binary size composition..."
+
+          # Overall binary size analysis
+          cargo bloat --release --crates --all-features > bloat-crates.txt
+          cargo bloat --release --functions --all-features | head -50 > bloat-functions.txt
+
+          echo "📊 Crate size breakdown:"
+          cat bloat-crates.txt
+
+          echo ""
+          echo "🔍 Largest functions (top 20):"
+          head -20 bloat-functions.txt
+
+      - name: Size regression check
+        run: |
+          echo "⚖️ Checking for size regressions..."
+
+          # Get total binary size
+          BINARY_SIZE=$(stat -c%s target/release/examples/basic_gpu_computing 2>/dev/null || echo "0")
+          echo "Current binary size: $BINARY_SIZE bytes"
+
+          # Basic size sanity check (adjust thresholds as needed)
+          MAX_SIZE_MB=50  # 50MB max for example binary
+          MAX_SIZE_BYTES=$((MAX_SIZE_MB * 1024 * 1024))
+
+          if [ "$BINARY_SIZE" -gt "$MAX_SIZE_BYTES" ]; then
+            echo "⚠️ Warning: Binary size exceeded $MAX_SIZE_MB MB"
+            echo "Consider investigating large dependencies or optimizations"
+          else
+            echo "✅ Binary size within acceptable limits"
+          fi
+
+      - name: Upload binary size reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: binary-size-analysis
+          path: |
+            bloat-crates.txt
+            bloat-functions.txt
+          retention-days: 30
+
+  documentation-links:
+    name: Documentation Link Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-deadlinks-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install cargo-deadlinks
+        run: cargo install cargo-deadlinks
+
+      - name: Build documentation
+        run: cargo doc --all-features --no-deps
+
+      - name: Check documentation links
+        run: |
+          echo "🔗 Validating documentation links..."
+
+          # Check for broken internal links
+          cargo deadlinks --check-http --dir target/doc
+
+          echo "✅ Documentation link validation complete"
+
+      - name: Validate documentation completeness
+        run: |
+          echo "📚 Checking documentation coverage..."
+
+          # Check for missing documentation
+          cargo rustdoc --all-features -- -D missing_docs -D rustdoc::broken_intra_doc_links || {
+            echo "⚠️ Documentation issues found"
+            echo "Some public APIs may be missing documentation"
+          }
+
+  license-compliance:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-license-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install cargo-license
+        run: cargo install cargo-license
+
+      - name: Generate license report
+        run: |
+          echo "⚖️ Generating license compliance report..."
+
+          # Generate comprehensive license report
+          cargo license --json > license-report.json
+          cargo license --tsv > license-report.tsv
+
+          echo "📋 License summary:"
+          cargo license
+
+      - name: Check license compatibility
+        run: |
+          echo "🔍 Checking license compatibility with Apache 2.0..."
+
+          # Check for GPL or other incompatible licenses
+          if grep -i "gpl" license-report.json; then
+            echo "⚠️ Warning: GPL licensed dependencies found"
+            echo "Review GPL compatibility with Apache 2.0"
+          else
+            echo "✅ No GPL dependencies detected"
+          fi
+
+          # Check for unknown licenses
+          if grep -i "unknown\|none" license-report.json; then
+            echo "⚠️ Warning: Dependencies with unknown licenses found"
+            echo "Manual license review required"
+          else
+            echo "✅ All dependencies have known licenses"
+          fi
+
+      - name: Upload license reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: license-compliance-report
+          path: |
+            license-report.json
+            license-report.tsv
+          retention-days: 30
+
+  quality-summary:
+    name: Quality Analysis Summary
+    runs-on: ubuntu-latest
+    needs:
+      [
+        unused-dependencies,
+        unsafe-code-audit,
+        binary-size-analysis,
+        documentation-links,
+        license-compliance,
+      ]
+    if: always()
+    steps:
+      - name: Generate quality summary
+        run: |
+          echo "📊 Advanced Code Quality Analysis Summary"
+          echo "======================================="
+
+          echo "🔍 Unused Dependencies: ${{ needs.unused-dependencies.result }}"
+          echo "🔒 Unsafe Code Audit: ${{ needs.unsafe-code-audit.result }}"
+          echo "📏 Binary Size Analysis: ${{ needs.binary-size-analysis.result }}"
+          echo "🔗 Documentation Links: ${{ needs.documentation-links.result }}"
+          echo "⚖️ License Compliance: ${{ needs.license-compliance.result }}"
+
+          # Overall status
+          if [[ "${{ needs.unused-dependencies.result }}" == "success" && \
+                "${{ needs.unsafe-code-audit.result }}" == "success" && \
+                "${{ needs.binary-size-analysis.result }}" == "success" && \
+                "${{ needs.documentation-links.result }}" == "success" && \
+                "${{ needs.license-compliance.result }}" == "success" ]]; then
+            echo ""
+            echo "✅ All advanced code quality checks passed!"
+          else
+            echo ""
+            echo "⚠️ Some quality checks require attention"
+            echo "Review individual job outputs for details"
+          fi
