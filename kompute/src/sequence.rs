@@ -44,7 +44,7 @@ impl Sequence {
     ///
     /// # Errors
     ///
-    /// Returns [`KomputeError::ComputeError`] if sequence creation fails.
+    /// Returns [`crate::error::KomputeError::ComputeError`] if sequence creation fails.
     pub fn new(manager: &mut Manager) -> Result<Self> {
         let handle = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             ffi::create_sequence_handle(manager.handle())
@@ -89,7 +89,7 @@ impl Sequence {
     ///
     /// # Errors
     ///
-    /// Returns [`KomputeError::ComputeError`] if recording fails.
+    /// Returns [`crate::error::KomputeError::ComputeError`] if recording fails.
     pub fn record_tensor_sync_device(&mut self, tensor_handle: u64) -> Result<()> {
         if tensor_handle == 0 {
             return Err(crate::error::KomputeError::compute(
@@ -117,7 +117,7 @@ impl Sequence {
     ///
     /// # Errors
     ///
-    /// Returns [`KomputeError::ComputeError`] if recording fails.
+    /// Returns [`crate::error::KomputeError::ComputeError`] if recording fails.
     pub fn record_tensor_sync_local(&mut self, tensor_handle: u64) -> Result<()> {
         if tensor_handle == 0 {
             return Err(crate::error::KomputeError::compute(
@@ -145,7 +145,7 @@ impl Sequence {
     ///
     /// # Errors
     ///
-    /// Returns [`KomputeError::ComputeError`] if recording fails.
+    /// Returns [`crate::error::KomputeError::ComputeError`] if recording fails.
     pub fn record_algorithm_dispatch(&mut self, algorithm_handle: u64) -> Result<()> {
         if algorithm_handle == 0 {
             return Err(crate::error::KomputeError::compute(
@@ -172,7 +172,7 @@ impl Sequence {
     ///
     /// # Errors
     ///
-    /// Returns [`KomputeError::ComputeError`] if execution fails.
+    /// Returns [`crate::error::KomputeError::ComputeError`] if execution fails.
     pub fn eval(&mut self) -> Result<()> {
         std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             ffi::sequence_eval_by_handle(self.handle)
@@ -193,7 +193,7 @@ impl Sequence {
     ///
     /// # Errors
     ///
-    /// Returns [`KomputeError::ComputeError`] if execution fails.
+    /// Returns [`crate::error::KomputeError::ComputeError`] if execution fails.
     pub fn eval_async(&mut self) -> Result<()> {
         std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             ffi::sequence_eval_async_by_handle(self.handle)
@@ -215,7 +215,7 @@ impl Sequence {
     ///
     /// # Errors
     ///
-    /// Returns [`KomputeError::ComputeError`] if waiting fails or times out.
+    /// Returns [`crate::error::KomputeError::ComputeError`] if waiting fails or times out.
     pub fn eval_await(&mut self, timeout_ms: u64) -> Result<()> {
         std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             ffi::sequence_eval_await_by_handle(self.handle, timeout_ms)
