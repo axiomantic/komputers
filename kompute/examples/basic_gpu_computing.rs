@@ -1,96 +1,62 @@
-//! Basic GPU Computing Example
+//! Basic GPU Computing Example for Kompute-rs
 //!
-//! This example demonstrates the fundamental GPU computing capabilities of Komputers,
-//! showcasing how to create tensors, execute high-level GPU operations, and validate results.
+//! This example demonstrates the most fundamental GPU computing operations:
+//! - Creating tensors
+//! - Performing basic GPU operations
+//! - Retrieving results
+//!
+//! This serves as an introduction to GPU computing with Kompute.
 
-use kompute::{GpuOperations, Manager, Result, Tensor};
+use kompute::{Manager, Tensor, Result};
 
 fn main() -> Result<()> {
-    println!("🚀 Komputers Basic GPU Computing Example");
-    println!("==========================================");
+    println!("🚀 Kompute Basic GPU Computing Example");
 
-    // 1. Initialize GPU operations
-    println!("\n1. Creating GPU operations context...");
-    let mut ops = GpuOperations::new()?;
-    println!("   ✅ GPU operations context created successfully");
+    // Initialize the GPU manager
+    let mut manager = Manager::new()?;
+    println!("✅ GPU Manager initialized successfully");
 
-    // 2. Create input tensors with data
-    println!("\n2. Creating input tensors...");
-    let input_a_data = [1.0f32, 2.0, 3.0, 4.0, 5.0];
-    let input_b_data = [10.0f32, 20.0, 30.0, 40.0, 50.0];
+    // Create input tensors
+    let data_a = vec![1.0f32, 2.0, 3.0, 4.0, 5.0];
+    let data_b = vec![2.0f32, 3.0, 4.0, 5.0, 6.0];
 
-    let input_a = Tensor::new(ops.manager(), &input_a_data)?;
-    let input_b = Tensor::new(ops.manager(), &input_b_data)?;
-    let mut output: Tensor<f32> = Tensor::uninit(ops.manager(), 5)?;
+    let tensor_a: Tensor<f32> = Tensor::new(&mut manager, &data_a)?;
+    let tensor_b: Tensor<f32> = Tensor::new(&mut manager, &data_b)?;
+    let tensor_out: Tensor<f32> = Tensor::uninit(&mut manager, data_a.len())?;
 
-    println!("   Input A: {:?}", input_a_data);
-    println!("   Input B: {:?}", input_b_data);
-    println!("   ✅ Input tensors created");
+    println!("✅ Created {} tensors with {} elements each", 3, data_a.len());
 
-    // 3. Execute GPU computation
-    println!("\n3. Executing GPU element-wise addition...");
-    let start = std::time::Instant::now();
-    ops.elementwise_add(&input_a, &input_b, &mut output)?;
-    let duration = start.elapsed();
+    // Simple elementwise addition using the built-in SPIR-V shader
+    use kompute::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV;
 
-    println!("   ✅ GPU computation completed in {:?}", duration);
+    // Create algorithm with tensors
+    let algorithm = kompute::Algorithm::with_tensors(
+        &mut manager,
+        ELEMENTWISE_ADD_F32_SPIRV,
+        &[&tensor_a, &tensor_b, &tensor_out]
+    )?;
 
-    // 4. Retrieve and display results
-    println!("\n4. Retrieving results...");
-    let results = output.to_vec()?;
+    let mut sequence = manager.sequence()?;
+    sequence.record_algorithm_dispatch(algorithm.handle())?;
+    sequence.eval()?;
 
-    println!("   Results: {:?}", results);
-    println!("   Expected: [11.0, 22.0, 33.0, 44.0, 55.0]");
+    // Get the results
+    let result_data = tensor_out.to_vec()?;
 
-    // Verify results
-    let expected = [11.0f32, 22.0, 33.0, 44.0, 55.0];
-    let success = results
-        .iter()
-        .zip(expected.iter())
-        .all(|(a, b)| (a - b).abs() < 1e-6);
+    println!("📊 GPU Computation Results:");
+    println!("   Input A:  {:?}", data_a);
+    println!("   Input B:  {:?}", data_b);
+    println!("   Output:   {:?}", result_data);
 
-    if success {
-        println!("   ✅ Results match expected values!");
-    } else {
-        println!("   ❌ Results don't match expected values");
-        return Err(kompute::KomputeError::compute(
-            "Computation verification failed".to_string(),
-        ));
+    // Verify the results
+    for i in 0..data_a.len() {
+        let expected = data_a[i] + data_b[i];
+        assert!((result_data[i] - expected).abs() < 1e-6,
+               "GPU computation error at index {}: expected {}, got {}", i, expected, result_data[i]);
     }
 
-    // 5. Display system information
-    println!("\n5. System Information:");
-    let device_count = Manager::device_count()?;
-    println!("   Available GPU devices: {}", device_count);
-
-    println!("\n🎉 Basic GPU computing example completed successfully!");
-    println!("   • Created tensors on GPU memory");
-    println!("   • Executed high-level GPU operations");
-    println!("   • Verified computation results");
-    println!(
-        "   • Performance: {:?} for 5-element vector addition",
-        duration
-    );
+    println!("✅ GPU computation verified successfully!");
+    println!("🎉 Basic GPU computing example completed");
 
     Ok(())
-}
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_basic_gpu_computing() {
-        // This test may require GPU hardware
-        if let Err(e) = main() {
-            println!("GPU computing test failed (expected without GPU): {}", e);
-            // Don't fail the test if GPU is not available
-            if e.to_string().contains("device") || e.to_string().contains("Vulkan") {
-                println!("Skipping test due to missing GPU/Vulkan support");
-            } else {
-                panic!("Unexpected error: {}", e);
-            }
-        }
-    }
 }
