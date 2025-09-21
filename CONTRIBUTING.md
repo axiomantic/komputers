@@ -1,11 +1,11 @@
-# How to Contribute to Kompute-rs
+# How to Contribute to Komputers
 
 **Version:** 1.0
 **Project Phase:** Foundation & Core Development
 
 ## 1. The Philosophy of Development
 
-Contributing to Kompute-rs is a disciplined practice of creating high-quality, maintainable software through systematic development and rigorous validation. Our workflow ensures quality, safety, and consistent progress through structured implementation.
+Contributing to Komputers is a disciplined practice of creating high-quality, maintainable software through systematic development and rigorous validation. Our workflow ensures quality, safety, and consistent progress through structured implementation.
 
 Our development process is built upon key artifacts, each serving a critical purpose:
 
@@ -492,6 +492,6 @@ If you encounter issues:
 
 ---
 
-**Excellence in software development comes from disciplined process, rigorous testing, and unwavering commitment to quality. Follow these guidelines to contribute effectively to Kompute-rs.**
+**Excellence in software development comes from disciplined process, rigorous testing, and unwavering commitment to quality. Follow these guidelines to contribute effectively to Komputers.**
 
 _"Quality is not an act, it is a habit."_

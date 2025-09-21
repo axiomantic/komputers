@@ -82,69 +82,19 @@
 // BUILD-TIME VERSION COMPATIBILITY CHECKS
 // =============================================================================
 
-// Ensure exactly one Kompute version feature is enabled
-#[cfg(not(any(
-    feature = "kompute-master",
-    feature = "kompute-v090",
-    feature = "kompute-v081"
-)))]
+// Ensure Kompute master is enabled (the only supported version for v0.1.0 release)
+#[cfg(not(feature = "kompute-master"))]
 compile_error!("
 ❌ NO KOMPUTE VERSION SELECTED
-✅ SOLUTION: Use kompute-master (the only currently supported version as of September 2025)
+✅ SOLUTION: v0.1.0 release only supports kompute-master
 📖 Example: cargo build --features kompute-master
-⚠️  Note: v0.8.1 and v0.9.0 are currently not supported due to file structure differences and macOS/MoltenVK compatibility issues
-💡 This status will likely change when the next official Kompute release is published
-");
-
-#[cfg(all(feature = "kompute-master", feature = "kompute-v090"))]
-compile_error!("
-❌ MULTIPLE KOMPUTE VERSIONS ENABLED
-✅ SOLUTION: Use only kompute-master (the only currently supported version as of September 2025)
-⚠️  Note: v0.9.0 is currently not supported due to file structure differences and macOS/MoltenVK compatibility issues
-💡 This status will likely change when the next official Kompute release is published
-");
-
-#[cfg(all(feature = "kompute-master", feature = "kompute-v081"))]
-compile_error!("
-❌ MULTIPLE KOMPUTE VERSIONS ENABLED
-✅ SOLUTION: Use only kompute-master (the only currently supported version as of September 2025)
-⚠️  Note: v0.8.1 is currently not supported due to file structure differences and macOS/MoltenVK compatibility issues
-💡 This status will likely change when the next official Kompute release is published
-");
-
-#[cfg(all(feature = "kompute-v090", feature = "kompute-v081"))]
-compile_error!("
-❌ MULTIPLE KOMPUTE VERSIONS ENABLED
-✅ SOLUTION: Use only kompute-master (the only currently supported version as of September 2025)
-⚠️  Note: v0.8.1 and v0.9.0 are currently not supported due to file structure differences and macOS/MoltenVK compatibility issues
-💡 This status will likely change when the next official Kompute release is published
-");
-
-// Platform-specific compatibility warnings
-#[cfg(all(target_os = "macos", feature = "kompute-v090"))]
-compile_error!("
-❌ INCOMPATIBLE: Kompute v0.9.0 + macOS causes Manager segfaults!
-✅ SOLUTION: Use 'kompute-master' (the only currently supported version as of September 2025)
-📖 See: https://github.com/KomputeProject/kompute/issues/378
-🔧 Command: cargo build --features kompute-master
-⚠️  Note: Current implementation is designed for master branch with file structure differences from v0.9.0
-💡 This status will likely change when the next official Kompute release is published
-");
-
-#[cfg(all(target_os = "macos", feature = "kompute-v081"))]
-compile_error!("
-❌ INCOMPATIBLE: Kompute v0.8.1 + macOS causes compatibility issues!
-✅ SOLUTION: Use 'kompute-master' (the only currently supported version as of September 2025)
-🔧 Command: cargo build --features kompute-master
-⚠️  Note: Current implementation is designed for master branch; older versions have compatibility issues
-💡 This status will likely change when the next official Kompute release is published
+⚠️  Note: This release uses Kompute master branch due to compatibility requirements
+💡 Future releases may support official Kompute versions when compatibility is resolved
 ");
 
 pub mod algorithm;
 pub mod algorithm_binding;
 pub mod convenience;
-#[cfg(feature = "crash-debug")]
-pub mod crash_debug;
 #[cfg(feature = "debug")]
 pub mod debug_tools;
 pub mod error;
@@ -184,11 +134,7 @@ pub use convenience::{
     BenchmarkConfig, BenchmarkResults, BinaryOp, DevicePreference, GpuOps, MathOps,
     OperationResult, ReductionOp, TensorExt,
 };
-#[cfg(feature = "crash-debug")]
-pub use crash_debug::{
-    debug_execute, install_crash_handlers, test_crash_debug, CrashAnalysis, CrashInfo, GpuContext,
-    MemoryInfo, ProcessInfo,
-};
+// Crash debug feature removed for v0.1.0 release due to dependency issues
 #[cfg(feature = "debug")]
 pub use debug_tools::{
     DebugContext, DebugEvent, DebugEventType, DebugReport, DebugSeverity, DebugUtils,

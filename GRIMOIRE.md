@@ -1,4 +1,4 @@
-# The Implementation Grimoire: Master Template for Kompute-rs
+# The Implementation Grimoire: Master Template for Komputers
 
 **Version:** 1.0
 **Purpose:** Universal template for implementing components with excellence
@@ -567,7 +567,7 @@ use std::result::Result;
 
 /// [Component Purpose] - Brief description of what this component does
 ///
-/// This component implements [specific functionality] within the Kompute-rs
+/// This component implements [specific functionality] within the Komputers
 /// architecture, providing [key benefits/guarantees].
 ///
 /// # Safety

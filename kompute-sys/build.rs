@@ -1,10 +1,54 @@
 use std::env;
 use std::path::{Path, PathBuf};
 
+#[derive(Debug, Clone)]
+enum KomputeVersion {
+    Master,
+    V090,
+    V081,
+}
+
+impl KomputeVersion {
+    fn git_tag(&self) -> &'static str {
+        match self {
+            KomputeVersion::Master => "master",
+            KomputeVersion::V090 => "v0.9.0",
+            KomputeVersion::V081 => "v0.8.1",
+        }
+    }
+}
+
+impl std::fmt::Display for KomputeVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            KomputeVersion::Master => write!(f, "master"),
+            KomputeVersion::V090 => write!(f, "v0.9.0"),
+            KomputeVersion::V081 => write!(f, "v0.8.1"),
+        }
+    }
+}
+
+fn determine_kompute_version() -> KomputeVersion {
+    if cfg!(feature = "kompute-master") {
+        KomputeVersion::Master
+    } else if cfg!(feature = "kompute-v090") {
+        KomputeVersion::V090
+    } else if cfg!(feature = "kompute-v081") {
+        KomputeVersion::V081
+    } else {
+        // This should be caught by compile_error! but just in case
+        panic!("No Kompute version feature enabled!")
+    }
+}
+
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/");
     println!("cargo:rerun-if-env-changed=VULKAN_SDK");
+
+    // Determine which Kompute version to use
+    let kompute_version = determine_kompute_version();
+    println!("cargo:warning=Building with Kompute version: {}", kompute_version);
 
     // Configure AddressSanitizer if asan feature is enabled
     if cfg!(feature = "asan") {
@@ -16,7 +60,7 @@ fn main() {
 
     // Build Kompute C++ library (it will manage its own Vulkan headers)
     let kompute_lib_path =
-        build_kompute_library(&out_dir, &target_os).expect("Failed to build Kompute C++ library");
+        build_kompute_library(&out_dir, &target_os, &kompute_version).expect("Failed to build Kompute C++ library");
 
     // Configure linking for Kompute and system libraries
     configure_kompute_linking(&kompute_lib_path, &target_os);
@@ -49,11 +93,12 @@ fn main() {
 fn build_kompute_library(
     out_dir: &Path,
     target_os: &str,
+    kompute_version: &KomputeVersion,
 ) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let cmake_dir = out_dir.join("cmake_build");
     std::fs::create_dir_all(&cmake_dir)?;
 
-    create_kompute_cmake(&cmake_dir)?;
+    create_kompute_cmake(&cmake_dir, &kompute_version)?;
 
     let build_dir = out_dir.join("kompute_build");
     std::fs::create_dir_all(&build_dir)?;
@@ -193,6 +238,20 @@ fn build_cxx_bridge(out_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
         .flag_if_supported("-DFMT_HEADER_ONLY=1")
         .flag_if_supported("-DVULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1");
 
+    // Add version-specific defines based on feature flags
+    let kompute_version = determine_kompute_version();
+    match kompute_version {
+        KomputeVersion::V081 => {
+            cxx_builder.flag_if_supported("-DKOMPUTE_VERSION_V081=1");
+        }
+        KomputeVersion::V090 => {
+            cxx_builder.flag_if_supported("-DKOMPUTE_VERSION_V090=1");
+        }
+        KomputeVersion::Master => {
+            cxx_builder.flag_if_supported("-DKOMPUTE_VERSION_MASTER=1");
+        }
+    }
+
     // Add Vulkan API version defines for platform compatibility
     #[cfg(target_os = "macos")]
     {
@@ -283,8 +342,9 @@ fn configure_address_sanitizer() {
     }
 }
 
-fn create_kompute_cmake(cmake_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    let cmake_content = r#"cmake_minimum_required(VERSION 3.14)
+fn create_kompute_cmake(cmake_dir: &Path, kompute_version: &KomputeVersion) -> Result<(), Box<dyn std::error::Error>> {
+    let git_tag = kompute_version.git_tag();
+    let cmake_content = format!(r#"cmake_minimum_required(VERSION 3.14)
 project(kompute-rust-bindings)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -295,7 +355,7 @@ include(FetchContent)
 FetchContent_Declare(
   kompute
   GIT_REPOSITORY https://github.com/KomputeProject/kompute.git
-  GIT_TAG master
+  GIT_TAG {}
   GIT_SHALLOW TRUE
 )
 
@@ -308,7 +368,7 @@ set(KOMPUTE_OPT_BUILD_SINGLE_HEADER OFF CACHE BOOL "")
 FetchContent_MakeAvailable(kompute)
 
 find_package(Vulkan REQUIRED)
-"#;
+"#, git_tag);
 
     let cmake_path = cmake_dir.join("CMakeLists.txt");
     std::fs::write(cmake_path, cmake_content)?;

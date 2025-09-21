@@ -1,7 +1,7 @@
 //! GPU Vendor Compatibility Testing Matrix
 //!
 //! This test suite implements comprehensive GPU vendor compatibility testing
-//! to ensure Kompute-rs works consistently across NVIDIA, AMD, Intel, and
+//! to ensure Komputers works consistently across NVIDIA, AMD, Intel, and
 //! Apple Silicon GPUs. Critical for production deployment across diverse hardware.
 
 use kompute::{Manager, MemoryOptimizer};

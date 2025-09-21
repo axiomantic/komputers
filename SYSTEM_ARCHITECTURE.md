@@ -1,8 +1,8 @@
-# Kompute-rs: System Architecture (v2)
+# Komputers: System Architecture (v2)
 
 ## 1. Core Philosophy & Guiding Principles
 
-Kompute-rs is built upon the foundation of memory-safe systems programming with zero-cost abstractions for GPU computing. The system embodies the principle that GPU compute power should be accessible through idiomatic Rust interfaces without sacrificing performance or safety.
+Komputers is built upon the foundation of memory-safe systems programming with zero-cost abstractions for GPU computing. The system embodies the principle that GPU compute power should be accessible through idiomatic Rust interfaces without sacrificing performance or safety.
 
 ### 1.1. Guiding Technical Principles
 

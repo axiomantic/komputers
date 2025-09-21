@@ -24,11 +24,16 @@ cxx-build = "1.0"
 cmake.workspace = true
 
 [features]
-default = []
-# Enable Vulkan validation layers (development only)
-validation = []
-# Enable AddressSanitizer for C++ memory debugging
-asan = []
+default = ["kompute-master"]
+
+# Kompute version support (exactly one must be enabled)
+kompute-master = []
+kompute-v090 = []
+kompute-v081 = []
+
+# Other features
+validation = []  # Enable Vulkan validation layers (development only)
+asan = []        # Enable AddressSanitizer for C++ memory debugging
 
 [package.metadata.docs.rs]
 # Ensure docs build on docs.rs with proper features

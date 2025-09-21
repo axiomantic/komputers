@@ -2,11 +2,11 @@
 
 ## Overview
 
-Phase 3 of Kompute-rs introduces comprehensive multi-type tensor support with runtime type detection and enhanced creation methods. This guide provides best practices and usage patterns for working with different data types in GPU computing operations.
+Phase 3 of Komputers introduces comprehensive multi-type tensor support with runtime type detection and enhanced creation methods. This guide provides best practices and usage patterns for working with different data types in GPU computing operations.
 
 ## Supported Data Types
 
-Kompute-rs supports four fundamental data types for GPU tensor operations:
+Komputers supports four fundamental data types for GPU tensor operations:
 
 | Rust Type | DataType Enum       | Description                    | Use Cases                                       |
 | --------- | ------------------- | ------------------------------ | ----------------------------------------------- |
@@ -293,7 +293,7 @@ let ones = manager.tensor_ones::<f64>(500)?;
 
 ## Conclusion
 
-The multi-type tensor system in Kompute-rs Phase 3 provides:
+The multi-type tensor system in Komputers Phase 3 provides:
 
 - **Type Safety**: Compile-time and runtime type validation
 - **Performance**: Zero-cost abstractions with optimal GPU performance

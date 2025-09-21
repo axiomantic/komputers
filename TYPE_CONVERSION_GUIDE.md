@@ -2,11 +2,11 @@
 
 ## Overview
 
-This guide covers type conversion policies, compatibility considerations, and best practices for working with multiple data types in Kompute-rs GPU computing operations.
+This guide covers type conversion policies, compatibility considerations, and best practices for working with multiple data types in Komputers GPU computing operations.
 
 ## Type Safety Architecture
 
-Kompute-rs implements a multi-layered type safety system:
+Komputers implements a multi-layered type safety system:
 
 1. **Compile-time Safety**: Rust's type system prevents type errors at compile time
 2. **Runtime Validation**: C++ FFI boundary validation ensures type consistency

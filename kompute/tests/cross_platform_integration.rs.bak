@@ -1,6 +1,6 @@
 //! Cross-platform reliability and integration tests.
 //!
-//! These tests verify that Kompute-rs works reliably across different platforms,
+//! These tests verify that Komputers works reliably across different platforms,
 //! handles environment validation, and provides appropriate error recovery.
 
 use kompute::{EnvironmentValidator, GpuSupport, Manager, PlatformInfo, RuntimeUtils};

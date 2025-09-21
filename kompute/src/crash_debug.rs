@@ -104,7 +104,7 @@ pub fn install_crash_handlers() -> Result<()> {
                     let crash_info = collect_crash_info(signal);
                     let analysis = analyze_crash(&crash_info);
 
-                    eprintln!("\n🚨 CRASH DETECTED - KOMPUTE-RS DEBUG ANALYSIS 🚨");
+                    eprintln!("\n🚨 CRASH DETECTED - KOMPUTERS DEBUG ANALYSIS 🚨");
                     eprintln!("================================================");
                     print_crash_report(&crash_info, &analysis);
 

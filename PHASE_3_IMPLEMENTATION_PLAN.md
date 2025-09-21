@@ -21,7 +21,7 @@
 
 ### Architectural Context
 
-The tensor system is the foundation of GPU computing in Kompute-rs. It provides type-safe, memory-efficient abstractions over GPU memory with zero-cost Rust idioms. This phase extends the existing robust f32 tensor implementation to support the complete range of GPU computing data types.
+The tensor system is the foundation of GPU computing in Komputers. It provides type-safe, memory-efficient abstractions over GPU memory with zero-cost Rust idioms. This phase extends the existing robust f32 tensor implementation to support the complete range of GPU computing data types.
 
 ### Dependencies Verified ✅
 

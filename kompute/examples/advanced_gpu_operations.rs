@@ -202,7 +202,10 @@ fn demonstrate_error_recovery() -> Result<()> {
     println!("     - Health score: {:.2}", diagnostic.health_score);
     println!("     - GPU available: {}", diagnostic.gpu_available);
     println!("     - Total errors: {}", diagnostic.total_errors);
-    println!("     - Recovery success rate: {:.2}", diagnostic.recovery_success_rate);
+    println!(
+        "     - Recovery success rate: {:.2}",
+        diagnostic.recovery_success_rate
+    );
 
     // Demonstrate error scenario handling
     println!("   Error Handling Capabilities:");

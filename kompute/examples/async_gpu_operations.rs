@@ -7,9 +7,7 @@
 //! - Integration with Rust async ecosystem (tokio, etc.)
 
 #[cfg(feature = "async")]
-use kompute::{
-    AsyncGpuContext, AsyncGpuSequence, AsyncTensor, Result,
-};
+use kompute::{AsyncGpuContext, AsyncGpuSequence, AsyncTensor, Result};
 
 #[cfg(feature = "async")]
 use std::time::{Duration, Instant};
@@ -135,7 +133,9 @@ async fn demonstrate_async_timeout_handling(context: &mut AsyncGpuContext) -> Re
     // Create a potentially long-running operation
     let large_data: Vec<f32> = vec![1.0; 100000];
     let input = context.create_tensor(&large_data).await?;
-    let mut output = context.create_tensor_uninit::<f32>(large_data.len()).await?;
+    let mut output = context
+        .create_tensor_uninit::<f32>(large_data.len())
+        .await?;
 
     let mut sequence = context.create_sequence().await?;
     sequence.record_tensor_sync_device(input.handle()).await?;
@@ -276,11 +276,7 @@ async fn demonstrate_async_ecosystem_integration(context: &mut AsyncGpuContext) 
     // Simulated streaming operations without tokio_stream dependency
 
     // Process multiple data batches asynchronously
-    let data_batches = vec![
-        vec![1.0f32, 2.0],
-        vec![3.0f32, 4.0],
-        vec![5.0f32, 6.0],
-    ];
+    let data_batches = vec![vec![1.0f32, 2.0], vec![3.0f32, 4.0], vec![5.0f32, 6.0]];
 
     let mut processed_count = 0;
     for batch_data in data_batches {
@@ -289,10 +285,7 @@ async fn demonstrate_async_ecosystem_integration(context: &mut AsyncGpuContext) 
         processed_count += 1;
     }
 
-    println!(
-        "   ✅ Processed {} batches asynchronously",
-        processed_count
-    );
+    println!("   ✅ Processed {} batches asynchronously", processed_count);
 
     // Demonstrate async channels
     let (tx, mut rx) = tokio::sync::mpsc::channel(32);

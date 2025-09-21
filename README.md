@@ -1,4 +1,4 @@
-# Kompute-rs: Production-Ready GPU Computing for Rust
+# Komputers: Production-Ready GPU Computing for Rust
 
 [![Crates.io](https://img.shields.io/crates/v/kompute.svg)](https://crates.io/crates/kompute)
 [![Documentation](https://docs.rs/kompute/badge.svg)](https://docs.rs/kompute)
@@ -7,13 +7,25 @@
 
 **Production-ready Rust bindings for the [Kompute](https://github.com/KomputeProject/kompute) GPU compute framework.**
 
-Kompute-rs provides memory-safe, high-performance GPU computing with zero-cost abstractions. Built on Vulkan with comprehensive cross-platform support and advanced features like multi-type tensors, error recovery, and memory optimization.
+Komputers provides memory-safe, high-performance GPU computing with zero-cost abstractions. Built on Vulkan with comprehensive cross-platform support and advanced features like multi-type tensors, error recovery, and memory optimization.
+
+## ⚠️ Version Support
+
+**Currently Supported** (as of September 2025): Kompute master branch only (unreleased)
+**Not Supported**: Official releases v0.8.1 and v0.9.0
+
+At time of this writing (September 2025), the current implementation is designed for the master branch. Older versions have known compatibility issues:
+- **macOS/MoltenVK**: Manager constructor segfaults in v0.8.1 and v0.9.0
+- **File Structure**: Missing headers and structural differences in v0.8.1/v0.9.0 vs master
+- **Cross-Platform**: Older versions have not been tested on non-macOS platforms with current bindings
+
+*Note: This status will likely change when the next official Kompute release is published.*
 
 ## 🚀 Production Status
 
 **✅ READY FOR PRODUCTION USE**
 
-Kompute-rs is a **complete, production-ready GPU computing library** with:
+Komputers is a **complete, production-ready GPU computing library** with:
 
 - ✅ **Multi-Type Tensor Support**: f32, f64, i32, u32 with full GPU integration
 - ✅ **Algorithm-Tensor Binding**: Real GPU compute operations with SPIR-V shaders
@@ -194,7 +206,7 @@ fn advanced_features_example() -> kompute::Result<()> {
 
 ## Architecture
 
-Kompute-rs follows a three-layer architecture optimized for safety and performance:
+Komputers follows a three-layer architecture optimized for safety and performance:
 
 ### Core Components
 
@@ -221,14 +233,14 @@ Kompute-rs follows a three-layer architecture optimized for safety and performan
 
 #### MoltenVK Compatibility (macOS)
 
-Kompute-rs includes automatic compatibility fixes for MoltenVK on macOS:
+Komputers includes automatic compatibility fixes for MoltenVK on macOS:
 
 - **Auto-Configuration**: Intelligent MoltenVK detection and environment setup
 - **Version Compatibility**: Automatic handling of MoltenVK API version mismatches
 - **Metal GPU Detection**: Automatic detection of Metal-capable GPUs with fallback options
 - **Build Flags**: Pre-configured with `KOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON`
 
-**Known Issues**: The combination of Kompute v0.9.0 + MoltenVK 1.4.0+ can cause Manager constructor segfaults. Kompute-rs automatically uses v0.8.1 on macOS for stability. For details, see [MoltenVK Issue #2292](https://github.com/KhronosGroup/MoltenVK/issues/2292) and [Kompute Issue #378](https://github.com/KomputeProject/kompute/issues/378).
+**Version Support** (as of September 2025): Komputers currently only supports the Kompute master branch (unreleased). The official releases (v0.8.1, v0.9.0) are not supported due to file structure differences and macOS/MoltenVK compatibility issues including Manager constructor segfaults. This status will likely change when the next official Kompute release is published. For details, see [MoltenVK Issue #2292](https://github.com/KhronosGroup/MoltenVK/issues/2292) and [Kompute Issue #378](https://github.com/KomputeProject/kompute/issues/378).
 
 **User Override**: Set `KOMPUTE_DISABLE_MOLTENVK_AUTO=1` to disable automatic MoltenVK configuration.
 
@@ -254,7 +266,7 @@ println!("Vulkan Status: {}", report.status);
 
 ## Performance
 
-Kompute-rs delivers near-native performance through:
+Komputers delivers near-native performance through:
 
 - **Zero-Cost Abstractions**: Compile-time optimization with runtime overhead < 5%
 - **Efficient Memory Management**: GPU memory pooling and automatic defragmentation
@@ -264,7 +276,7 @@ Kompute-rs delivers near-native performance through:
 
 ### Benchmarks
 
-| Operation       | Kompute-rs | C++ Kompute | Overhead |
+| Operation       | Komputers | C++ Kompute | Overhead |
 | --------------- | ---------- | ----------- | -------- |
 | Tensor Creation | 0.12ms     | 0.11ms      | +9%      |
 | GPU Computation | 2.34ms     | 2.31ms      | +1.3%    |
@@ -291,7 +303,7 @@ _Benchmarks on RTX 4080, 1M element f32 tensors_
 
 ## Testing & Validation
 
-Kompute-rs includes comprehensive testing suites:
+Komputers includes comprehensive testing suites:
 
 ### Test Coverage
 
@@ -382,4 +394,4 @@ Licensed under the Apache License, Version 2.0 ([LICENSE](LICENSE) or http://www
 
 ---
 
-**Ready to accelerate your Rust applications with GPU computing? Get started with Kompute-rs today!**
+**Ready to accelerate your Rust applications with GPU computing? Get started with Komputers today!**

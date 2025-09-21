@@ -1,7 +1,7 @@
-# Kompute-rs Glossary
+# Komputers Glossary
 
 **Version:** 1.0
-**Purpose:** Definitive reference for terminology, concepts, and specialized vocabulary used throughout the Kompute-rs project.
+**Purpose:** Definitive reference for terminology, concepts, and specialized vocabulary used throughout the Komputers project.
 
 ---
 
@@ -9,7 +9,7 @@
 
 ### **Algorithm**
 
-A compute shader program and its associated parameter bindings in Kompute. Represents a GPU kernel that can process data in parallel. In Kompute-rs, wrapped as a safe Rust struct with RAII resource management.
+A compute shader program and its associated parameter bindings in Kompute. Represents a GPU kernel that can process data in parallel. In Komputers, wrapped as a safe Rust struct with RAII resource management.
 
 ### **Binding**
 
@@ -85,7 +85,7 @@ High-level public API following Rust conventions and best practices:
 
 ### **Zero-Cost Abstraction**
 
-Rust design principle where high-level abstractions compile to the same efficient code as low-level implementations. Kompute-rs aims to provide ergonomic APIs with minimal performance overhead.
+Rust design principle where high-level abstractions compile to the same efficient code as low-level implementations. Komputers aims to provide ergonomic APIs with minimal performance overhead.
 
 ## Vulkan and GPU Terms
 
@@ -142,7 +142,7 @@ Intermediate GPU memory buffer used to transfer data between host and device mem
 
 ### **KomputeError**
 
-Primary error type in Kompute-rs encompassing all possible failure modes:
+Primary error type in Komputers encompassing all possible failure modes:
 
 - GPU initialization failures
 - Memory allocation errors
@@ -152,7 +152,7 @@ Primary error type in Kompute-rs encompassing all possible failure modes:
 
 ### **Result Type**
 
-Rust's standard error handling mechanism. All Kompute-rs APIs return `Result<T, KomputeError>` for explicit error handling.
+Rust's standard error handling mechanism. All Komputers APIs return `Result<T, KomputeError>` for explicit error handling.
 
 ### **Error Context**
 
@@ -236,7 +236,7 @@ Behavioral pattern for notifying interested parties of state changes. Potentiall
 
 ### **Three-Layer Architecture**
 
-Kompute-rs architectural pattern separating:
+Komputers architectural pattern separating:
 
 1. FFI Layer (unsafe C++ bindings)
 2. Safe Wrapper Layer (memory-safe abstractions)
@@ -301,6 +301,6 @@ Cross-platform build system used by the Kompute C++ library.
 
 ---
 
-**This glossary serves as the authoritative reference for Kompute-rs terminology. When in doubt about the precise meaning of any concept, consult this document to ensure consistent communication across the project.**
+**This glossary serves as the authoritative reference for Komputers terminology. When in doubt about the precise meaning of any concept, consult this document to ensure consistent communication across the project.**
 
 _"Clear terminology is the foundation of clear thinking and effective collaboration."_

@@ -15,14 +15,8 @@
 #include "rust/cxx.h"
 // Include Vulkan headers for direct device enumeration
 #include <vulkan/vulkan.h>
-// Include only specific Kompute headers we need, not the full Kompute.hpp
-#include "kompute/Manager.hpp"
-#include "kompute/Tensor.hpp"
-#include "kompute/Algorithm.hpp"
-#include "kompute/Sequence.hpp"
-#include "kompute/operations/OpSyncDevice.hpp"
-#include "kompute/operations/OpSyncLocal.hpp"
-#include "kompute/operations/OpAlgoDispatch.hpp"
+// Include version-specific abstraction layer
+#include "kompute_version_abstraction.hpp"
 
 // Standard library includes for safety patterns
 #include <memory>
@@ -37,11 +31,11 @@
 #include <cassert>
 #include <iostream>
 
-// Type aliases for cleaner code and type safety
-using Manager = kp::Manager;
-using Tensor = kp::Tensor;
-using Algorithm = kp::Algorithm;
-using Sequence = kp::Sequence;
+// Type aliases for cleaner code and type safety using abstraction layer
+using Manager = AbsManager;
+using Tensor = AbsDataObject;  // Maps to kp::Tensor or kp::Memory based on version
+using Algorithm = AbsAlgorithm;
+using Sequence = AbsSequence;
 
 // =============================================================================
 // Safety Constants and Limits

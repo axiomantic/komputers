@@ -2,7 +2,7 @@
 //!
 //! This test suite implements comprehensive memory safety validation and
 //! resource leak detection for all GPU and CPU resources managed by
-//! the Kompute-rs library. Critical for production deployment safety.
+//! the Komputers library. Critical for production deployment safety.
 
 use kompute::{Manager, MemoryOptimizer};
 use std::collections::HashMap;

@@ -7,15 +7,17 @@ resolver = "2"
 
 [workspace.package]
 version = "0.1.0"
-authors = ["Komputers Team"]
+authors = ["Komputers Team <team@komputers.dev>"]
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/axiomantic/komputers"
 homepage = "https://github.com/axiomantic/komputers"
 documentation = "https://docs.rs/kompute"
-description = "Idiomatic Rust bindings for the Kompute GPU compute framework"
-keywords = ["gpu", "compute", "vulkan", "gpgpu", "machine-learning"]
-categories = ["science", "graphics", "api-bindings"]
+description = "Production-ready Rust bindings for GPU computing with Vulkan"
+keywords = ["gpu", "vulkan", "compute", "tensor", "parallel"]
+categories = ["graphics", "science", "mathematics"]
+readme = "README.md"
+rust-version = "1.70"
 
 [workspace.dependencies]
 # FFI and C++ integration

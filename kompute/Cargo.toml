@@ -47,14 +47,24 @@ proptest.workspace = true
 anyhow.workspace = true
 
 [features]
-default = []
+default = ["kompute-master"]
+
+# Kompute version support (exactly one must be enabled - for release we use only master)
+kompute-master = ["kompute-sys/kompute-master"]
+# NOTE: v0.9.0 and v0.8.1 are currently not supported for v0.1.0 release due to compatibility issues
+# kompute-v090 = ["kompute-sys/kompute-v090"]
+# kompute-v081 = ["kompute-sys/kompute-v081"]
+
+# Production features for v0.1.0 release
 async = ["tokio", "futures"]
 glsl = ["tempfile"]
 debug = ["serde", "serde_json", "uuid", "chrono"]
 validation = ["kompute-sys/validation"]
-asan = ["kompute-sys/asan"]
-crash-debug = ["backtrace", "signal-hook", "libc"]
 test-utils = []
+
+# Development-only features (not included in production release)
+# asan = ["kompute-sys/asan"]  # Commented out due to linker issues on macOS
+# crash-debug = ["backtrace", "signal-hook", "libc"]
 
 [[example]]
 name = "defensive_guards_demo"
