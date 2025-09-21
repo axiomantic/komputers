@@ -2,6 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/kompute.svg)](https://crates.io/crates/kompute)
 [![Documentation](https://docs.rs/kompute/badge.svg)](https://docs.rs/kompute)
+[![Versioned Docs](https://img.shields.io/badge/docs-versioned-blue.svg)](https://axiomantic.github.io/komputers/)
 [![CI](https://github.com/axiomantic/komputers/workflows/CI/badge.svg)](https://github.com/axiomantic/komputers/actions/workflows/ci.yml)
 [![Security Audit](https://github.com/axiomantic/komputers/workflows/Security%20Audit/badge.svg)](https://github.com/axiomantic/komputers/actions/workflows/security.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -313,16 +314,26 @@ cargo test --test performance_regression_suite -- --nocapture
 cargo test --test gpu_vendor_compatibility_matrix
 ```
 
+## Documentation
+
+### API Documentation
+
+- **[docs.rs](https://docs.rs/kompute)**: Official API documentation
+- **[Versioned Docs](https://axiomantic.github.io/komputers/)**: Version-specific documentation with examples
+- **[Latest Development](https://axiomantic.github.io/komputers/main/kompute/)**: Documentation for main branch
+
 ## Examples and Tutorials
 
 ### Complete Examples
 
-- **[Basic GPU Computing](examples/basic_gpu_computing.rs)**: Simple vector operations
-- **[Multi-Type Tensors](examples/multi_type_tensors.rs)**: Working with different data types
-- **[Algorithm Configuration](examples/algorithm_config.rs)**: SPIR-V shaders and workgroups
-- **[Async Operations](examples/async_gpu_operations.rs)**: Non-blocking GPU computations
-- **[Memory Optimization](examples/memory_optimization.rs)**: Advanced memory management
-- **[Cross-Platform Setup](examples/cross_platform_setup.rs)**: Platform-specific configuration
+- **[Basic GPU Computing](kompute/examples/basic_gpu_computing.rs)**: Simple vector operations
+- **[Advanced GPU Operations](kompute/examples/advanced_gpu_operations.rs)**: Complex workflows and optimization
+- **[Multi-Type Tensors](kompute/examples/multi_type_tensors.rs)**: Working with different data types
+- **[Async Operations](kompute/examples/async_gpu_operations.rs)**: Non-blocking GPU computations
+- **[Scientific Computing](kompute/examples/scientific_computing.rs)**: Mathematical operations and algorithms
+- **[Machine Learning Operations](kompute/examples/machine_learning_operations.rs)**: ML-focused GPU computing
+- **[Image Processing Pipeline](kompute/examples/image_processing_pipeline.rs)**: GPU-accelerated image processing
+- **[Defensive Guards Demo](kompute/examples/defensive_guards_demo.rs)**: Error handling and safety patterns
 
 ## Contributing
 
