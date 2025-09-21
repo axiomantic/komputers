@@ -1,7 +1,7 @@
 //! Machine Learning Operations Example
 //!
 //! This example demonstrates GPU-accelerated machine learning operations
-//! using Kompute-rs, including matrix operations, activation functions,
+//! using Komputers, including matrix operations, activation functions,
 //! and gradient computations commonly used in neural networks.
 
 use kompute::{Algorithm, Manager, PerformanceProfiler, Result, Tensor};
@@ -87,7 +87,7 @@ fn example_neural_layer(manager: &mut Manager, profiler: &mut PerformanceProfile
 
     // Execute the computation
     let mut sequence = manager.sequence()?;
-    sequence.record_algorithm_dispatch(&algorithm, &[batch_size as u32, 1, 1])?;
+    sequence.record_algorithm_dispatch(algorithm.handle())?;
     sequence.eval()?;
 
     profiler.end_operation("neural_layer_compute")?;
@@ -180,7 +180,7 @@ fn example_convolution(manager: &mut Manager, profiler: &mut PerformanceProfiler
     // Dispatch with 2D workgroups for image processing
     let workgroup_x = (output_width + 15) / 16; // 16x16 workgroup size
     let workgroup_y = (output_height + 15) / 16;
-    sequence.record_algorithm_dispatch(&algorithm, &[workgroup_x, workgroup_y, channels as u32])?;
+    sequence.record_algorithm_dispatch(algorithm.handle())?;
     sequence.eval()?;
 
     profiler.end_operation("convolution_compute")?;
@@ -253,7 +253,7 @@ fn example_gradient_descent(
 
     let mut sequence = manager.sequence()?;
     let workgroups = (param_count + 255) / 256; // 256 threads per workgroup
-    sequence.record_algorithm_dispatch(&algorithm, &[workgroups, 1, 1])?;
+    sequence.record_algorithm_dispatch(algorithm.handle())?;
     sequence.eval()?;
 
     profiler.end_operation("gradient_descent_compute")?;

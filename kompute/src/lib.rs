@@ -47,7 +47,7 @@
 //!
 //!     // Create tensors for computation
 //!     let source = Tensor::new(ops.manager(), &[1.0f32, 2.0, 3.0, 4.0])?;
-//!     let mut dest = Tensor::uninit::<f32>(ops.manager(), 4)?;
+//!     let mut dest: Tensor<f32> = Tensor::uninit(ops.manager(), 4)?;
 //!
 //!     // Perform GPU copy operation
 //!     ops.copy(&source, &mut dest)?;
@@ -77,6 +77,68 @@
 
 #![warn(missing_docs)]
 #![warn(rust_2018_idioms)]
+
+// =============================================================================
+// BUILD-TIME VERSION COMPATIBILITY CHECKS
+// =============================================================================
+
+// Ensure exactly one Kompute version feature is enabled
+#[cfg(not(any(
+    feature = "kompute-master",
+    feature = "kompute-v090",
+    feature = "kompute-v081"
+)))]
+compile_error!("
+❌ NO KOMPUTE VERSION SELECTED
+✅ SOLUTION: Use kompute-master (the only currently supported version as of September 2025)
+📖 Example: cargo build --features kompute-master
+⚠️  Note: v0.8.1 and v0.9.0 are currently not supported due to file structure differences and macOS/MoltenVK compatibility issues
+💡 This status will likely change when the next official Kompute release is published
+");
+
+#[cfg(all(feature = "kompute-master", feature = "kompute-v090"))]
+compile_error!("
+❌ MULTIPLE KOMPUTE VERSIONS ENABLED
+✅ SOLUTION: Use only kompute-master (the only currently supported version as of September 2025)
+⚠️  Note: v0.9.0 is currently not supported due to file structure differences and macOS/MoltenVK compatibility issues
+💡 This status will likely change when the next official Kompute release is published
+");
+
+#[cfg(all(feature = "kompute-master", feature = "kompute-v081"))]
+compile_error!("
+❌ MULTIPLE KOMPUTE VERSIONS ENABLED
+✅ SOLUTION: Use only kompute-master (the only currently supported version as of September 2025)
+⚠️  Note: v0.8.1 is currently not supported due to file structure differences and macOS/MoltenVK compatibility issues
+💡 This status will likely change when the next official Kompute release is published
+");
+
+#[cfg(all(feature = "kompute-v090", feature = "kompute-v081"))]
+compile_error!("
+❌ MULTIPLE KOMPUTE VERSIONS ENABLED
+✅ SOLUTION: Use only kompute-master (the only currently supported version as of September 2025)
+⚠️  Note: v0.8.1 and v0.9.0 are currently not supported due to file structure differences and macOS/MoltenVK compatibility issues
+💡 This status will likely change when the next official Kompute release is published
+");
+
+// Platform-specific compatibility warnings
+#[cfg(all(target_os = "macos", feature = "kompute-v090"))]
+compile_error!("
+❌ INCOMPATIBLE: Kompute v0.9.0 + macOS causes Manager segfaults!
+✅ SOLUTION: Use 'kompute-master' (the only currently supported version as of September 2025)
+📖 See: https://github.com/KomputeProject/kompute/issues/378
+🔧 Command: cargo build --features kompute-master
+⚠️  Note: Current implementation is designed for master branch with file structure differences from v0.9.0
+💡 This status will likely change when the next official Kompute release is published
+");
+
+#[cfg(all(target_os = "macos", feature = "kompute-v081"))]
+compile_error!("
+❌ INCOMPATIBLE: Kompute v0.8.1 + macOS causes compatibility issues!
+✅ SOLUTION: Use 'kompute-master' (the only currently supported version as of September 2025)
+🔧 Command: cargo build --features kompute-master
+⚠️  Note: Current implementation is designed for master branch; older versions have compatibility issues
+💡 This status will likely change when the next official Kompute release is published
+");
 
 pub mod algorithm;
 pub mod algorithm_binding;

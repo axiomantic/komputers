@@ -30,7 +30,7 @@ use std::time::{Duration, Instant};
 ///
 ///     // Profile a specific operation
 ///     profiler.begin_operation("tensor_creation")?;
-///     let tensor_c = Tensor::uninit::<f32>(&mut manager, 1000)?;
+///     let tensor_c: Tensor<f32> = Tensor::uninit(&mut manager, 1000)?;
 ///     profiler.end_operation("tensor_creation")?;
 ///
 ///     // Generate performance report

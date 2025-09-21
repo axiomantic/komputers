@@ -1,12 +1,12 @@
 //! Multi-Type Tensor Operations Example
 //!
-//! This example demonstrates Kompute-rs's comprehensive support for multiple data types
+//! This example demonstrates Komputers's comprehensive support for multiple data types
 //! including f32, f64, i32, u32 tensors with runtime type detection and GPU operations.
 
 use kompute::{DataType, Manager, Result, Tensor};
 
 fn main() -> Result<()> {
-    println!("🔢 Kompute-rs Multi-Type Tensor Example");
+    println!("🔢 Komputers Multi-Type Tensor Example");
     println!("=======================================");
 
     // 1. Initialize GPU manager

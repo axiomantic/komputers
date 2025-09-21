@@ -1,6 +1,6 @@
 //! Async GPU Operations Example
 //!
-//! This example demonstrates Kompute-rs's async GPU capabilities including:
+//! This example demonstrates Komputers's async GPU capabilities including:
 //! - Non-blocking GPU operations using Rust futures
 //! - Parallel GPU execution across multiple queues
 //! - Async sequence management and coordination
@@ -8,7 +8,7 @@
 
 #[cfg(feature = "async")]
 use kompute::{
-    AsyncGpuContext, AsyncGpuExecutor, AsyncSequence, AsyncTensor, Manager, Result, Tensor,
+    AsyncGpuContext, AsyncGpuSequence, AsyncTensor, Result,
 };
 
 #[cfg(feature = "async")]
@@ -20,28 +20,28 @@ use tokio::time::timeout;
 #[cfg(feature = "async")]
 #[tokio::main]
 async fn main() -> Result<()> {
-    println!("🔄 Kompute-rs Async GPU Operations Example");
+    println!("🔄 Komputers Async GPU Operations Example");
     println!("==========================================");
 
     // 1. Initialize async GPU environment
     println!("\n1. Setting up async GPU environment...");
-    let mut executor = AsyncGpuExecutor::new().await?;
-    println!("   ✅ Async GPU executor initialized");
+    let mut context = AsyncGpuContext::new().await?;
+    println!("   ✅ Async GPU context initialized");
 
     // 2. Demonstrate basic async operations
-    demonstrate_basic_async_ops(&mut executor).await?;
+    demonstrate_basic_async_ops(&mut context).await?;
 
     // 3. Demonstrate parallel async execution
-    demonstrate_parallel_async_execution(&mut executor).await?;
+    demonstrate_parallel_async_execution(&mut context).await?;
 
     // 4. Demonstrate async timeout handling
-    demonstrate_async_timeout_handling(&mut executor).await?;
+    demonstrate_async_timeout_handling(&mut context).await?;
 
     // 5. Demonstrate async tensor operations
-    demonstrate_async_tensor_operations(&mut executor).await?;
+    demonstrate_async_tensor_operations(&mut context).await?;
 
     // 6. Demonstrate integration with async ecosystem
-    demonstrate_async_ecosystem_integration(&mut executor).await?;
+    demonstrate_async_ecosystem_integration(&mut context).await?;
 
     println!("\n🎉 Async GPU operations example completed!");
     println!("   • Non-blocking GPU operations executed");
@@ -54,22 +54,22 @@ async fn main() -> Result<()> {
 }
 
 #[cfg(feature = "async")]
-async fn demonstrate_basic_async_ops(executor: &mut AsyncGpuExecutor) -> Result<()> {
+async fn demonstrate_basic_async_ops(context: &mut AsyncGpuContext) -> Result<()> {
     println!("\n⚡ Basic Async Operations:");
 
     // Create async tensors
     let input_data = vec![1.0f32, 2.0, 3.0, 4.0, 5.0];
-    let input = AsyncTensor::new(executor.manager(), &input_data).await?;
-    let mut output = AsyncTensor::uninit::<f32>(executor.manager(), 5).await?;
+    let input = context.create_tensor(&input_data).await?;
+    let mut output = context.create_tensor_uninit::<f32>(5).await?;
 
     println!("   ✅ Async tensors created");
 
     // Create async sequence
-    let mut sequence = AsyncSequence::new(executor).await?;
+    let mut sequence = context.create_sequence().await?;
     println!("   ✅ Async sequence created");
 
     // Record operations asynchronously
-    sequence.record_copy(&input, &mut output).await?;
+    sequence.record_tensor_sync_device(input.handle()).await?;
     println!("   ✅ Async copy operation recorded");
 
     // Execute non-blocking
@@ -89,7 +89,7 @@ async fn demonstrate_basic_async_ops(executor: &mut AsyncGpuExecutor) -> Result<
 }
 
 #[cfg(feature = "async")]
-async fn demonstrate_parallel_async_execution(executor: &mut AsyncGpuExecutor) -> Result<()> {
+async fn demonstrate_parallel_async_execution(context: &mut AsyncGpuContext) -> Result<()> {
     println!("\n🔄 Parallel Async Execution:");
 
     // Create multiple data sets for parallel processing
@@ -103,11 +103,11 @@ async fn demonstrate_parallel_async_execution(executor: &mut AsyncGpuExecutor) -
 
     // Create async sequences for each dataset
     for (i, data) in datasets.iter().enumerate() {
-        let input = AsyncTensor::new(executor.manager(), data).await?;
-        let mut output = AsyncTensor::uninit::<f32>(executor.manager(), data.len()).await?;
+        let input = context.create_tensor(data).await?;
+        let mut output = context.create_tensor_uninit::<f32>(data.len()).await?;
 
-        let mut sequence = AsyncSequence::new(executor).await?;
-        sequence.record_copy(&input, &mut output).await?;
+        let mut sequence = context.create_sequence().await?;
+        sequence.record_tensor_sync_device(input.handle()).await?;
 
         async_sequences.push(sequence);
         println!("   ✅ Async sequence {} prepared", i + 1);
@@ -115,9 +115,7 @@ async fn demonstrate_parallel_async_execution(executor: &mut AsyncGpuExecutor) -
 
     // Execute all sequences in parallel with timeout
     let start = Instant::now();
-    executor
-        .execute_parallel(async_sequences, Duration::from_secs(10))
-        .await?;
+    AsyncGpuSequence::execute_concurrent(async_sequences).await?;
     let parallel_duration = start.elapsed();
 
     println!(
@@ -131,16 +129,16 @@ async fn demonstrate_parallel_async_execution(executor: &mut AsyncGpuExecutor) -
 }
 
 #[cfg(feature = "async")]
-async fn demonstrate_async_timeout_handling(executor: &mut AsyncGpuExecutor) -> Result<()> {
+async fn demonstrate_async_timeout_handling(context: &mut AsyncGpuContext) -> Result<()> {
     println!("\n⏰ Async Timeout Handling:");
 
     // Create a potentially long-running operation
     let large_data: Vec<f32> = vec![1.0; 100000];
-    let input = AsyncTensor::new(executor.manager(), &large_data).await?;
-    let mut output = AsyncTensor::uninit::<f32>(executor.manager(), large_data.len()).await?;
+    let input = context.create_tensor(&large_data).await?;
+    let mut output = context.create_tensor_uninit::<f32>(large_data.len()).await?;
 
-    let mut sequence = AsyncSequence::new(executor).await?;
-    sequence.record_copy(&input, &mut output).await?;
+    let mut sequence = context.create_sequence().await?;
+    sequence.record_tensor_sync_device(input.handle()).await?;
 
     println!("   ✅ Large async operation prepared");
 
@@ -163,13 +161,13 @@ async fn demonstrate_async_timeout_handling(executor: &mut AsyncGpuExecutor) -> 
     }
 
     // Test successful operation with generous timeout
-    let mut quick_sequence = AsyncSequence::new(executor).await?;
+    let mut quick_sequence = context.create_sequence().await?;
     let small_data = vec![1.0f32; 10];
-    let small_input = AsyncTensor::new(executor.manager(), &small_data).await?;
-    let mut small_output = AsyncTensor::uninit::<f32>(executor.manager(), 10).await?;
+    let small_input = context.create_tensor(&small_data).await?;
+    let mut small_output = context.create_tensor_uninit::<f32>(10).await?;
 
     quick_sequence
-        .record_copy(&small_input, &mut small_output)
+        .record_tensor_sync_device(small_input.handle())
         .await?;
 
     let result = timeout(Duration::from_secs(5), quick_sequence.execute()).await;
@@ -182,25 +180,27 @@ async fn demonstrate_async_timeout_handling(executor: &mut AsyncGpuExecutor) -> 
 }
 
 #[cfg(feature = "async")]
-async fn demonstrate_async_tensor_operations(executor: &mut AsyncGpuExecutor) -> Result<()> {
+async fn demonstrate_async_tensor_operations(context: &mut AsyncGpuContext) -> Result<()> {
     println!("\n📊 Async Tensor Operations:");
 
     // Demonstrate async tensor creation with different types
     let f32_data = vec![1.0f32, 2.0, 3.0];
     let i32_data = vec![10i32, 20, 30];
 
-    let f32_tensor = AsyncTensor::new(executor.manager(), &f32_data).await?;
-    let i32_tensor = AsyncTensor::new(executor.manager(), &i32_data).await?;
+    let f32_tensor = context.create_tensor(&f32_data).await?;
+    let i32_tensor = context.create_tensor(&i32_data).await?;
 
     println!("   ✅ Multi-type async tensors created");
 
     // Demonstrate async filled tensor creation
-    let zeros = AsyncTensor::filled::<f32>(executor.manager(), 1000, 0.0).await?;
-    let ones = AsyncTensor::filled::<i32>(executor.manager(), 500, 1).await?;
+    let zeros_data = vec![0.0f32; 1000];
+    let zeros = context.create_tensor(&zeros_data).await?;
+    let ones_data = vec![1i32; 500];
+    let ones = context.create_tensor(&ones_data).await?;
 
     println!("   ✅ Async filled tensors created");
-    println!("     - {} f32 zeros", zeros.size().await?);
-    println!("     - {} i32 ones", ones.size().await?);
+    println!("     - {} f32 zeros", zeros.size().await);
+    println!("     - {} i32 ones", ones.size().await);
 
     // Demonstrate async data retrieval
     let start = Instant::now();
@@ -224,7 +224,7 @@ async fn demonstrate_async_tensor_operations(executor: &mut AsyncGpuExecutor) ->
 }
 
 #[cfg(feature = "async")]
-async fn demonstrate_async_ecosystem_integration(executor: &mut AsyncGpuExecutor) -> Result<()> {
+async fn demonstrate_async_ecosystem_integration(context: &mut AsyncGpuContext) -> Result<()> {
     println!("\n🔗 Async Ecosystem Integration:");
 
     // Demonstrate integration with tokio spawn
@@ -241,11 +241,11 @@ async fn demonstrate_async_ecosystem_integration(executor: &mut AsyncGpuExecutor
 
     // Create GPU work alongside other async tasks
     let data = vec![1.0f32; 100];
-    let input = AsyncTensor::new(executor.manager(), &data).await?;
-    let mut output = AsyncTensor::uninit::<f32>(executor.manager(), 100).await?;
+    let input = context.create_tensor(&data).await?;
+    let mut output = context.create_tensor_uninit::<f32>(100).await?;
 
-    let mut sequence = AsyncSequence::new(executor).await?;
-    sequence.record_copy(&input, &mut output).await?;
+    let mut sequence = context.create_sequence().await?;
+    sequence.record_tensor_sync_device(input.handle()).await?;
 
     let gpu_handle = tokio::spawn(async move {
         sequence
@@ -273,23 +273,24 @@ async fn demonstrate_async_ecosystem_integration(executor: &mut AsyncGpuExecutor
 
     // Demonstrate async streams (conceptual)
     println!("\n   📡 Async Stream Integration:");
-    use tokio_stream::{self as stream, StreamExt};
+    // Simulated streaming operations without tokio_stream dependency
 
-    let mut data_stream = stream::iter(vec![
+    // Process multiple data batches asynchronously
+    let data_batches = vec![
         vec![1.0f32, 2.0],
         vec![3.0f32, 4.0],
         vec![5.0f32, 6.0],
-    ]);
+    ];
 
     let mut processed_count = 0;
-    while let Some(batch_data) = data_stream.next().await {
-        let tensor = AsyncTensor::new(executor.manager(), &batch_data).await?;
-        let _size = tensor.size().await?;
+    for batch_data in data_batches {
+        let tensor = context.create_tensor(&batch_data).await?;
+        let _size = tensor.size().await;
         processed_count += 1;
     }
 
     println!(
-        "   ✅ Processed {} batches through async stream",
+        "   ✅ Processed {} batches asynchronously",
         processed_count
     );
 
@@ -309,7 +310,7 @@ async fn demonstrate_async_ecosystem_integration(executor: &mut AsyncGpuExecutor
     // Consumer task with GPU processing
     let mut batch_count = 0;
     while let Some(data) = rx.recv().await {
-        let _tensor = AsyncTensor::new(executor.manager(), &data).await?;
+        let _tensor = context.create_tensor(&data).await?;
         batch_count += 1;
     }
 
@@ -324,12 +325,12 @@ async fn demonstrate_async_ecosystem_integration(executor: &mut AsyncGpuExecutor
 // Non-async fallback for when async feature is not enabled
 #[cfg(not(feature = "async"))]
 fn main() -> kompute::Result<()> {
-    println!("🔄 Kompute-rs Async GPU Operations Example");
+    println!("🔄 Komputers Async GPU Operations Example");
     println!("==========================================");
     println!("\n⚠️ Async feature not enabled!");
     println!("To run this example, compile with: cargo run --example async_gpu_operations --features async");
     println!("\nAsync features available with the 'async' feature flag:");
-    println!("  • AsyncGpuExecutor - Non-blocking GPU execution");
+    println!("  • AsyncGpuContext - Non-blocking GPU execution");
     println!("  • AsyncTensor - Async tensor operations");
     println!("  • AsyncSequence - Async command sequences");
     println!("  • Integration with tokio and async ecosystem");

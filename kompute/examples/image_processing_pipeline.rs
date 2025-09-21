@@ -163,7 +163,7 @@ fn example_gaussian_blur(
     let mut sequence = manager.sequence()?;
     let workgroup_x = (width + 15) / 16;
     let workgroup_y = (height + 15) / 16;
-    sequence.record_algorithm_dispatch(&algorithm, &[workgroup_x as u32, workgroup_y as u32, 1])?;
+    sequence.record_algorithm_dispatch(algorithm.handle())?;
     sequence.eval()?;
 
     profiler.end_operation("gaussian_compute")?;
@@ -238,7 +238,7 @@ fn example_edge_detection(
     let mut sequence = manager.sequence()?;
     let workgroup_x = (width + 15) / 16;
     let workgroup_y = (height + 15) / 16;
-    sequence.record_algorithm_dispatch(&algorithm, &[workgroup_x as u32, workgroup_y as u32, 1])?;
+    sequence.record_algorithm_dispatch(algorithm.handle())?;
     sequence.eval()?;
 
     profiler.end_operation("edge_compute")?;
@@ -309,7 +309,7 @@ fn example_histogram_equalization(
 
     let mut sequence = manager.sequence()?;
     let workgroup_x = (total_pixels + 255) / 256;
-    sequence.record_algorithm_dispatch(&algorithm, &[workgroup_x as u32, 1, 1])?;
+    sequence.record_algorithm_dispatch(algorithm.handle())?;
     sequence.eval()?;
 
     profiler.end_operation("histogram_compute")?;
@@ -333,6 +333,7 @@ fn example_histogram_equalization(
         }
     }
 
+    let image_tensor = Tensor::new(manager, image_data)?;
     let cdf_tensor = Tensor::new(manager, &cdf)?;
     let mut equalized: Tensor<f32> = Tensor::uninit(manager, width * height * channels)?;
 
@@ -345,7 +346,7 @@ fn example_histogram_equalization(
 
     let mut sequence = manager.sequence()?;
     let workgroup_x = (total_pixels + 255) / 256;
-    sequence.record_algorithm_dispatch(&algorithm, &[workgroup_x as u32, 1, 1])?;
+    sequence.record_algorithm_dispatch(algorithm.handle())?;
     sequence.eval()?;
 
     profiler.end_operation("equalization_compute")?;
@@ -421,7 +422,7 @@ fn example_morphological_operations(
     let mut sequence = manager.sequence()?;
     let workgroup_x = (width + 15) / 16;
     let workgroup_y = (height + 15) / 16;
-    sequence.record_algorithm_dispatch(&algorithm, &[workgroup_x as u32, workgroup_y as u32, 1])?;
+    sequence.record_algorithm_dispatch(algorithm.handle())?;
     sequence.eval()?;
     profiler.end_operation("erosion_compute")?;
 
@@ -435,7 +436,7 @@ fn example_morphological_operations(
     )?;
 
     let mut sequence = manager.sequence()?;
-    sequence.record_algorithm_dispatch(&algorithm, &[workgroup_x as u32, workgroup_y as u32, 1])?;
+    sequence.record_algorithm_dispatch(algorithm.handle())?;
     sequence.eval()?;
     profiler.end_operation("dilation_compute")?;
 
@@ -505,7 +506,7 @@ fn example_color_space_conversion(
 
     let mut sequence = manager.sequence()?;
     let workgroup_x = (total_pixels + 255) / 256;
-    sequence.record_algorithm_dispatch(&algorithm, &[workgroup_x as u32, 1, 1])?;
+    sequence.record_algorithm_dispatch(algorithm.handle())?;
     sequence.eval()?;
 
     profiler.end_operation("color_conversion_compute")?;

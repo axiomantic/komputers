@@ -251,8 +251,11 @@ impl Algorithm {
     ///
     /// fn example() -> kompute::Result<()> {
     ///     let mut manager = Manager::new()?;
-    ///     let spirv_data = include_bytes!("shader_with_spec_constants.spv");
-    ///     let mut algorithm = Algorithm::new(&mut manager, spirv_data)?;
+    ///     let spirv_bytes = include_bytes!("shader_with_spec_constants.spv");
+    ///     let spirv_data: Vec<u32> = spirv_bytes.chunks_exact(4)
+    ///         .map(|chunk| u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
+    ///         .collect();
+    ///     let mut algorithm = Algorithm::new(&mut manager, &spirv_data)?;
     ///
     ///     // Set specialization constants for shader optimization
     ///     let spec_constants = [1.0f32, 256.0, 0.5];
@@ -292,8 +295,11 @@ impl Algorithm {
     ///
     /// fn example() -> kompute::Result<()> {
     ///     let mut manager = Manager::new()?;
-    ///     let spirv_data = include_bytes!("shader_with_push_constants.spv");
-    ///     let mut algorithm = Algorithm::new(&mut manager, spirv_data)?;
+    ///     let spirv_bytes = include_bytes!("shader_with_push_constants.spv");
+    ///     let spirv_data: Vec<u32> = spirv_bytes.chunks_exact(4)
+    ///         .map(|chunk| u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
+    ///         .collect();
+    ///     let mut algorithm = Algorithm::new(&mut manager, &spirv_data)?;
     ///
     ///     // Set push constants for fast parameter passing
     ///     let push_constants = [2.0f32, 0.1];

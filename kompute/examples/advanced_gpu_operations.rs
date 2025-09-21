@@ -1,6 +1,6 @@
 //! Advanced GPU Operations Example
 //!
-//! This example showcases the advanced capabilities of Kompute-rs including:
+//! This example showcases the advanced capabilities of Komputers including:
 //! - Multi-queue GPU operations for parallelism
 //! - Memory optimization and performance monitoring
 //! - Error recovery and diagnostics
@@ -13,7 +13,7 @@ use kompute::{
 use std::time::{Duration, Instant};
 
 fn main() -> Result<()> {
-    println!("⚡ Kompute-rs Advanced GPU Operations Example");
+    println!("⚡ Komputers Advanced GPU Operations Example");
     println!("=============================================");
 
     // 1. Initialize advanced GPU setup
@@ -114,7 +114,7 @@ fn demonstrate_high_level_operations(manager: &mut Manager) -> Result<()> {
 
     // Demonstrate automatic workgroup optimization
     let workgroup_1d = WorkgroupConfig::optimal_1d(size);
-    let workgroup_2d = WorkgroupConfig::optimal_2d(128, 128);
+    let workgroup_2d = WorkgroupConfig::new_2d(128, 128);
 
     println!("   Workgroup Optimizations:");
     println!(
@@ -153,19 +153,19 @@ fn demonstrate_multi_queue_operations(manager: &mut Manager) -> Result<()> {
     println!("   Created tensors for parallel processing");
 
     // Create sequences on different queues
-    let mut sequence1 = manager.sequence_on_queue(queue1)?;
-    let mut sequence2 = manager.sequence_on_queue(queue2)?;
+    let mut sequence1 = manager.create_sequence_on_queue(queue1)?;
+    let mut sequence2 = manager.create_sequence_on_queue(queue2)?;
 
     // Record operations on each queue
-    sequence1.record_tensor_sync_device(&tensor1)?;
-    sequence1.record_tensor_sync_device(&result1)?;
+    sequence1.record_tensor_sync_device(tensor1.handle())?;
+    sequence1.record_tensor_sync_device(result1.handle())?;
     // In real usage, you would record algorithm dispatch here
-    sequence1.record_tensor_sync_local(&result1)?;
+    sequence1.record_tensor_sync_local(result1.handle())?;
 
-    sequence2.record_tensor_sync_device(&tensor2)?;
-    sequence2.record_tensor_sync_device(&result2)?;
+    sequence2.record_tensor_sync_device(tensor2.handle())?;
+    sequence2.record_tensor_sync_device(result2.handle())?;
     // In real usage, you would record algorithm dispatch here
-    sequence2.record_tensor_sync_local(&result2)?;
+    sequence2.record_tensor_sync_local(result2.handle())?;
 
     println!("   ✅ Operations recorded on separate queues");
 
@@ -183,7 +183,7 @@ fn demonstrate_multi_queue_operations(manager: &mut Manager) -> Result<()> {
     );
 
     // Create multi-queue manager for advanced coordination
-    let multi_queue_manager = MultiQueueManager::new(manager)?;
+    let multi_queue_manager = MultiQueueManager::new()?;
     println!("   ✅ Multi-queue manager created for advanced coordination");
 
     Ok(())
@@ -197,11 +197,12 @@ fn demonstrate_error_recovery() -> Result<()> {
     println!("   ✅ Error recovery manager initialized");
 
     // Generate diagnostic report
-    let diagnostic = error_recovery.generate_diagnostic_report()?;
+    let diagnostic = error_recovery?.diagnostic_report()?;
     println!("   System Diagnostic Report:");
-    println!("     - Overall health: {:?}", diagnostic.overall_health);
-    println!("     - Active errors: {}", diagnostic.active_errors.len());
-    println!("     - Recovery attempts: {}", diagnostic.recovery_attempts);
+    println!("     - Health score: {:.2}", diagnostic.health_score);
+    println!("     - GPU available: {}", diagnostic.gpu_available);
+    println!("     - Total errors: {}", diagnostic.total_errors);
+    println!("     - Recovery success rate: {:.2}", diagnostic.recovery_success_rate);
 
     // Demonstrate error scenario handling
     println!("   Error Handling Capabilities:");
