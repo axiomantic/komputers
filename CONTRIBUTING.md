@@ -68,6 +68,8 @@ sudo apt install vulkan-tools libvulkan-dev vulkan-validationlayers-dev cmake bu
 
 ## Development Workflow
 
+### Option A: Traditional Development
+
 ### 1. Create a Feature Branch
 
 ```bash
@@ -80,6 +82,50 @@ git checkout -b feature/your-feature-name
 - Ensure code compiles with `cargo build --all-features`
 - Add tests for new functionality
 - Update documentation for API changes
+
+### Option B: AI-Assisted Development (Recommended)
+
+If you're using Claude Code or similar AI coding assistants, we have developed a structured workflow that can significantly improve development efficiency and code quality.
+
+#### Using the GRIMOIRE System
+
+We recommend following our systematic approach to feature planning and implementation:
+
+1. **Planning Phase**: Use `GRIMOIRE.md` as a template to create feature-specific implementation plans
+
+   - Creates structured "Scrolls" for complex features
+   - Ensures comprehensive planning before implementation
+   - Helps identify dependencies and potential issues early
+
+2. **Implementation Phase**: Use `CODING_ASSISTANT_GUIDE.md` for implementation guidance
+   - Provides specific instructions for AI coding assistants
+   - Ensures adherence to project architecture and patterns
+   - Maintains code quality and consistency standards
+
+#### Workflow Example
+
+```bash
+# 1. Plan your feature
+# Read GRIMOIRE.md and create a feature-specific plan
+# Example: "GPU_MEMORY_POOLS_SCROLL.md"
+
+# 2. Implement using the coding assistant guide
+# Follow CODING_ASSISTANT_GUIDE.md for implementation standards
+# Ensure all components follow established patterns
+
+# 3. Validate and test
+# Run comprehensive test suite
+# Verify against architectural principles
+```
+
+#### Benefits of This Approach
+
+- **Systematic Planning**: Reduces development iteration and refactoring
+- **Quality Consistency**: Maintains architectural integrity across features
+- **Documentation**: Auto-generates comprehensive feature documentation
+- **Testing Coverage**: Ensures complete test coverage from the start
+
+**Note**: This workflow is optional but recommended. Traditional development approaches are equally welcome.
 
 ### 3. Testing Requirements
 

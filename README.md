@@ -1,4 +1,4 @@
-# Komputers: Production-Ready GPU Computing for Rust
+# Komputers: Experimental GPU Computing for Rust
 
 [![Crates.io](https://img.shields.io/crates/v/kompute.svg)](https://crates.io/crates/kompute)
 [![Documentation](https://docs.rs/kompute/badge.svg)](https://docs.rs/kompute)
@@ -6,28 +6,19 @@
 [![Security Audit](https://github.com/axiomantic/komputers/workflows/Security%20Audit/badge.svg)](https://github.com/axiomantic/komputers/actions/workflows/security.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-**Production-ready Rust bindings for the [Kompute](https://github.com/KomputeProject/kompute) GPU compute framework.**
+**Experimental Rust bindings for the [Kompute](https://github.com/KomputeProject/kompute) GPU compute framework.**
 
-Komputers provides memory-safe, high-performance GPU computing with zero-cost abstractions. Built on Vulkan with comprehensive cross-platform support and advanced features like multi-type tensors, error recovery, and memory optimization.
+Komputers provides memory-safe GPU computing with Vulkan. Features multi-type tensors, error recovery, and memory optimization. Currently in active development and used in our own projects.
 
-## ⚠️ Version Support
+## ⚠️ Experimental Status
 
-**Currently Supported** (as of September 2025): Kompute master branch only (unreleased)
-**Not Supported**: Official releases v0.8.1 and v0.9.0
+**🧪 EXPERIMENTAL - ALPHA QUALITY**
 
-At time of this writing (September 2025), the current implementation is designed for the master branch. Older versions have known compatibility issues:
+Komputers is an **experimental GPU computing library** that we believe is close to being ready but needs community testing. We are currently using it in our own projects, but it should be considered alpha quality.
 
-- **macOS/MoltenVK**: Manager constructor segfaults in v0.8.1 and v0.9.0
-- **File Structure**: Missing headers and structural differences in v0.8.1/v0.9.0 vs master
-- **Cross-Platform**: Older versions have not been tested on non-macOS platforms with current bindings
+**Version Support**: Currently supports Kompute master branch only (unreleased). Official releases v0.8.1 and v0.9.0 are not supported due to compatibility issues.
 
-_Note: This status will likely change when the next official Kompute release is published._
-
-## 🚀 Production Status
-
-**✅ READY FOR PRODUCTION USE**
-
-Komputers is a **complete, production-ready GPU computing library** with:
+**Current Features**:
 
 - ✅ **Multi-Type Tensor Support**: f32, f64, i32, u32 with full GPU integration
 - ✅ **Algorithm-Tensor Binding**: Real GPU compute operations with SPIR-V shaders
@@ -242,7 +233,7 @@ Komputers includes automatic compatibility fixes for MoltenVK on macOS:
 - **Metal GPU Detection**: Automatic detection of Metal-capable GPUs with fallback options
 - **Build Flags**: Pre-configured with `KOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON`
 
-**Version Support** (as of September 2025): Komputers currently only supports the Kompute master branch (unreleased). The official releases (v0.8.1, v0.9.0) are not supported due to file structure differences and macOS/MoltenVK compatibility issues including Manager constructor segfaults. This status will likely change when the next official Kompute release is published. For details, see [MoltenVK Issue #2292](https://github.com/KhronosGroup/MoltenVK/issues/2292) and [Kompute Issue #378](https://github.com/KomputeProject/kompute/issues/378).
+**Compatibility Notes**: This library targets the Kompute master branch due to compatibility issues with official releases. For details, see [MoltenVK Issue #2292](https://github.com/KhronosGroup/MoltenVK/issues/2292) and [Kompute Issue #378](https://github.com/KomputeProject/kompute/issues/378).
 
 **User Override**: Set `KOMPUTE_DISABLE_MOLTENVK_AUTO=1` to disable automatic MoltenVK configuration.
 
@@ -268,24 +259,15 @@ println!("Vulkan Status: {}", report.status);
 
 ## Performance
 
-Komputers delivers near-native performance through:
+Komputers aims to deliver good performance through:
 
-- **Zero-Cost Abstractions**: Compile-time optimization with runtime overhead < 5%
+- **Zero-Cost Abstractions**: Compile-time optimization with minimal runtime overhead
 - **Efficient Memory Management**: GPU memory pooling and automatic defragmentation
 - **Optimized Data Transfer**: Minimized host-GPU memory copies with staging buffers
 - **Workgroup Optimization**: Automatic workgroup sizing based on GPU architecture
 - **Multi-Queue Parallelism**: Concurrent GPU execution across multiple command queues
 
-### Benchmarks
-
-| Operation       | Komputers | C++ Kompute | Overhead |
-| --------------- | --------- | ----------- | -------- |
-| Tensor Creation | 0.12ms    | 0.11ms      | +9%      |
-| GPU Computation | 2.34ms    | 2.31ms      | +1.3%    |
-| Memory Transfer | 0.89ms    | 0.87ms      | +2.3%    |
-| Multi-Queue Ops | 1.45ms    | 1.41ms      | +2.8%    |
-
-_Benchmarks on RTX 4080, 1M element f32 tensors_
+_Performance benchmarks are planned for future releases._
 
 ## Safety Guarantees
 
@@ -342,27 +324,6 @@ cargo test --test gpu_vendor_compatibility_matrix
 - **[Memory Optimization](examples/memory_optimization.rs)**: Advanced memory management
 - **[Cross-Platform Setup](examples/cross_platform_setup.rs)**: Platform-specific configuration
 
-### SPIR-V Shader Development
-
-```glsl
-#version 450
-
-layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
-
-layout(set = 0, binding = 0) buffer InputA { float data_a[]; };
-layout(set = 0, binding = 1) buffer InputB { float data_b[]; };
-layout(set = 0, binding = 2) buffer Output { float data_out[]; };
-
-void main() {
-    uint index = gl_GlobalInvocationID.x;
-    if (index >= data_a.length()) return;
-
-    data_out[index] = data_a[index] + data_b[index];
-}
-```
-
-Compile with: `glslangValidator -V shader.comp -o shader.spv`
-
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
@@ -393,7 +354,3 @@ Licensed under the Apache License, Version 2.0 ([LICENSE](LICENSE) or http://www
 - [Kompute Project](https://github.com/KomputeProject/kompute) for the excellent C++ GPU computing framework
 - [Vulkan](https://www.vulkan.org/) for the cross-platform GPU API
 - [MoltenVK](https://github.com/KhronosGroup/MoltenVK) for Metal-to-Vulkan translation on macOS
-
----
-
-**Ready to accelerate your Rust applications with GPU computing? Get started with Komputers today!**
