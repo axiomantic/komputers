@@ -85,7 +85,7 @@ git checkout -b feature/your-feature-name
 
 ### Option B: AI-Assisted Development (Recommended)
 
-If you're using Claude Code or similar AI coding assistants, we have developed a structured workflow that can significantly improve development efficiency and code quality.
+If you're using Claude Code, opencode or similar AI coding assistants, we have developed a structured workflow that can significantly improve development efficiency and code quality.
 
 #### Using the GRIMOIRE System
 
@@ -104,18 +104,21 @@ We recommend following our systematic approach to feature planning and implement
 
 #### Workflow Example
 
-```bash
-# 1. Plan your feature
-# Read GRIMOIRE.md and create a feature-specific plan
-# Example: "GPU_MEMORY_POOLS_SCROLL.md"
+```
+# 1. Prompt claude or opencode to create the plan
+> Use GRIMOIRE.md and CODING_ASSISTANT_GUIDE.md to create a plan document for feature <spam>. This entails:
 
-# 2. Implement using the coding assistant guide
-# Follow CODING_ASSISTANT_GUIDE.md for implementation standards
-# Ensure all components follow established patterns
+  - Support for <eggs>
+  - Integration tests
+  - Fix for <ham>
+
+  Think holistically about how to integrate these changes. What else do you need to know from me?
+
+# 2. Implement
+> Summon feature <spam>
 
 # 3. Validate and test
-# Run comprehensive test suite
-# Verify against architectural principles
+> Run all tests and commit
 ```
 
 #### Benefits of This Approach
