@@ -24,11 +24,17 @@ pub struct DebugContext {
 /// Individual debug event with timing and context information
 #[derive(Debug, Clone)]
 pub struct DebugEvent {
+    /// Timestamp when the debug event occurred
     pub timestamp: Instant,
+    /// Type of debug event that was recorded
     pub event_type: DebugEventType,
+    /// Human-readable message describing the event
     pub message: String,
+    /// Severity level of the debug event
     pub severity: DebugSeverity,
+    /// Additional context information as key-value pairs
     pub context: HashMap<String, String>,
+    /// Optional stack trace captured at event time
     pub stack_trace: Option<String>,
 }
 
@@ -75,34 +81,53 @@ pub enum DebugSeverity {
 /// Snapshot of memory usage at a specific point in time
 #[derive(Debug, Clone)]
 pub struct MemorySnapshot {
+    /// When this memory snapshot was taken
     pub timestamp: Instant,
+    /// Total GPU memory allocated in bytes
     pub total_allocated: usize,
+    /// Peak memory usage observed in bytes
     pub peak_usage: usize,
+    /// Number of active tensor objects
     pub active_tensors: usize,
+    /// Number of active algorithm objects
     pub active_algorithms: usize,
+    /// Memory fragmentation ratio (0.0 = no fragmentation, 1.0 = highly fragmented)
     pub fragmentation_ratio: f32,
+    /// Device-specific memory information as key-value pairs
     pub device_memory_info: HashMap<String, usize>,
 }
 
 /// Performance counters for various system operations
 #[derive(Debug, Clone, Default, serde::Serialize)]
 pub struct PerformanceCounters {
+    /// Total number of tensor operations performed
     pub tensor_operations: u64,
+    /// Total number of algorithm dispatches to GPU
     pub algorithm_dispatches: u64,
+    /// Total number of memory allocation operations
     pub memory_allocations: u64,
+    /// Total number of sequence evaluations
     pub sequence_evaluations: u64,
+    /// Total GPU execution time in milliseconds
     pub total_gpu_time_ms: f64,
+    /// Total CPU processing time in milliseconds
     pub total_cpu_time_ms: f64,
+    /// Total bytes transferred between host and device
     pub data_transfer_bytes: u64,
 }
 
 /// Validation error with detailed context
 #[derive(Debug, Clone)]
 pub struct ValidationError {
+    /// When this validation error was detected
     pub timestamp: Instant,
+    /// Type category of the validation error
     pub error_type: ValidationErrorType,
+    /// Human-readable error message
     pub message: String,
+    /// Optional suggested fix for the error
     pub suggested_fix: Option<String>,
+    /// List of resource names affected by this error
     pub affected_resources: Vec<String>,
 }
 
@@ -144,14 +169,23 @@ pub enum ValidationErrorType {
 /// Snapshot of GPU state including device capabilities and current usage
 #[derive(Debug, Clone)]
 pub struct GpuStateSnapshot {
+    /// When this GPU state snapshot was captured
     pub timestamp: Instant,
+    /// Vulkan device ID
     pub device_id: u32,
+    /// Human-readable device name
     pub device_name: String,
+    /// Total GPU memory in bytes
     pub memory_total: usize,
+    /// Available GPU memory in bytes
     pub memory_available: usize,
+    /// Number of active compute units/cores
     pub active_compute_units: u32,
+    /// GPU temperature in Celsius (if available)
     pub temperature_celsius: Option<f32>,
+    /// GPU power usage in watts (if available)
     pub power_usage_watts: Option<f32>,
+    /// GPU utilization percentage (if available)
     pub utilization_percent: Option<f32>,
 }
 
@@ -468,63 +502,96 @@ impl DebugContext {
 /// Comprehensive debug report
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct DebugReport {
+    /// Unique identifier for this debug session
     pub session_id: String,
+    /// Total duration of the debug session
     pub session_duration: Duration,
+    /// Total number of debug events captured
     pub total_events: usize,
+    /// Number of error events in the session
     pub error_count: usize,
+    /// Number of warning events in the session
     pub warning_count: usize,
+    /// Performance summary and metrics
     pub performance_summary: PerformanceCounters,
+    /// Memory usage analysis
     pub memory_analysis: MemoryAnalysis,
+    /// GPU utilization analysis
     pub gpu_utilization_summary: GpuUtilizationAnalysis,
+    /// List of validation issues found
     pub validation_issues: Vec<ValidationError>,
+    /// List of recommended improvements
     pub recommendations: Vec<DebugRecommendation>,
 }
 
 /// Memory usage analysis
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct MemoryAnalysis {
+    /// Peak memory usage observed in bytes
     pub peak_usage_bytes: usize,
+    /// Average memory usage in bytes
     pub average_usage_bytes: usize,
+    /// Total number of allocation operations
     pub total_allocations: u64,
+    /// Memory fragmentation score (0.0 = no fragmentation, 1.0 = highly fragmented)
     pub fragmentation_score: f32,
+    /// Memory efficiency rating (0.0 = inefficient, 1.0 = perfectly efficient)
     pub efficiency_rating: f32,
 }
 
 /// GPU utilization analysis
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct GpuUtilizationAnalysis {
+    /// Average GPU utilization percentage
     pub average_utilization_percent: f32,
+    /// Peak GPU utilization percentage observed
     pub peak_utilization_percent: f32,
+    /// Total compute time in milliseconds
     pub total_compute_time_ms: f64,
+    /// GPU efficiency score (0.0 = poor, 1.0 = excellent)
     pub efficiency_score: f32,
 }
 
 /// Debug recommendation for improving system performance or correctness
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct DebugRecommendation {
+    /// Category of the recommendation
     pub category: RecommendationCategory,
+    /// Priority level of the recommendation
     pub priority: RecommendationPriority,
+    /// Short title summarizing the recommendation
     pub title: String,
+    /// Detailed description of the recommendation
     pub description: String,
+    /// List of suggested actions to implement the recommendation
     pub suggested_actions: Vec<String>,
 }
 
 /// Categories of recommendations
 #[derive(Debug, Clone, Copy, serde::Serialize)]
 pub enum RecommendationCategory {
+    /// Memory-related optimizations and fixes
     Memory,
+    /// Performance improvements and optimizations
     Performance,
+    /// Correctness and reliability improvements
     Correctness,
+    /// Platform and driver compatibility issues
     Compatibility,
+    /// Security-related recommendations
     Security,
 }
 
 /// Priority levels for recommendations
 #[derive(Debug, Clone, Copy, serde::Serialize)]
 pub enum RecommendationPriority {
+    /// Low priority, nice to have improvements
     Low,
+    /// Medium priority, should be addressed
     Medium,
+    /// High priority, important to fix
     High,
+    /// Critical priority, must be fixed immediately
     Critical,
 }
 

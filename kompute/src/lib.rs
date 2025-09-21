@@ -75,7 +75,7 @@
 //! GPU operations can fail due to device errors, out-of-memory conditions, or
 //! invalid shader parameters.
 
-#![warn(missing_docs)]
+#![deny(missing_docs)]
 #![warn(rust_2018_idioms)]
 
 // =============================================================================

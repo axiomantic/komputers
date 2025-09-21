@@ -104,5 +104,6 @@ path = "examples/scientific_computing.rs"
 # harness = false
 
 [package.metadata.docs.rs]
-features = ["async"]
+all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
+targets = ["x86_64-unknown-linux-gnu", "x86_64-apple-darwin", "x86_64-pc-windows-msvc"]

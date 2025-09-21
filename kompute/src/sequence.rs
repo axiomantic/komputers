@@ -189,7 +189,7 @@ impl Sequence {
     /// Execute all recorded operations asynchronously.
     ///
     /// This submits the command buffer to the GPU and returns immediately.
-    /// Use [`eval_await`] to wait for completion.
+    /// Use [`Self::eval_await`] to wait for completion.
     ///
     /// # Errors
     ///

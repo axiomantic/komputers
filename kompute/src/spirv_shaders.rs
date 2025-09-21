@@ -5,7 +5,7 @@
 
 /// SPIR-V bytecode for f32 element-wise addition
 ///
-/// This shader adds two f32 buffers element-wise: output[i] = a[i] + b[i]
+/// This shader adds two f32 buffers element-wise: `output[i] = a[i] + b[i]`
 /// Workgroup size: 256x1x1
 pub const ELEMENTWISE_ADD_F32_SPIRV: &[u32] = &[
     // SPIR-V header
