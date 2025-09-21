@@ -8,7 +8,7 @@ use crate::sequence::Sequence;
 use crate::tensor::Tensor;
 use std::future::Future;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tokio::sync::Mutex;
 use tokio::time::{sleep, timeout};
 
@@ -141,9 +141,9 @@ impl AsyncGpuContext {
         self.tracker.statistics()
     }
 
-    /// Access the underlying manager.
-    pub fn manager(&mut self) -> &mut Manager {
-        &mut self.manager
+    /// Access the underlying manager asynchronously.
+    pub async fn manager(&self) -> Arc<Mutex<Manager>> {
+        self.manager.clone()
     }
 }
 
@@ -458,7 +458,7 @@ mod tests {
     #[tokio::test]
 
     async fn test_async_gpu_context() {
-        if let Ok(mut context) = AsyncGpuContext::new() {
+        if let Ok(mut context) = AsyncGpuContext::new().await {
             let data = vec![1.0f32, 2.0, 3.0, 4.0];
 
             match context.create_tensor(&data).await {
@@ -479,7 +479,7 @@ mod tests {
     #[tokio::test]
 
     async fn test_async_sequence_execution() {
-        if let Ok(mut context) = AsyncGpuContext::new() {
+        if let Ok(mut context) = AsyncGpuContext::new().await {
             let data = vec![1.0f32, 2.0, 3.0, 4.0];
 
             if let Ok(tensor) = context.create_tensor(&data).await {

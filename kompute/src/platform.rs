@@ -470,7 +470,7 @@ impl MetalGpuDetection {
                         || stdout.contains("Intel")
                         || stdout.contains("AMD")
                         || stdout.contains("Apple")
-                        || true
+                        || stdout.contains("GPU") // Fallback: any GPU on macOS likely supports Metal
                 } else {
                     // If system_profiler fails, assume Metal support on macOS
                     // This is a safe assumption for macOS 10.11+
