@@ -84,13 +84,15 @@
 
 // Ensure Kompute master is enabled (the only supported version for v0.1.0 release)
 #[cfg(not(feature = "kompute-master"))]
-compile_error!("
+compile_error!(
+    "
 ❌ NO KOMPUTE VERSION SELECTED
 ✅ SOLUTION: v0.1.0 release only supports kompute-master
 📖 Example: cargo build --features kompute-master
 ⚠️  Note: This release uses Kompute master branch due to compatibility requirements
 💡 Future releases may support official Kompute versions when compatibility is resolved
-");
+"
+);
 
 pub mod algorithm;
 pub mod algorithm_binding;

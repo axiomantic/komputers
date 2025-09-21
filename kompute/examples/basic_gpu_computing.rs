@@ -7,7 +7,7 @@
 //!
 //! This serves as an introduction to GPU computing with Kompute.
 
-use kompute::{Manager, Tensor, Result};
+use kompute::{Manager, Result, Tensor};
 
 fn main() -> Result<()> {
     println!("🚀 Kompute Basic GPU Computing Example");
@@ -24,7 +24,11 @@ fn main() -> Result<()> {
     let tensor_b: Tensor<f32> = Tensor::new(&mut manager, &data_b)?;
     let tensor_out: Tensor<f32> = Tensor::uninit(&mut manager, data_a.len())?;
 
-    println!("✅ Created {} tensors with {} elements each", 3, data_a.len());
+    println!(
+        "✅ Created {} tensors with {} elements each",
+        3,
+        data_a.len()
+    );
 
     // Simple elementwise addition using the built-in SPIR-V shader
     use kompute::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV;
@@ -33,7 +37,7 @@ fn main() -> Result<()> {
     let algorithm = kompute::Algorithm::with_tensors(
         &mut manager,
         ELEMENTWISE_ADD_F32_SPIRV,
-        &[&tensor_a, &tensor_b, &tensor_out]
+        &[&tensor_a, &tensor_b, &tensor_out],
     )?;
 
     let mut sequence = manager.sequence()?;
@@ -51,8 +55,13 @@ fn main() -> Result<()> {
     // Verify the results
     for i in 0..data_a.len() {
         let expected = data_a[i] + data_b[i];
-        assert!((result_data[i] - expected).abs() < 1e-6,
-               "GPU computation error at index {}: expected {}, got {}", i, expected, result_data[i]);
+        assert!(
+            (result_data[i] - expected).abs() < 1e-6,
+            "GPU computation error at index {}: expected {}, got {}",
+            i,
+            expected,
+            result_data[i]
+        );
     }
 
     println!("✅ GPU computation verified successfully!");

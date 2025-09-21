@@ -14,24 +14,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### ✨ Core Features
 
 #### GPU Tensor Operations
+
 - **Multi-Type Tensor Support**: Complete support for `f32`, `f64`, `i32`, `u32` data types
 - **Memory-Safe GPU Operations**: RAII-based automatic resource management with zero memory leaks
 - **High-Performance Data Transfer**: Optimized host-GPU memory synchronization with staging buffers
 - **Type-Safe API**: Generic tensor types with compile-time validation and runtime type detection
 
 #### Algorithm and Shader Management
+
 - **SPIR-V Shader Integration**: Direct support for precompiled SPIR-V compute shaders
 - **Algorithm-Tensor Binding**: Seamless binding of tensors to compute shader parameters
 - **Workgroup Configuration**: Automatic and manual workgroup sizing for optimal GPU utilization
 - **Push Constants Support**: Vulkan push constants for efficient parameter passing
 
 #### Cross-Platform Support
+
 - **macOS**: Full MoltenVK integration with Metal backend (Apple Silicon & Intel)
 - **Linux**: Native Vulkan drivers (NVIDIA, AMD, Intel)
 - **Windows**: Native Vulkan drivers with DirectX integration
 - **Automatic Environment Setup**: Intelligent Vulkan configuration and validation
 
 #### Advanced GPU Computing
+
 - **Multi-Queue Operations**: Parallel GPU execution across multiple command queues
 - **Error Recovery**: Production-grade error handling with automatic recovery strategies
 - **Memory Optimization**: Intelligent GPU memory management and fragmentation reduction
@@ -40,12 +44,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🏗️ Architecture
 
 #### Core Components
+
 - **`Manager`**: GPU device management, resource allocation, and multi-queue coordination
 - **`Tensor<T>`**: Type-safe GPU memory with automatic host-device synchronization
 - **`Algorithm`**: SPIR-V compute shaders with parameter binding and workgroup configuration
 - **`Sequence`**: Command buffer for batched GPU operations with async execution support
 
 #### Advanced Components
+
 - **`GpuOperations`**: High-level GPU computing patterns with automatic optimization
 - **`MemoryOptimizer`**: Intelligent GPU memory management with fragmentation reduction
 - **`ErrorRecoveryManager`**: Production-grade error handling with automatic recovery
@@ -62,12 +68,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🛡️ Safety Guarantees
 
 #### Memory Safety
+
 - **No GPU Memory Leaks**: RAII-based automatic resource cleanup
 - **No Use-After-Free**: Compile-time lifetime checking with borrow checker
 - **No Buffer Overruns**: Bounds checking on all tensor operations
 - **Thread Safety**: Safe concurrent access with automatic synchronization
 
 #### Error Handling
+
 - **Comprehensive Error Recovery**: Automatic detection and recovery from GPU errors
 - **Detailed Error Context**: Clear error messages with actionable guidance
 - **Graceful Degradation**: Fallback strategies for hardware compatibility issues
@@ -92,12 +100,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🔧 Platform-Specific Features
 
 #### macOS Integration
+
 - **Automatic MoltenVK Configuration**: Intelligent detection and environment setup
 - **Metal GPU Detection**: Automatic detection of Metal-capable GPUs
 - **Version Compatibility Handling**: Automatic handling of MoltenVK API version mismatches
 - **User Override Support**: `KOMPUTE_DISABLE_MOLTENVK_AUTO=1` for custom configurations
 
 #### GPU Vendor Support
+
 - **NVIDIA**: GeForce, Quadro, Tesla series with CUDA interop
 - **AMD**: RDNA, RDNA2, RDNA3 architectures with ROCm integration
 - **Intel**: UHD, Iris, Arc graphics with oneAPI compatibility
@@ -106,9 +116,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 📦 Package Features
 
 #### Default Features
+
 - `kompute-master`: Kompute master branch integration (only supported version in v0.1.0)
 
 #### Optional Features
+
 - `async`: Futures-based async API for non-blocking GPU operations
 - `debug`: Debug tools, validation, and diagnostics
 - `glsl`: GLSL shader compilation utilities
@@ -136,12 +148,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 📈 Performance Baselines (Apple M1)
 
-| Operation | Typical Time | Performance |
-|-----------|-------------|-------------|
-| Tensor Creation | 0.1-1ms | Excellent |
-| GPU Dispatch | 5-10ms | Efficient |
-| Memory Transfer | 1-5ms | Optimized |
-| Build Time | 1-2 minutes | Reasonable |
+| Operation       | Typical Time | Performance |
+| --------------- | ------------ | ----------- |
+| Tensor Creation | 0.1-1ms      | Excellent   |
+| GPU Dispatch    | 5-10ms       | Efficient   |
+| Memory Transfer | 1-5ms        | Optimized   |
+| Build Time      | 1-2 minutes  | Reasonable  |
 
 ### 🚨 Known Limitations
 

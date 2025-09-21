@@ -48,7 +48,10 @@ fn main() {
 
     // Determine which Kompute version to use
     let kompute_version = determine_kompute_version();
-    println!("cargo:warning=Building with Kompute version: {}", kompute_version);
+    println!(
+        "cargo:warning=Building with Kompute version: {}",
+        kompute_version
+    );
 
     // Configure AddressSanitizer if asan feature is enabled
     if cfg!(feature = "asan") {
@@ -59,8 +62,8 @@ fn main() {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
     // Build Kompute C++ library (it will manage its own Vulkan headers)
-    let kompute_lib_path =
-        build_kompute_library(&out_dir, &target_os, &kompute_version).expect("Failed to build Kompute C++ library");
+    let kompute_lib_path = build_kompute_library(&out_dir, &target_os, &kompute_version)
+        .expect("Failed to build Kompute C++ library");
 
     // Configure linking for Kompute and system libraries
     configure_kompute_linking(&kompute_lib_path, &target_os);
@@ -98,7 +101,7 @@ fn build_kompute_library(
     let cmake_dir = out_dir.join("cmake_build");
     std::fs::create_dir_all(&cmake_dir)?;
 
-    create_kompute_cmake(&cmake_dir, &kompute_version)?;
+    create_kompute_cmake(&cmake_dir, kompute_version)?;
 
     let build_dir = out_dir.join("kompute_build");
     std::fs::create_dir_all(&build_dir)?;
@@ -342,9 +345,13 @@ fn configure_address_sanitizer() {
     }
 }
 
-fn create_kompute_cmake(cmake_dir: &Path, kompute_version: &KomputeVersion) -> Result<(), Box<dyn std::error::Error>> {
+fn create_kompute_cmake(
+    cmake_dir: &Path,
+    kompute_version: &KomputeVersion,
+) -> Result<(), Box<dyn std::error::Error>> {
     let git_tag = kompute_version.git_tag();
-    let cmake_content = format!(r#"cmake_minimum_required(VERSION 3.14)
+    let cmake_content = format!(
+        r#"cmake_minimum_required(VERSION 3.14)
 project(kompute-rust-bindings)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -368,7 +375,9 @@ set(KOMPUTE_OPT_BUILD_SINGLE_HEADER OFF CACHE BOOL "")
 FetchContent_MakeAvailable(kompute)
 
 find_package(Vulkan REQUIRED)
-"#, git_tag);
+"#,
+        git_tag
+    );
 
     let cmake_path = cmake_dir.join("CMakeLists.txt");
     std::fs::write(cmake_path, cmake_content)?;
