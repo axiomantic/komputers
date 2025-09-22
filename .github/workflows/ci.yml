@@ -120,10 +120,10 @@ jobs:
         with:
           submodules: recursive
 
-      # - name: Install Rust
-      #   uses: dtolnay/rust-toolchain@stable
-      #   with:
-      #     components: rustfmt, clippy
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
 
       - name: Validate GPU Environment
         run: |
