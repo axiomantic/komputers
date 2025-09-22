@@ -228,7 +228,21 @@ jobs:
       - name: Validate GPU Environment
         run: |
           echo "🍎 Validating macOS GPU Environment"
+          echo "Environment variables:"
+          echo "  KOMPUTE_DISABLE_VULKAN_CHECK: ${KOMPUTE_DISABLE_VULKAN_CHECK:-unset}"
+          echo "  VULKAN_SDK: ${VULKAN_SDK:-unset}"
+          echo "  VK_LAYER_PATH: ${VK_LAYER_PATH:-unset}"
+          echo "  VK_ICD_FILENAMES: ${VK_ICD_FILENAMES:-unset}"
+          echo "  VK_INSTANCE_LAYERS: ${VK_INSTANCE_LAYERS:-unset}"
+          echo "  RUNNER_NAME: ${RUNNER_NAME:-unset}"
+          echo ""
+          echo "Vulkan Instance and Layers:"
           vulkaninfo --summary || echo "Vulkan check failed"
+          echo ""
+          echo "Available Vulkan Layers:"
+          vulkaninfo | grep -A 20 "Instance Layers:" || echo "Could not list layers"
+          echo ""
+          echo "GPU Hardware:"
           system_profiler SPDisplaysDataType | grep -A 5 "Chipset Model" || echo "GPU info not found"
 
       - name: Verify sccache Configuration
