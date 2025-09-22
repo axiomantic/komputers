@@ -120,20 +120,23 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Configure Rust Environment
+      - name: Configure Development Environment
         run: |
-          echo "🔧 Configuring Rust environment for self-hosted runner"
-          # Ensure Rust toolchain is in PATH (should already be installed on personal laptop)
-          export PATH="$HOME/.cargo/bin:$PATH"
+          echo "🔧 Configuring development environment for self-hosted runner"
+
+          # Ensure Homebrew and Rust are in PATH
+          export PATH="/opt/homebrew/bin:$HOME/.cargo/bin:$PATH"
+          echo "/opt/homebrew/bin" >> $GITHUB_PATH
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-          # Verify Rust installation
+          # Verify essential build tools
+          cmake --version
           rustc --version
           cargo --version
           rustfmt --version || echo "rustfmt not found, installing..."
           clippy-driver --version || echo "clippy not found, installing..."
 
-          # Install missing components if needed
+          # Install missing Rust components if needed
           rustup component add rustfmt clippy 2>/dev/null || echo "Components already installed"
 
       - name: Validate GPU Environment
