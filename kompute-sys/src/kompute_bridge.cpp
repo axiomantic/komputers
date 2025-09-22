@@ -51,57 +51,28 @@ void configure_vulkan_environment() {
         }
     }
 
-    // Configure validation layers based on decision with runtime testing
+    // Configure validation layers based on decision - simple and direct
     if (decision.use_validation) {
-        // Test if validation layers actually work at runtime before enabling them
-        std::cerr << "🔧 Testing validation layers availability at runtime..." << std::endl;
-
-        // Quick test: try to create a minimal Vulkan instance with validation layers
-        VkApplicationInfo testAppInfo{};
-        testAppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        testAppInfo.pApplicationName = "ValidationTest";
-        testAppInfo.apiVersion = VK_API_VERSION_1_0;
-
-        VkInstanceCreateInfo testCreateInfo{};
-        testCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-        testCreateInfo.pApplicationInfo = &testAppInfo;
-
-        // Try with validation layers
-        const char* validationLayer = "VK_LAYER_KHRONOS_validation";
-        testCreateInfo.enabledLayerCount = 1;
-        testCreateInfo.ppEnabledLayerNames = &validationLayer;
-
-        VkInstance testInstance;
-        VkResult testResult = vkCreateInstance(&testCreateInfo, nullptr, &testInstance);
-
-        if (testResult == VK_SUCCESS) {
-            // Validation layers work - set them up
-            vkDestroyInstance(testInstance, nullptr);
-
-            const char* vulkan_sdk = std::getenv("VULKAN_SDK");
-            if (vulkan_sdk) {
-                // Set layer path if not already set
-                const char* existing_layer = std::getenv("VK_LAYER_PATH");
-                if (!existing_layer) {
-                    std::string layer_path = std::string(vulkan_sdk) + "/share/vulkan/explicit_layer.d";
-                    if (access(layer_path.c_str(), R_OK) == 0) {
-                        setenv("VK_LAYER_PATH", layer_path.c_str(), 1);
-                        std::cerr << "🔧 Set VK_LAYER_PATH: " << layer_path << std::endl;
-                    }
+        // Only set layer path, don't set VK_INSTANCE_LAYERS (let Kompute decide)
+        const char* vulkan_sdk = std::getenv("VULKAN_SDK");
+        if (vulkan_sdk) {
+            const char* existing_layer = std::getenv("VK_LAYER_PATH");
+            if (!existing_layer) {
+                std::string layer_path = std::string(vulkan_sdk) + "/share/vulkan/explicit_layer.d";
+                if (access(layer_path.c_str(), R_OK) == 0) {
+                    setenv("VK_LAYER_PATH", layer_path.c_str(), 1);
+                    std::cerr << "🔧 Set VK_LAYER_PATH for validation layers: " << layer_path << std::endl;
                 }
             }
-            std::cerr << "✅ Validation layers enabled (runtime test passed)" << std::endl;
-        } else {
-            // Validation layers fail at runtime - disable them
-            unsetenv("VK_INSTANCE_LAYERS");
-            unsetenv("VK_LAYER_PATH");
-            std::cerr << "⚠️  Validation layers failed runtime test (" << testResult << "), disabling for Manager constructor" << std::endl;
         }
+        std::cerr << "🔧 Validation layers available - letting Kompute decide usage" << std::endl;
     } else {
-        // Explicitly disable validation layers
+        // Ensure validation layers are disabled
         unsetenv("VK_INSTANCE_LAYERS");
         unsetenv("VK_LAYER_PATH");
-        std::cerr << "🔧 Validation layers disabled" << std::endl;
+        unsetenv("VK_LOADER_LAYERS_ENABLE");
+        unsetenv("VK_LAYER_ENABLES");
+        std::cerr << "🔧 Validation layers disabled - clean environment" << std::endl;
     }
 
     // Print any warnings
@@ -234,37 +205,10 @@ std::unique_ptr<Manager> create_manager(uint32_t device_id) {
         // via the KOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK flag we set in build.rs
         std::cerr << "🔧 Using default Manager constructor with version check configuration" << std::endl;
 
-        // Try the default Kompute Manager constructor with validation layer fallback
+        // Create Manager with properly configured environment
         std::cerr << "DEBUG: About to create kp::Manager with default constructor" << std::endl;
-
-        std::unique_ptr<kp::Manager> manager;
-        try {
-            manager = std::make_unique<kp::Manager>();
-            std::cerr << "✅ kp::Manager constructor completed successfully" << std::endl;
-        } catch (const std::exception& e) {
-            std::string error_msg(e.what());
-            if (error_msg.find("ErrorLayerNotPresent") != std::string::npos) {
-                std::cerr << "⚠️  Manager creation failed with validation layer error, retrying without validation..." << std::endl;
-
-                // Disable all validation-related environment variables
-                unsetenv("VK_INSTANCE_LAYERS");
-                unsetenv("VK_LAYER_PATH");
-                unsetenv("VK_LOADER_LAYERS_ENABLE");
-                unsetenv("VK_LAYER_ENABLES");
-
-                // Retry Manager creation
-                try {
-                    manager = std::make_unique<kp::Manager>();
-                    std::cerr << "✅ kp::Manager constructor completed successfully (retry without validation)" << std::endl;
-                } catch (const std::exception& retry_e) {
-                    std::cerr << "❌ Manager creation failed even without validation layers: " << retry_e.what() << std::endl;
-                    throw;
-                }
-            } else {
-                std::cerr << "❌ Manager creation failed with non-validation error: " << error_msg << std::endl;
-                throw;
-            }
-        }
+        auto manager = std::make_unique<kp::Manager>();
+        std::cerr << "✅ kp::Manager constructor completed successfully" << std::endl;
 
         // Verify the manager was created successfully by testing a basic operation
         if (!manager) {

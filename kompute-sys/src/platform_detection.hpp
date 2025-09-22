@@ -218,8 +218,13 @@ inline bool check_moltenvk_available() {
     return false;
 }
 
-// Check if Vulkan validation layers are available
+// Check if Vulkan validation layers are available AND actually work at runtime
 inline bool check_validation_layers_available() {
+    // In CI environments, be conservative and don't use validation layers
+    if (std::getenv("CI") || std::getenv("GITHUB_ACTIONS")) {
+        return false;
+    }
+
     // Check for validation layer shared libraries
     std::vector<std::string> validation_paths = {
         "/opt/homebrew/lib/libVkLayer_khronos_validation.dylib",
@@ -228,22 +233,26 @@ inline bool check_validation_layers_available() {
         "/usr/local/share/vulkan/explicit_layer.d/VkLayer_khronos_validation.json"
     };
 
+    bool files_exist = false;
     for (const auto& path : validation_paths) {
         if (access(path.c_str(), R_OK) == 0) {
-            return true;
+            files_exist = true;
+            break;
         }
     }
 
-    // Check VULKAN_SDK path
-    const char* vulkan_sdk = std::getenv("VULKAN_SDK");
-    if (vulkan_sdk) {
-        std::string layer_path = std::string(vulkan_sdk) + "/share/vulkan/explicit_layer.d/VkLayer_khronos_validation.json";
-        if (access(layer_path.c_str(), R_OK) == 0) {
-            return true;
+    if (!files_exist) {
+        // Check VULKAN_SDK path
+        const char* vulkan_sdk = std::getenv("VULKAN_SDK");
+        if (vulkan_sdk) {
+            std::string layer_path = std::string(vulkan_sdk) + "/share/vulkan/explicit_layer.d/VkLayer_khronos_validation.json";
+            if (access(layer_path.c_str(), R_OK) == 0) {
+                files_exist = true;
+            }
         }
     }
 
-    return false;
+    return files_exist;
 }
 
 // Main platform detection function
