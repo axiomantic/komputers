@@ -3,7 +3,7 @@
 //! These tests verify that properties hold across a wide range of inputs,
 //! helping to catch edge cases and ensure robust behavior.
 
-use kompute::{Manager, Tensor};
+use komputers::{Manager, Tensor};
 use proptest::prelude::*;
 
 /// Property test: Tensor creation and data retrieval should be consistent.
@@ -327,7 +327,7 @@ mod concurrency_properties {
 /// Property tests for data type consistency.
 #[cfg(test)]
 mod type_properties {
-    use kompute::TensorData;
+    use komputers::TensorData;
 
     #[test]
     fn prop_tensor_data_type_ids_unique() {

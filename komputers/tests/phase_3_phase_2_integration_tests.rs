@@ -4,7 +4,7 @@
 //! seamlessly with Phase 2 advanced components including GPU operations,
 //! memory optimization, algorithm binding, and error recovery.
 
-use kompute::{
+use komputers::{
     Algorithm, AlgorithmBinding, AllocationStrategy, CommonBindingTemplates, DataType,
     ErrorCategory, ErrorRecoveryManager, GpuOperations, Manager, MemoryOptimizer, Tensor,
     TensorData,

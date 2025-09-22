@@ -3,7 +3,7 @@
 //! This test suite validates the enhanced C++ FFI bridge for multi-type support
 //! including filled tensor creation and comprehensive type support.
 
-use kompute::{DataType, Manager, Tensor, TensorData};
+use komputers::{DataType, Manager, Tensor, TensorData};
 
 #[test]
 fn test_ffi_bridge_multi_type_support() {

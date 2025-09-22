@@ -3,7 +3,7 @@
 //! These tests verify algorithm creation, SPIR-V validation, workgroup specification,
 //! tensor binding, and resource management for compute shader operations.
 
-use kompute::{Algorithm, Manager, Tensor};
+use komputers::{Algorithm, Manager, Tensor};
 use std::sync::Arc;
 use std::thread;
 use std::time::Instant;

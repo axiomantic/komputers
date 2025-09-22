@@ -3,7 +3,7 @@
 //! This test suite addresses critical testing gaps identified in
 //! PHASE_2_TEST_COVERAGE_AUDIT.md for production readiness validation.
 
-use kompute::{Manager, MemoryOptimizer};
+use komputers::{Manager, MemoryOptimizer};
 use std::collections::HashMap;
 use std::thread;
 use std::time::{Duration, Instant};

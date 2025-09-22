@@ -3,7 +3,7 @@
 //! These tests verify all Manager methods including thread safety,
 //! resource limits, device management, and factory method validation.
 
-use kompute::{Manager, Tensor};
+use komputers::{Manager, Tensor};
 use std::sync::{Arc, Barrier, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};

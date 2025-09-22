@@ -4,7 +4,7 @@
 //! provides meaningful error messages, and maintains stability
 //! under various failure conditions.
 
-use kompute::{KomputeError, Manager, Result, Sequence, Tensor};
+use komputers::{KomputeError, Manager, Result, Sequence, Tensor};
 use std::panic;
 
 /// Test error handling in manager creation and device operations.

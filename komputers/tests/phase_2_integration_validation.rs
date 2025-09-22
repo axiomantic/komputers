@@ -3,7 +3,7 @@
 //! This comprehensive test suite validates the entire Phase 2 implementation,
 //! ensuring all components work together seamlessly for production GPU computing.
 
-use kompute::{
+use komputers::{
     Algorithm, AlgorithmBinding, AllocationStrategy, CommonBindingTemplates, ErrorCategory,
     ErrorRecoveryManager, GpuOperations, Manager, MemoryOptimizer, Tensor,
 };

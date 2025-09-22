@@ -3,7 +3,7 @@
 //! These tests verify command recording, execution ordering, async operations,
 //! error recovery, and command buffer limits for GPU sequence operations.
 
-use kompute::{Algorithm, Manager, Sequence, Tensor};
+use komputers::{Algorithm, Manager, Sequence, Tensor};
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};

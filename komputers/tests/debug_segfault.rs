@@ -1,6 +1,6 @@
 //! Debug test to isolate segfault issues
 
-use kompute::Manager;
+use komputers::Manager;
 
 #[test]
 fn test_simple_device_count() {

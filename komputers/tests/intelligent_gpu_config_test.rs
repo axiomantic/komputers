@@ -6,7 +6,7 @@
 //! - Respects user override via KOMPUTE_DISABLE_MOLTENVK_AUTO
 //! - Provides helpful error messages when configuration fails
 
-use kompute::{configure_vulkan_environment_intelligent, Manager, MetalGpuDetection};
+use komputers::{configure_vulkan_environment_intelligent, Manager, MetalGpuDetection};
 use std::env;
 
 /// Test Metal GPU detection functionality

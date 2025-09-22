@@ -3,7 +3,7 @@
 //! This test demonstrates the complete handle-based workflow that solves
 //! the SharedPtr mutable access limitation.
 
-use kompute::{Manager, Result, Sequence, Tensor};
+use komputers::{Manager, Result, Sequence, Tensor};
 
 #[test]
 

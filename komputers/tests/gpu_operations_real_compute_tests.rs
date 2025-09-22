@@ -3,7 +3,7 @@
 //! These tests verify that the GPU operations module performs actual compute
 //! operations on real GPU hardware with correct results.
 
-use kompute::{GpuOperations, Manager, Tensor, TensorData};
+use komputers::{GpuOperations, Manager, Tensor, TensorData};
 
 #[test]
 fn test_elementwise_add_f32_real_gpu_computation() {

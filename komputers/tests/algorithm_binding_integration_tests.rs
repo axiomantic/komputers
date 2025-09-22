@@ -4,7 +4,7 @@
 //! tensor bindings, applies templates, and provides comprehensive error
 //! reporting for production GPU compute workflows.
 
-use kompute::{
+use komputers::{
     AccessPattern, Algorithm, AlgorithmBinding, BindingTemplate, CommonBindingTemplates, Manager,
     ParameterSpec, Tensor, TensorDataType, ValidationRule,
 };

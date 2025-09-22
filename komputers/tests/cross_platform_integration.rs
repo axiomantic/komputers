@@ -3,7 +3,7 @@
 //! These tests verify that Komputers works reliably across different platforms,
 //! handles environment validation, and provides appropriate error recovery.
 
-use kompute::{EnvironmentValidator, GpuSupport, Manager, PlatformInfo, RuntimeUtils};
+use komputers::{EnvironmentValidator, GpuSupport, Manager, PlatformInfo, RuntimeUtils};
 
 #[test]
 fn test_platform_detection_comprehensive() {
@@ -380,7 +380,7 @@ fn test_platform_summary_formatting() {
 
 #[test]
 fn test_error_recovery_integration() {
-    use kompute::KomputeError;
+    use komputers::KomputeError;
 
     // Test different error types and their recovery suggestions
     let test_errors = vec![

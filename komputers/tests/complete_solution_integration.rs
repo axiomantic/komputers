@@ -3,7 +3,7 @@
 //! This test demonstrates how the handle-based system completely solves the
 //! SharedPtr mutable access limitation that was preventing full GPU functionality.
 
-use kompute::{Manager, MultiQueueManager, Result, Sequence, Tensor};
+use komputers::{Manager, MultiQueueManager, Result, Sequence, Tensor};
 
 #[test]
 
@@ -218,7 +218,7 @@ fn test_api_completeness() {
     println!("📋 Testing API completeness and feature coverage");
 
     // Test that all the new APIs are available and properly exported
-    use kompute::{Manager, Sequence, Tensor};
+    use komputers::{Manager, Sequence, Tensor};
 
     // Test type availability
     assert_eq!(
@@ -262,7 +262,7 @@ fn test_api_completeness() {
     // Test feature flags
     #[cfg(feature = "async")]
     {
-        use kompute::{AsyncGpuExecutor, AsyncSequence};
+        use komputers::{AsyncGpuExecutor, AsyncSequence};
         println!("✓ Async features available when enabled");
     }
 

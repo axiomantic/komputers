@@ -4,7 +4,7 @@
 //! to ensure Komputers works consistently across NVIDIA, AMD, Intel, and
 //! Apple Silicon GPUs. Critical for production deployment across diverse hardware.
 
-use kompute::{Manager, MemoryOptimizer};
+use komputers::{Manager, MemoryOptimizer};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 

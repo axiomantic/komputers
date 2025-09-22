@@ -3,7 +3,7 @@
 //! These tests measure performance characteristics and help identify
 //! performance regressions over time.
 
-use kompute::{Manager, Result, Sequence, Tensor};
+use komputers::{Manager, Result, Sequence, Tensor};
 use std::time::{Duration, Instant};
 
 /// Benchmark tensor creation performance.

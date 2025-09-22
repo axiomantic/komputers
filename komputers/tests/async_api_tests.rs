@@ -5,7 +5,7 @@
 
 #[cfg(feature = "async")]
 mod async_tests {
-    use kompute::{AsyncGpuExecutor, AsyncSequence, Manager, Result, Sequence, Tensor};
+    use komputers::{AsyncGpuExecutor, AsyncSequence, Manager, Result, Sequence, Tensor};
     use std::time::{Duration, Instant};
     use tokio::time::timeout;
 

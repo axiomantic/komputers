@@ -5,7 +5,7 @@
 //! performance baselines and validates that operations remain within
 //! acceptable performance bounds to prevent performance regressions.
 
-use kompute::{Manager, MemoryOptimizer};
+use komputers::{Manager, MemoryOptimizer};
 use std::collections::HashMap;
 use std::thread;
 use std::time::{Duration, Instant};

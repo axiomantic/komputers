@@ -3,7 +3,7 @@
 //! This test suite provides essential validation for multi-type tensor operations
 //! with comprehensive edge case coverage in a simple, maintainable format.
 
-use kompute::{DataType, Manager};
+use komputers::{DataType, Manager};
 
 #[test]
 fn test_all_types_basic_operations() {

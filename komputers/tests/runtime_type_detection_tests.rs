@@ -3,7 +3,7 @@
 //! This test suite validates the runtime type detection system including
 //! DataType enum functionality, tensor.data_type() method, and type validation.
 
-use kompute::{DataType, Manager, Tensor, TensorData};
+use komputers::{DataType, Manager, Tensor, TensorData};
 
 #[test]
 fn test_datatype_enum_properties() {

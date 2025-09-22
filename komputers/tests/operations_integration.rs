@@ -3,7 +3,7 @@
 //! These tests verify that the operations module correctly wraps
 //! Kompute's GPU compute functionality while providing idiomatic Rust APIs.
 
-use kompute::{GpuOperations, MemoryPatterns, Tensor, WorkgroupConfig};
+use komputers::{GpuOperations, MemoryPatterns, Tensor, WorkgroupConfig};
 
 #[test]
 fn test_gpu_operations_creation() {

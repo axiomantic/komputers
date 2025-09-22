@@ -4,7 +4,7 @@
 //! applies appropriate allocation strategies, and integrates with GpuOperations
 //! for automatic memory optimization.
 
-use kompute::{AllocationStrategy, GpuOperations, MemoryOptimizer, PerformanceMetrics, Tensor};
+use komputers::{AllocationStrategy, GpuOperations, MemoryOptimizer, PerformanceMetrics, Tensor};
 
 #[test]
 fn test_memory_optimizer_platform_detection() {

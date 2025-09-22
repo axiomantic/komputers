@@ -4,7 +4,7 @@
 //! resource leak detection for all GPU and CPU resources managed by
 //! the Komputers library. Critical for production deployment safety.
 
-use kompute::{Manager, MemoryOptimizer};
+use komputers::{Manager, MemoryOptimizer};
 use std::collections::HashMap;
 use std::thread;
 use std::time::{Duration, Instant};

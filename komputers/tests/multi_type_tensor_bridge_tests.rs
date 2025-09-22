@@ -3,7 +3,7 @@
 //! These tests verify that the C++ bridge correctly handles f64, i32, u32 tensors
 //! with real GPU operations and proper type safety.
 
-use kompute::{Manager, Tensor, TensorData};
+use komputers::{Manager, Tensor, TensorData};
 use std::collections::HashMap;
 
 #[test]

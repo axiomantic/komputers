@@ -3,7 +3,7 @@
 //! This test suite validates complete support for f64, i32, and u32 tensor types
 //! with full GPU integration and proper type safety validation.
 
-use kompute::{Manager, Result, Tensor, TensorData};
+use komputers::{Manager, Result, Tensor, TensorData};
 
 #[test]
 fn test_f64_tensor_precision_handling() {

@@ -11,7 +11,7 @@
 //! - Device Management Error Recovery
 //! - Memory Management Stress Testing
 
-use kompute::Manager;
+use komputers::Manager;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread;

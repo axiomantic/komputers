@@ -4,7 +4,7 @@
 //! for production deployment, covering edge cases, stress scenarios, and
 //! mathematical properties across all supported tensor data types.
 
-use kompute::{DataType, Manager, Result, Tensor};
+use komputers::{DataType, Manager, Result, Tensor};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 

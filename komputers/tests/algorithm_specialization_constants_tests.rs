@@ -3,7 +3,7 @@
 //! This test suite validates the newly implemented specialization constants
 //! and push constants functionality for GPU algorithms.
 
-use kompute::{Algorithm, Manager, Result};
+use komputers::{Algorithm, Manager, Result};
 
 #[test]
 fn test_algorithm_specialization_constants_api() {

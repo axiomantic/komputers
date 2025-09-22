@@ -3,7 +3,7 @@
 //! These tests verify the complete end-to-end functionality of the komputers library,
 //! including tensor operations, sequence execution, and resource management.
 
-use kompute::{Manager, Result, Sequence, Tensor};
+use komputers::{Manager, Result, Sequence, Tensor};
 
 /// Test a complete GPU compute workflow with multiple tensors and operations.
 #[test]
