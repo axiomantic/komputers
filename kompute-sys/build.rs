@@ -142,7 +142,9 @@ fn build_kompute_library(
     }
 
     // Add AddressSanitizer flags to CMake build if asan feature is enabled
-    if cfg!(feature = "asan") {
+    // Also respect the KOMPUTE_DISABLE_ASAN environment variable
+    let disable_asan = env::var("KOMPUTE_DISABLE_ASAN").is_ok();
+    if cfg!(feature = "asan") && !disable_asan {
         cmake_config
             .define(
                 "CMAKE_CXX_FLAGS",
@@ -298,7 +300,8 @@ fn build_cxx_bridge(out_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Add AddressSanitizer flags to C++ compilation if asan feature is enabled
-    if cfg!(feature = "asan") {
+    // Also respect the KOMPUTE_DISABLE_ASAN environment variable
+    if cfg!(feature = "asan") && env::var("KOMPUTE_DISABLE_ASAN").is_err() {
         cxx_builder
             .flag_if_supported("-fsanitize=address")
             .flag_if_supported("-g")
