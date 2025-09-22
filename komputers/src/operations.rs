@@ -601,7 +601,7 @@ impl MemoryPatterns {
     pub fn is_coalesced_access(tensor_size: usize) -> bool {
         // Memory coalescing works best with sizes that are multiples of the warp size (32)
         // and align well with cache line sizes (typically 128 bytes = 32 floats)
-        tensor_size % 32 == 0
+        tensor_size.is_multiple_of(32)
     }
 
     /// Suggest padding size to optimize memory access.

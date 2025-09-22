@@ -57,7 +57,7 @@ impl AsyncGpuContext {
         tokio::task::yield_now().await;
 
         let mut manager = self.manager.lock().await;
-        let tensor = Tensor::new(&mut *manager, data)?;
+        let tensor = Tensor::new(&mut manager, data)?;
         let handle = tensor.handle();
         drop(manager); // Release lock as soon as possible
 
@@ -222,6 +222,7 @@ pub struct AsyncSequence {
 
 impl AsyncSequence {
     /// Create a temporary sequence for tensor operations.
+    #[allow(dead_code)]
     fn temp_for_tensor_sync(tracker: &HandleTracker, manager: Arc<Mutex<Manager>>) -> Result<Self> {
         // This creates a temporary sequence for internal operations
         Ok(Self {
@@ -307,6 +308,16 @@ impl AsyncSequence {
     /// Execute without timeout.
     pub async fn execute(self) -> Result<()> {
         self.execute_with_timeout(Duration::from_secs(30)).await
+    }
+
+    /// Get queue information for this sequence.
+    pub fn queue_handle(&self) -> Option<u64> {
+        self.queue
+    }
+
+    /// Check if this sequence has a manager reference.
+    pub fn has_manager(&self) -> bool {
+        self.manager.is_some()
     }
 
     /// Execute multiple sequences concurrently.
