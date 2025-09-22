@@ -365,7 +365,7 @@ fn test_multi_type_tensor_operations(framework: &mut Phase1ProductionFramework) 
                 "f64" => manager.tensor(&[1.0f64, 2.0f64, 3.0f64]).map(|t| t.size()),
                 "i32" => manager.tensor(&[1i32, 2i32, 3i32]).map(|t| t.size()),
                 "u32" => manager.tensor(&[1u32, 2u32, 3u32]).map(|t| t.size()),
-                _ => Err(kompute::KomputeError::TensorError("Unknown type".into())),
+                _ => Err(komputers::KomputeError::TensorError("Unknown type".into())),
             };
 
             match result {
@@ -547,7 +547,7 @@ fn test_device_enumeration_consistency(framework: &mut Phase1ProductionFramework
     let mut device_counts = Vec::new();
 
     for _ in 0..5 {
-        // Note: kompute::device_count() may not exist, this tests the concept
+        // Note: komputers::device_count() may not exist, this tests the concept
         // In actual implementation, we'd use the appropriate device enumeration API
         match Manager::new() {
             Ok(_manager) => {

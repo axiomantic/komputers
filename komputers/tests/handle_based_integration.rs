@@ -115,7 +115,7 @@ fn test_handle_compatibility() {
         let data = vec![1.0f32, 2.0, 3.0];
 
         // Old SharedPtr-based tensor
-        if let Ok(old_tensor) = kompute::Tensor::new(&mut manager, &data) {
+        if let Ok(old_tensor) = komputers::Tensor::new(&mut manager, &data) {
             assert_eq!(old_tensor.size(), 3);
         }
 

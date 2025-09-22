@@ -223,15 +223,15 @@ fn test_api_completeness() {
     // Test type availability
     assert_eq!(
         std::any::type_name::<Manager>(),
-        "kompute::manager::Manager"
+        "komputers::manager::Manager"
     );
     assert_eq!(
         std::any::type_name::<Tensor<f32>>(),
-        "kompute::tensor::Tensor<f32>"
+        "komputers::tensor::Tensor<f32>"
     );
     assert_eq!(
         std::any::type_name::<Sequence>(),
-        "kompute::sequence::Sequence"
+        "komputers::sequence::Sequence"
     );
 
     println!("✓ All handle-based types are properly exported");
@@ -241,7 +241,7 @@ fn test_api_completeness() {
         let data = vec![1.0f32, 2.0, 3.0];
 
         // Old SharedPtr-based API (limited functionality)
-        if let Ok(old_tensor) = kompute::Tensor::new(&mut manager, &data) {
+        if let Ok(old_tensor) = komputers::Tensor::new(&mut manager, &data) {
             assert_eq!(old_tensor.size(), 3);
             println!("✓ Legacy SharedPtr API still available");
         }

@@ -298,7 +298,7 @@ mod async_tests {
                 async_seq.record_tensor_sync_device(tensor.handle())?;
                 async_seq.eval_with_timeout(Duration::from_secs(10)).await?;
 
-                Ok::<_, kompute::KomputeError>(i)
+                Ok::<_, komputers::KomputeError>(i)
             };
 
             futures.push(future);

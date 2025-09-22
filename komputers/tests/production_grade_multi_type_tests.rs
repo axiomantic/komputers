@@ -263,7 +263,7 @@ fn test_minimal_tensor_sizes(framework: &mut ProductionTestFramework) {
     }
 }
 
-fn test_size_one_tensor<T: kompute::TensorData + Clone + PartialEq + std::fmt::Debug>(
+fn test_size_one_tensor<T: komputers::TensorData + Clone + PartialEq + std::fmt::Debug>(
     manager: &mut Manager,
     value: T,
 ) -> bool {
@@ -346,7 +346,7 @@ fn test_type_consistency_validation(framework: &mut ProductionTestFramework) {
     }
 }
 
-fn test_type_consistency<T: kompute::TensorData + Clone>(
+fn test_type_consistency<T: komputers::TensorData + Clone>(
     manager: &mut Manager,
     value: T,
     expected_type: DataType,
@@ -363,7 +363,7 @@ fn test_type_consistency<T: kompute::TensorData + Clone>(
     }
 }
 
-fn test_zeros_consistency<T: kompute::TensorData + Default + Clone + PartialEq>(
+fn test_zeros_consistency<T: komputers::TensorData + Default + Clone + PartialEq>(
     manager: &mut Manager,
 ) -> bool {
     match manager.tensor_zeros::<T>(50) {
@@ -377,7 +377,7 @@ fn test_zeros_consistency<T: kompute::TensorData + Default + Clone + PartialEq>(
     }
 }
 
-fn test_ones_consistency<T: kompute::TensorData + Clone + PartialEq + From<u8>>(
+fn test_ones_consistency<T: komputers::TensorData + Clone + PartialEq + From<u8>>(
     manager: &mut Manager,
 ) -> bool {
     match manager.tensor_ones::<T>(50) {

@@ -37,7 +37,7 @@ fn test_device_count_with_setup() {
     test_vulkan_environment_setup();
 
     // Now try to get device count
-    match kompute::Manager::device_count() {
+    match komputers::Manager::device_count() {
         Ok(count) => {
             println!("✓ Found {} Vulkan-capable devices", count);
             assert!(
@@ -56,7 +56,7 @@ fn test_device_count_with_setup() {
 fn test_manager_creation_with_setup() {
     test_vulkan_environment_setup();
 
-    match kompute::Manager::new() {
+    match komputers::Manager::new() {
         Ok(manager) => {
             println!("✓ GPU Manager created successfully with proper environment setup");
             std::mem::drop(manager);

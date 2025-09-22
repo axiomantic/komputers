@@ -65,7 +65,7 @@ fn test_multi_type_tensor_integration() {
     }
 }
 
-fn test_tensor_type<T: kompute::TensorData + Clone>(data: &[T], type_name: &str) -> bool {
+fn test_tensor_type<T: komputers::TensorData + Clone>(data: &[T], type_name: &str) -> bool {
     if let Ok(mut manager) = Manager::new() {
         if let Ok(_tensor) = Tensor::new(&mut manager, data) {
             println!("    ✓ {} tensor creation successful", type_name);
@@ -90,38 +90,38 @@ fn test_gpu_operations_spirv_integration() {
             let spirv_validation_results = vec![
                 (
                     "f32 elementwise add",
-                    kompute::spirv_shaders::validate_spirv(
-                        kompute::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV,
+                    komputers::spirv_shaders::validate_spirv(
+                        komputers::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV,
                     ),
                 ),
                 (
                     "f64 elementwise add",
-                    kompute::spirv_shaders::validate_spirv(
-                        kompute::spirv_shaders::ELEMENTWISE_ADD_F64_SPIRV,
+                    komputers::spirv_shaders::validate_spirv(
+                        komputers::spirv_shaders::ELEMENTWISE_ADD_F64_SPIRV,
                     ),
                 ),
                 (
                     "i32 elementwise add",
-                    kompute::spirv_shaders::validate_spirv(
-                        kompute::spirv_shaders::ELEMENTWISE_ADD_I32_SPIRV,
+                    komputers::spirv_shaders::validate_spirv(
+                        komputers::spirv_shaders::ELEMENTWISE_ADD_I32_SPIRV,
                     ),
                 ),
                 (
                     "u32 elementwise add",
-                    kompute::spirv_shaders::validate_spirv(
-                        kompute::spirv_shaders::ELEMENTWISE_ADD_U32_SPIRV,
+                    komputers::spirv_shaders::validate_spirv(
+                        komputers::spirv_shaders::ELEMENTWISE_ADD_U32_SPIRV,
                     ),
                 ),
                 (
                     "matrix multiply",
-                    kompute::spirv_shaders::validate_spirv(
-                        kompute::spirv_shaders::MATRIX_MULT_F32_SPIRV,
+                    komputers::spirv_shaders::validate_spirv(
+                        komputers::spirv_shaders::MATRIX_MULT_F32_SPIRV,
                     ),
                 ),
                 (
                     "reduction sum",
-                    kompute::spirv_shaders::validate_spirv(
-                        kompute::spirv_shaders::REDUCTION_SUM_F32_SPIRV,
+                    komputers::spirv_shaders::validate_spirv(
+                        komputers::spirv_shaders::REDUCTION_SUM_F32_SPIRV,
                     ),
                 ),
             ];
@@ -326,7 +326,7 @@ fn test_algorithm_binding_with_gpu(manager: &mut Manager) {
     println!("    Testing algorithm binding with GPU integration...");
 
     // Use real SPIR-V for testing
-    let spirv_data = kompute::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV;
+    let spirv_data = komputers::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV;
 
     match Algorithm::new(manager, spirv_data) {
         Ok(algorithm) => {
@@ -399,23 +399,23 @@ fn test_error_recovery_integration() {
 fn test_error_categorization() -> usize {
     let test_errors = vec![
         (
-            kompute::KomputeError::device("GPU device not found"),
+            komputers::KomputeError::device("GPU device not found"),
             ErrorCategory::DeviceUnavailable,
         ),
         (
-            kompute::KomputeError::memory("Out of GPU memory"),
+            komputers::KomputeError::memory("Out of GPU memory"),
             ErrorCategory::OutOfMemory,
         ),
         (
-            kompute::KomputeError::shader("SPIR-V validation failed"),
+            komputers::KomputeError::shader("SPIR-V validation failed"),
             ErrorCategory::ShaderError,
         ),
         (
-            kompute::KomputeError::compute("Vulkan runtime error"),
+            komputers::KomputeError::compute("Vulkan runtime error"),
             ErrorCategory::VulkanRuntime,
         ),
         (
-            kompute::KomputeError::compute("Platform compatibility issue"),
+            komputers::KomputeError::compute("Platform compatibility issue"),
             ErrorCategory::PlatformCompatibility,
         ),
     ];
@@ -433,14 +433,14 @@ fn test_error_categorization() -> usize {
 
 fn test_error_recovery_handling(recovery_manager: &mut ErrorRecoveryManager) -> usize {
     let test_errors = vec![
-        kompute::KomputeError::device("Test device error"),
-        kompute::KomputeError::memory("Test memory error"),
-        kompute::KomputeError::shader("Test shader error"),
+        komputers::KomputeError::device("Test device error"),
+        komputers::KomputeError::memory("Test memory error"),
+        komputers::KomputeError::shader("Test shader error"),
     ];
 
     let mut successful_recoveries = 0;
     for (i, error) in test_errors.iter().enumerate() {
-        let context = kompute::error_recovery::ErrorContext {
+        let context = komputers::error_recovery::ErrorContext {
             component: "PhaseValidation".to_string(),
             function: "test_error_recovery".to_string(),
             operation: format!("test_operation_{}", i),
@@ -529,8 +529,9 @@ fn initialize_all_components() -> usize {
     }
 
     // 5. SPIR-V Shaders
-    let spirv_valid =
-        kompute::spirv_shaders::validate_spirv(kompute::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV);
+    let spirv_valid = komputers::spirv_shaders::validate_spirv(
+        komputers::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV,
+    );
     if spirv_valid {
         successful_initializations += 1;
         println!("      ✓ SPIR-V shader validation successful");
@@ -556,8 +557,8 @@ fn test_component_integration() -> usize {
 
     // 2. Algorithm + ErrorRecovery integration
     if let Ok(mut recovery) = ErrorRecoveryManager::new() {
-        let test_error = kompute::KomputeError::shader("Integration test shader error");
-        let context = kompute::error_recovery::ErrorContext {
+        let test_error = komputers::KomputeError::shader("Integration test shader error");
+        let context = komputers::error_recovery::ErrorContext {
             component: "Algorithm".to_string(),
             function: "execute".to_string(),
             operation: "shader_compile".to_string(),

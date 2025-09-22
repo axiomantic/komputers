@@ -26,7 +26,7 @@ fn test_algorithm_binding_with_template() {
         ) {
             (Ok(tensor_a), Ok(tensor_b), Ok(tensor_out)) => {
                 // Use real SPIR-V from our spirv_shaders module
-                let spirv_data = kompute::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV;
+                let spirv_data = komputers::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV;
 
                 match Algorithm::new(&mut manager, spirv_data) {
                     Ok(algorithm) => {
@@ -108,7 +108,7 @@ fn test_algorithm_binding_batch_operations() {
         ) {
             (Ok(tensor_a), Ok(tensor_b), Ok(tensor_c)) => {
                 // Use a simple SPIR-V shader for testing
-                let spirv_data = kompute::spirv_shaders::MATRIX_MULT_F32_SPIRV;
+                let spirv_data = komputers::spirv_shaders::MATRIX_MULT_F32_SPIRV;
 
                 match Algorithm::new(&mut manager, spirv_data) {
                     Ok(algorithm) => {
@@ -320,7 +320,7 @@ fn test_binding_error_handling() {
         let test_data = vec![1.0f32, 2.0, 3.0];
         if let Ok(tensor) = Tensor::new(&mut manager, &test_data) {
             // Use real SPIR-V for testing
-            let spirv_data = kompute::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV;
+            let spirv_data = komputers::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV;
 
             if let Ok(algorithm) = Algorithm::new(&mut manager, spirv_data) {
                 let template = CommonBindingTemplates::elementwise_binary_op();

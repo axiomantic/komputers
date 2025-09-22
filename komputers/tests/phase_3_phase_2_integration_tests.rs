@@ -171,7 +171,7 @@ fn test_multi_type_tensor_with_algorithm_binding() {
             Tensor::<f32>::uninit(&mut manager, 3),
         ) {
             // Test creating algorithm binding with f32 tensors
-            let spirv_data = kompute::spirv_shaders::get_elementwise_add_spirv::<f32>();
+            let spirv_data = komputers::spirv_shaders::get_elementwise_add_spirv::<f32>();
             match Algorithm::new(&mut manager, spirv_data) {
                 Ok(algorithm) => {
                     match AlgorithmBinding::<f32>::new(algorithm, Some(&elementwise_template)) {
@@ -195,7 +195,7 @@ fn test_multi_type_tensor_with_algorithm_binding() {
             Tensor::new(&mut manager, &[4.0f64, 5.0, 6.0]),
             Tensor::<f64>::uninit(&mut manager, 3),
         ) {
-            let spirv_data = kompute::spirv_shaders::get_elementwise_add_spirv::<f64>();
+            let spirv_data = komputers::spirv_shaders::get_elementwise_add_spirv::<f64>();
             match Algorithm::new(&mut manager, spirv_data) {
                 Ok(algorithm) => {
                     match AlgorithmBinding::<f64>::new(algorithm, Some(&elementwise_template)) {
@@ -226,29 +226,29 @@ fn test_multi_type_tensor_with_error_recovery() {
         // Test tensor creation errors for each type
         let tensor_errors = vec![
             (
-                kompute::KomputeError::tensor("f32 tensor creation failed"),
+                komputers::KomputeError::tensor("f32 tensor creation failed"),
                 "f32_tensor_creation",
                 "F32 tensor creation failure",
             ),
             (
-                kompute::KomputeError::tensor("f64 tensor creation failed"),
+                komputers::KomputeError::tensor("f64 tensor creation failed"),
                 "f64_tensor_creation",
                 "F64 tensor creation failure",
             ),
             (
-                kompute::KomputeError::tensor("i32 tensor creation failed"),
+                komputers::KomputeError::tensor("i32 tensor creation failed"),
                 "i32_tensor_creation",
                 "I32 tensor creation failure",
             ),
             (
-                kompute::KomputeError::tensor("u32 tensor creation failed"),
+                komputers::KomputeError::tensor("u32 tensor creation failed"),
                 "u32_tensor_creation",
                 "U32 tensor creation failure",
             ),
         ];
 
         for (error, operation, description) in tensor_errors {
-            let context = kompute::error_recovery::ErrorContext {
+            let context = komputers::error_recovery::ErrorContext {
                 component: "MultiTypeTensor".to_string(),
                 function: "tensor_creation".to_string(),
                 operation: operation.to_string(),
@@ -282,22 +282,22 @@ fn test_multi_type_tensor_with_error_recovery() {
 
         let type_specific_errors = vec![
             (
-                kompute::KomputeError::tensor("f32 precision loss detected"),
+                komputers::KomputeError::tensor("f32 precision loss detected"),
                 ErrorCategory::TensorOperation,
                 "f32 precision error",
             ),
             (
-                kompute::KomputeError::tensor("i32 integer overflow detected"),
+                komputers::KomputeError::tensor("i32 integer overflow detected"),
                 ErrorCategory::TensorOperation,
                 "i32 overflow error",
             ),
             (
-                kompute::KomputeError::tensor("u32 unsigned underflow detected"),
+                komputers::KomputeError::tensor("u32 unsigned underflow detected"),
                 ErrorCategory::TensorOperation,
                 "u32 underflow error",
             ),
             (
-                kompute::KomputeError::tensor("f64 double precision calculation failed"),
+                komputers::KomputeError::tensor("f64 double precision calculation failed"),
                 ErrorCategory::TensorOperation,
                 "f64 calculation error",
             ),
@@ -493,8 +493,8 @@ fn validate_integrated_type_safety(ops: &mut GpuOperations) -> u32 {
     }
 
     // 4. Test that SPIR-V selection works for different types
-    let f32_spirv = kompute::spirv_shaders::get_elementwise_add_spirv::<f32>();
-    let f64_spirv = kompute::spirv_shaders::get_elementwise_add_spirv::<f64>();
+    let f32_spirv = komputers::spirv_shaders::get_elementwise_add_spirv::<f32>();
+    let f64_spirv = komputers::spirv_shaders::get_elementwise_add_spirv::<f64>();
     if f32_spirv != f64_spirv {
         score += 1;
     }
