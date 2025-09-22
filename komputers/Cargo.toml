@@ -43,9 +43,10 @@ libc = { version = "0.2", optional = true }
 # Benchmarking dependencies (optional - only needed for benchmarks)
 criterion = { workspace = true, optional = true }
 
+# Property testing dependencies (optional - only needed for property tests)
+proptest = { workspace = true, optional = true }
+
 [dev-dependencies]
-env_logger.workspace = true
-proptest.workspace = true
 anyhow.workspace = true
 
 [features]
@@ -68,6 +69,7 @@ test-utils = []
 # asan = ["kompute-sys/asan"]  # Commented out due to linker issues on macOS
 # crash-debug = ["backtrace", "signal-hook", "libc"]
 benchmarks = ["criterion"]
+property-testing = ["proptest"]
 
 [[example]]
 name = "defensive_guards_demo"

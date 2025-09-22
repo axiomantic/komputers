@@ -132,7 +132,12 @@ jobs:
           # Configure sccache for much faster compilation
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
           echo "SCCACHE_CACHE_SIZE=2G" >> $GITHUB_ENV
+          echo "SCCACHE_DIR=$HOME/.cache/sccache" >> $GITHUB_ENV
+
+          # Initialize sccache
+          mkdir -p $HOME/.cache/sccache
           sccache --show-stats
+          echo "sccache configured with cache dir: $HOME/.cache/sccache"
 
           # Verify essential build tools
           cmake --version
@@ -146,6 +151,15 @@ jobs:
 
           # Install missing Rust components if needed
           rustup component add rustfmt clippy 2>/dev/null || echo "Components already installed"
+
+      - name: Cache sccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/sccache
+          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}-${{ env.RUSTC_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-sccache-
 
       - name: Cache Cargo Registry
         uses: actions/cache@v4
@@ -215,8 +229,19 @@ jobs:
           vulkaninfo --summary || echo "Vulkan check failed"
           system_profiler SPDisplaysDataType | grep -A 5 "Chipset Model" || echo "GPU info not found"
 
+      - name: Verify sccache Configuration
+        run: |
+          echo "🔧 Verifying sccache configuration"
+          echo "RUSTC_WRAPPER: $RUSTC_WRAPPER"
+          echo "SCCACHE_DIR: $SCCACHE_DIR"
+          echo "SCCACHE_CACHE_SIZE: $SCCACHE_CACHE_SIZE"
+          sccache --show-stats
+          echo "✅ sccache is ready"
+
       - name: Build all features
-        run: cargo build --features "async,glsl,debug,validation,test-utils" --release
+        run: |
+          echo "🔨 Building with sccache acceleration"
+          cargo build --features "async,glsl,debug,validation,test-utils" --release
 
       - name: Run complete test suite
         run: |
@@ -246,6 +271,11 @@ jobs:
         run: |
           echo "📊 Build and Cache Performance Report"
           echo "=================================="
+
+          # Show sccache statistics
+          echo "🏎️  sccache Statistics:"
+          sccache --show-stats || echo "sccache stats unavailable"
+          echo ""
 
           # Calculate total build time
           BUILD_END_TIME=$(date +%s)

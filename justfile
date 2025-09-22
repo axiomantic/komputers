@@ -22,6 +22,10 @@ test:
 bench:
     cargo test --features "benchmarks" --benches
 
+# Run property tests (requires proptest compilation)
+prop-test:
+    cargo test --features "property-testing" --test property_tests
+
 # Install pre-commit hooks (if using pre-commit)
 install-hooks:
     pre-commit install

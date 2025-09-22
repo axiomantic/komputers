@@ -314,6 +314,9 @@ cargo test --test gpu_vendor_compatibility_matrix
 
 # Run benchmarks (heavier compilation with criterion)
 cargo test --features "benchmarks" --benches
+
+# Run property tests (heavier compilation with proptest)
+cargo test --features "property-testing" --test property_tests
 ```
 
 ## Documentation

@@ -158,6 +158,13 @@ cargo test --test gpu_compute_integration
 cargo test --doc
 ```
 
+**Property Tests (Optional):**
+
+```bash
+# Run comprehensive property-based tests (requires proptest compilation)
+cargo test --features "property-testing" --test property_tests
+```
+
 ### 4. Code Quality Standards
 
 Before submitting, ensure your code meets our standards:
