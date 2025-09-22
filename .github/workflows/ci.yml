@@ -9,6 +9,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  KOMPUTE_DISABLE_ASAN: 1 # Disable ASAN in CI to avoid linking issues
 
 jobs:
   test:

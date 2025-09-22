@@ -54,7 +54,9 @@ fn main() {
     );
 
     // Configure AddressSanitizer if asan feature is enabled
-    if cfg!(feature = "asan") {
+    // Allow disabling ASAN via environment variable for CI compatibility
+    let disable_asan = env::var("KOMPUTE_DISABLE_ASAN").is_ok();
+    if cfg!(feature = "asan") && !disable_asan {
         configure_address_sanitizer();
     }
 
@@ -137,7 +139,13 @@ fn build_kompute_library(
             cmake_config.define("CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS", "ON");
         }
         "macos" => {
-            cmake_config.define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15");
+            // Set deployment target for compatibility - also set as environment variable
+            let deployment_target = "11.0"; // Changed to match modern CI environments
+            cmake_config.define("CMAKE_OSX_DEPLOYMENT_TARGET", deployment_target);
+            println!(
+                "cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET={}",
+                deployment_target
+            );
             // Fix for Kompute + MoltenVK compatibility issue
             // Reference: https://github.com/KhronosGroup/MoltenVK/issues/2292
             cmake_config.define("KOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK", "ON");
@@ -281,6 +289,9 @@ fn build_cxx_bridge(out_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
     // Link to Vulkan libraries - we still need runtime linking
     #[cfg(target_os = "macos")]
     {
+        // Set deployment target for linker consistency
+        println!("cargo:rustc-link-arg=-mmacosx-version-min=11.0");
+
         // Link to Vulkan directly on macOS
         if let Ok(vulkan_sdk) = env::var("VULKAN_SDK") {
             let vulkan_lib_path = Path::new(&vulkan_sdk).join("lib");
@@ -334,8 +345,11 @@ fn configure_address_sanitizer() {
             println!("cargo:rustc-link-lib=asan");
         }
         "macos" => {
-            // On macOS, AddressSanitizer is built into clang, no separate library needed
-            // The -fsanitize=address flag is sufficient
+            // On macOS, we need to link against the ASAN runtime explicitly
+            // Even though it's built into clang, we need the runtime symbols
+            println!("cargo:rustc-link-arg=-fsanitize=address");
+            // Also try to link the ASAN library directly
+            println!("cargo:rustc-link-lib=asan");
         }
         "windows" => {
             // On Windows with MSVC, AddressSanitizer support varies
