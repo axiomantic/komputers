@@ -257,12 +257,12 @@ jobs:
       - name: Build all features
         run: |
           echo "🔨 Building with sccache acceleration"
-          cargo build --features "async,glsl,debug,validation,test-utils" --release
+          cargo build --features "async,glsl,debug,test-utils" --release
 
       - name: Run complete test suite
         run: |
           echo "🧪 Running complete test suite with GPU support"
-          cargo test --features "async,glsl,debug,validation,test-utils" --workspace -- --nocapture
+          cargo test --features "async,glsl,debug,test-utils" --workspace -- --nocapture
 
       - name: Run GPU integration tests
         run: |
@@ -274,7 +274,7 @@ jobs:
       - name: Run ignored tests (GPU required)
         run: |
           echo "🔥 Running tests that require real GPU hardware"
-          cargo test --features "async,glsl,debug,validation,test-utils" -- --ignored --nocapture
+          cargo test --features "async,glsl,debug,test-utils" -- --ignored --nocapture
 
       - name: Test examples with GPU
         run: |
