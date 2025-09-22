@@ -63,8 +63,16 @@ fn main() {
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
+    // Detect CI environment - multiple common CI environment variables
+    let is_ci = env::var("CI").is_ok()
+        || env::var("GITHUB_ACTIONS").is_ok()
+        || env::var("TRAVIS").is_ok()
+        || env::var("CIRCLECI").is_ok()
+        || env::var("APPVEYOR").is_ok()
+        || env::var("GITLAB_CI").is_ok();
+
     // Build Kompute C++ library (it will manage its own Vulkan headers)
-    let kompute_lib_path = build_kompute_library(&out_dir, &target_os, &kompute_version)
+    let kompute_lib_path = build_kompute_library(&out_dir, &target_os, &kompute_version, is_ci)
         .expect("Failed to build Kompute C++ library");
 
     // Configure linking for Kompute and system libraries
@@ -99,6 +107,7 @@ fn build_kompute_library(
     out_dir: &Path,
     target_os: &str,
     kompute_version: &KomputeVersion,
+    is_ci: bool,
 ) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let cmake_dir = out_dir.join("cmake_build");
     std::fs::create_dir_all(&cmake_dir)?;
@@ -118,6 +127,19 @@ fn build_kompute_library(
         .define("KOMPUTE_OPT_INSTALL", "OFF")
         .define("KOMPUTE_OPT_BUILD_SINGLE_HEADER", "OFF")
         .define("KOMPUTE_OPT_USE_BUILT_IN_VULKAN_HEADERS", "ON");
+
+    // Disable Vulkan version checking in CI environments where GPU drivers aren't available
+    // Also allow manual override via environment variable
+    let disable_vulkan_check = is_ci || env::var("KOMPUTE_DISABLE_VULKAN_CHECK").is_ok();
+    if disable_vulkan_check {
+        cmake_config.define("KOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK", "ON");
+        let reason = if is_ci {
+            "CI environment detected"
+        } else {
+            "manual override via KOMPUTE_DISABLE_VULKAN_CHECK"
+        };
+        println!("cargo:warning=Disabling Vulkan version check: {}", reason);
+    }
 
     // Add AddressSanitizer flags to CMake build if asan feature is enabled
     if cfg!(feature = "asan") {

@@ -10,6 +10,7 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
   KOMPUTE_DISABLE_ASAN: 1 # Disable ASAN in CI to avoid linking issues
+  KOMPUTE_DISABLE_VULKAN_CHECK: 1 # Disable Vulkan version check in CI where GPU drivers aren't available
 
 jobs:
   test:
