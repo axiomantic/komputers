@@ -1,45 +1,79 @@
 #include "kompute_bridge.hpp"
 #include "handle_registry.hpp"
+#include "platform_detection.hpp"
 #include <stdexcept>
 #include <cstdlib>
 #include <string>
 #include <vector>
 #include <unistd.h>
 
-// Helper function to configure Vulkan environment for macOS
+// Intelligent Vulkan environment configuration with platform detection
 void configure_vulkan_environment() {
-    const char* vulkan_sdk = std::getenv("VULKAN_SDK");
-    if (vulkan_sdk) {
-        // Check if VK_ICD_FILENAMES is already set and points to an existing file
-        const char* existing_icd = std::getenv("VK_ICD_FILENAMES");
-        if (existing_icd && access(existing_icd, R_OK) == 0) {
-            // Already correctly set, don't override
-        } else {
-            // Try common locations for MoltenVK ICD
-            std::vector<std::string> icd_candidates = {
-                std::string(vulkan_sdk) + "/etc/vulkan/icd.d/MoltenVK_icd.json",
-                std::string(vulkan_sdk) + "/share/vulkan/icd.d/MoltenVK_icd.json"
-            };
+    using namespace platform_detection;
 
-            for (const auto& icd_path : icd_candidates) {
-                if (access(icd_path.c_str(), R_OK) == 0) {
-                    setenv("VK_ICD_FILENAMES", icd_path.c_str(), 1);
-                    break;
+    // Load platform configuration from environment
+    auto config = load_platform_config();
+
+    // Detect platform capabilities
+    auto platform_info = detect_platform();
+
+    // Make intelligent decisions based on platform and user preferences
+    auto decision = make_platform_decision(platform_info, config);
+
+    // Print detection results if verbose mode enabled
+    print_platform_info(platform_info, decision, config.verbose_detection);
+
+    // Configure MoltenVK if decided to use it
+    if (decision.use_moltenvk) {
+        const char* vulkan_sdk = std::getenv("VULKAN_SDK");
+        if (vulkan_sdk) {
+            // Check if VK_ICD_FILENAMES is already set and points to an existing file
+            const char* existing_icd = std::getenv("VK_ICD_FILENAMES");
+            if (existing_icd && access(existing_icd, R_OK) == 0) {
+                // Already correctly set, don't override
+                std::cerr << "🔧 Using existing VK_ICD_FILENAMES: " << existing_icd << std::endl;
+            } else {
+                // Try common locations for MoltenVK ICD
+                std::vector<std::string> icd_candidates = {
+                    std::string(vulkan_sdk) + "/etc/vulkan/icd.d/MoltenVK_icd.json",
+                    std::string(vulkan_sdk) + "/share/vulkan/icd.d/MoltenVK_icd.json"
+                };
+
+                for (const auto& icd_path : icd_candidates) {
+                    if (access(icd_path.c_str(), R_OK) == 0) {
+                        setenv("VK_ICD_FILENAMES", icd_path.c_str(), 1);
+                        std::cerr << "🔧 Set VK_ICD_FILENAMES: " << icd_path << std::endl;
+                        break;
+                    }
                 }
             }
         }
+    }
 
-        // Set layer path if not already set
-        const char* existing_layer = std::getenv("VK_LAYER_PATH");
-        if (!existing_layer) {
-            std::string layer_path = std::string(vulkan_sdk) + "/share/vulkan/explicit_layer.d";
-            if (access(layer_path.c_str(), R_OK) == 0) {
-                setenv("VK_LAYER_PATH", layer_path.c_str(), 1);
+    // Configure validation layers based on decision
+    if (decision.use_validation) {
+        const char* vulkan_sdk = std::getenv("VULKAN_SDK");
+        if (vulkan_sdk) {
+            // Set layer path if not already set
+            const char* existing_layer = std::getenv("VK_LAYER_PATH");
+            if (!existing_layer) {
+                std::string layer_path = std::string(vulkan_sdk) + "/share/vulkan/explicit_layer.d";
+                if (access(layer_path.c_str(), R_OK) == 0) {
+                    setenv("VK_LAYER_PATH", layer_path.c_str(), 1);
+                    std::cerr << "🔧 Set VK_LAYER_PATH: " << layer_path << std::endl;
+                }
             }
         }
-
-        // Disable validation layers for basic usage
+        std::cerr << "🔧 Validation layers enabled" << std::endl;
+    } else {
+        // Explicitly disable validation layers
         unsetenv("VK_INSTANCE_LAYERS");
+        std::cerr << "🔧 Validation layers disabled" << std::endl;
+    }
+
+    // Print any warnings
+    for (const auto& warning : decision.warnings) {
+        std::cerr << warning << std::endl;
     }
 }
 
@@ -61,12 +95,16 @@ std::unique_ptr<Manager> create_manager_moltenvk_compatible(uint32_t device_id) 
         vk::InstanceCreateInfo computeInstanceCreateInfo;
         computeInstanceCreateInfo.pApplicationInfo = &applicationInfo;
 
-        #ifdef __APPLE__
-        // Required for backwards compatibility for MacOS M1 devices (PR #353)
-        applicationExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-        computeInstanceCreateInfo.flags |= vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
-        std::cerr << "🔧 Added VK_KHR_PORTABILITY_ENUMERATION_EXTENSION for macOS M1 compatibility" << std::endl;
-        #endif
+        // Intelligent platform-specific extension configuration
+        auto config = platform_detection::load_platform_config();
+        auto platform_info = platform_detection::detect_platform();
+        auto decision = platform_detection::make_platform_decision(platform_info, config);
+
+        if (decision.use_portability_extension) {
+            applicationExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+            computeInstanceCreateInfo.flags |= vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
+            std::cerr << "🔧 Added VK_KHR_PORTABILITY_ENUMERATION_EXTENSION (" << decision.reasoning << ")" << std::endl;
+        }
 
         computeInstanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(applicationExtensions.size());
         computeInstanceCreateInfo.ppEnabledExtensionNames = applicationExtensions.empty() ? nullptr : applicationExtensions.data();
@@ -140,21 +178,28 @@ std::unique_ptr<Manager> create_manager(uint32_t device_id) {
         std::cerr << "DEBUG: Starting manager creation for device " << device_id << std::endl;
 
         // Apply PR #353 and #380 fixes for MoltenVK compatibility
-        #ifdef __APPLE__
-        std::cerr << "🔧 Applying PR #353 and #380 MoltenVK compatibility fixes" << std::endl;
+        // Intelligent MoltenVK configuration based on platform detection
+        auto config = platform_detection::load_platform_config();
+        auto platform_info = platform_detection::detect_platform();
+        auto decision = platform_detection::make_platform_decision(platform_info, config);
 
-        // Set MoltenVK environment variables for API 1.2 compatibility
-        setenv("MVK_VULKAN_API_VERSION_MAJOR", "1", 1);
-        setenv("MVK_VULKAN_API_VERSION_MINOR", "2", 1);
-        setenv("MVK_VULKAN_API_VERSION", "1.2.0", 1);
-        setenv("MVK_CONFIG_API_VERSION_TO_ADVERTISE", "1.2.0", 1);
+        if (decision.use_moltenvk) {
+            std::cerr << "🔧 Applying MoltenVK compatibility fixes (" << decision.reasoning << ")" << std::endl;
 
-        std::cerr << "🔧 Set MoltenVK environment variables for API 1.2 compatibility" << std::endl;
+            // Set MoltenVK environment variables for API 1.2 compatibility
+            setenv("MVK_VULKAN_API_VERSION_MAJOR", "1", 1);
+            setenv("MVK_VULKAN_API_VERSION_MINOR", "2", 1);
+            setenv("MVK_VULKAN_API_VERSION", "1.2.0", 1);
+            setenv("MVK_CONFIG_API_VERSION_TO_ADVERTISE", "1.2.0", 1);
+
+            std::cerr << "🔧 Set MoltenVK environment variables for API 1.2 compatibility" << std::endl;
+        } else {
+            std::cerr << "🔧 MoltenVK disabled (" << decision.reasoning << ")" << std::endl;
+        }
 
         // Note: PR #353 fixes are applied in Kompute's internal Manager constructor
         // via the KOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK flag we set in build.rs
-        std::cerr << "🔧 Using default Manager constructor with PR #380 version check disabled" << std::endl;
-        #endif
+        std::cerr << "🔧 Using default Manager constructor with version check configuration" << std::endl;
 
         // Try the default Kompute Manager constructor (with environment variables on macOS)
         std::cerr << "DEBUG: About to create kp::Manager with default constructor" << std::endl;
@@ -211,22 +256,54 @@ int32_t get_device_count() {
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
 
-        // PR #353 FIX: Enable portability enumeration for macOS/MoltenVK
+        // Intelligent portability extension configuration
         std::vector<const char*> extensions;
-        #ifdef __APPLE__
-        // Required for backwards compatibility for MacOS M1 devices
-        extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-        createInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-        #endif
+        auto config = platform_detection::load_platform_config();
+        auto platform_info = platform_detection::detect_platform();
+        auto decision = platform_detection::make_platform_decision(platform_info, config);
+
+        if (decision.use_portability_extension) {
+            extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+            createInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+            std::cerr << "🔧 Device enumeration using portability extension (" << decision.reasoning << ")" << std::endl;
+        }
+
+        // Configure validation layers if enabled and available
+        std::vector<const char*> layers;
+        if (decision.use_validation) {
+            layers.push_back("VK_LAYER_KHRONOS_validation");
+            std::cerr << "🔧 Device enumeration using validation layers" << std::endl;
+        }
 
         createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
         createInfo.ppEnabledExtensionNames = extensions.empty() ? nullptr : extensions.data();
+        createInfo.enabledLayerCount = static_cast<uint32_t>(layers.size());
+        createInfo.ppEnabledLayerNames = layers.empty() ? nullptr : layers.data();
 
         VkInstance instance;
         VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
         if (result != VK_SUCCESS) {
-            std::cerr << "Failed to create Vulkan instance for device enumeration: " << result << std::endl;
-            return -1;
+            // If validation layers were requested but failed, try without them
+            if (decision.use_validation && result == VK_ERROR_LAYER_NOT_PRESENT) {
+                std::cerr << "⚠️  Validation layers requested but not available, retrying without them..." << std::endl;
+
+                // Retry without validation layers
+                createInfo.enabledLayerCount = 0;
+                createInfo.ppEnabledLayerNames = nullptr;
+
+                result = vkCreateInstance(&createInfo, nullptr, &instance);
+                if (result == VK_SUCCESS) {
+                    std::cerr << "✅ Vulkan instance created successfully without validation layers" << std::endl;
+                } else {
+                    std::cerr << "❌ Failed to create Vulkan instance even without validation layers: " << result << std::endl;
+                    return -1;
+                }
+            } else {
+                std::cerr << "❌ Failed to create Vulkan instance for device enumeration: " << result << std::endl;
+                return -1;
+            }
+        } else if (decision.use_validation) {
+            std::cerr << "✅ Vulkan instance created successfully with validation layers" << std::endl;
         }
 
         // Enumerate physical devices
