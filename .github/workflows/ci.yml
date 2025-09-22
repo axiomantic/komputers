@@ -136,8 +136,73 @@ jobs:
           rustfmt --version || echo "rustfmt not found, installing..."
           clippy-driver --version || echo "clippy not found, installing..."
 
+          # Set Rust version for cache key consistency
+          echo "RUSTC_VERSION=$(rustc --version | cut -d' ' -f2)" >> $GITHUB_ENV
+
           # Install missing Rust components if needed
           rustup component add rustfmt clippy 2>/dev/null || echo "Components already installed"
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache Cargo Target Directory
+        uses: actions/cache@v4
+        with:
+          path: target/
+          key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('**/*.rs') }}-${{ env.RUSTC_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-cargo-target-
+
+      - name: Cache CMake Build Output
+        uses: actions/cache@v4
+        with:
+          path: |
+            target/release/build/kompute-sys-*/out/
+            target/debug/build/kompute-sys-*/out/
+          key: ${{ runner.os }}-cmake-build-${{ hashFiles('kompute-sys/build.rs') }}-${{ hashFiles('kompute-sys/Cargo.toml') }}-kompute-master
+          restore-keys: |
+            ${{ runner.os }}-cmake-build-${{ hashFiles('kompute-sys/build.rs') }}-
+            ${{ runner.os }}-cmake-build-
+
+      - name: Cache Downloaded Sources
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cmake/
+            /tmp/kompute-*
+            /tmp/fmt-*
+            /tmp/spdlog-*
+          key: ${{ runner.os }}-sources-kompute-master-${{ hashFiles('kompute-sys/build.rs') }}
+          restore-keys: |
+            ${{ runner.os }}-sources-kompute-master-
+            ${{ runner.os }}-sources-
+
+      - name: Setup Local Cache Directories
+        run: |
+          echo "🗂️  Setting up local cache directories for self-hosted runner"
+
+          # Create persistent cache directories on self-hosted runner
+          mkdir -p ~/.cache/komputers/{cargo,cmake,sources}
+          mkdir -p ~/.cache/komputers/build-metrics
+
+          # Set cache size limits to prevent disk bloat (optional cleanup)
+          echo "Cache directories created for persistent storage"
+
+          # Log current cache usage
+          echo "Current cache usage:"
+          du -sh ~/.cache/komputers/ 2>/dev/null || echo "No existing cache"
+
+          # Set environment variables for cache monitoring
+          echo "CACHE_START_TIME=$(date +%s)" >> $GITHUB_ENV
 
       - name: Validate GPU Environment
         run: |
@@ -170,6 +235,37 @@ jobs:
           echo "📋 Testing examples with real GPU"
           timeout 60 cargo run --example basic_gpu_computing --features kompute-master || echo "Example timeout (expected)"
           timeout 60 cargo run --example multi_type_tensors --features kompute-master || echo "Example timeout (expected)"
+
+      - name: Cache Performance Report
+        if: always()
+        run: |
+          echo "📊 Build and Cache Performance Report"
+          echo "=================================="
+
+          # Calculate total build time
+          BUILD_END_TIME=$(date +%s)
+          TOTAL_TIME=$((BUILD_END_TIME - CACHE_START_TIME))
+          echo "Total build time: ${TOTAL_TIME} seconds"
+
+          # Report cache usage
+          echo ""
+          echo "Final cache usage:"
+          du -sh ~/.cache/komputers/ 2>/dev/null || echo "No cache directory"
+
+          echo ""
+          echo "Cargo target directory size:"
+          du -sh target/ 2>/dev/null || echo "No target directory"
+
+          echo ""
+          echo "Cache hit indicators:"
+          if [ -d "target/release/build/kompute-sys-"*"/out/kompute_build" ]; then
+            echo "✅ CMake cache likely hit (kompute_build exists)"
+          else
+            echo "❌ CMake cache miss (fresh build)"
+          fi
+
+          # Save metrics for trend analysis
+          echo "$(date): ${TOTAL_TIME}s" >> ~/.cache/komputers/build-metrics/build-times.log
 
       # - name: Upload test results
       #   uses: actions/upload-artifact@v4
