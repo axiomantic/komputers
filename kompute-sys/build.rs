@@ -71,9 +71,19 @@ fn main() {
         || env::var("APPVEYOR").is_ok()
         || env::var("GITLAB_CI").is_ok();
 
+    // Detect self-hosted GPU runners - these should have Vulkan enabled
+    let is_self_hosted_gpu_runner =
+        env::var("RUNNER_NAME").is_ok() && env::var("GITHUB_ACTIONS").is_ok();
+
     // Build Kompute C++ library (it will manage its own Vulkan headers)
-    let kompute_lib_path = build_kompute_library(&out_dir, &target_os, &kompute_version, is_ci)
-        .expect("Failed to build Kompute C++ library");
+    let kompute_lib_path = build_kompute_library(
+        &out_dir,
+        &target_os,
+        &kompute_version,
+        is_ci,
+        is_self_hosted_gpu_runner,
+    )
+    .expect("Failed to build Kompute C++ library");
 
     // Configure linking for Kompute and system libraries
     configure_kompute_linking(&kompute_lib_path, &target_os);
@@ -108,6 +118,7 @@ fn build_kompute_library(
     target_os: &str,
     kompute_version: &KomputeVersion,
     is_ci: bool,
+    is_self_hosted_gpu_runner: bool,
 ) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let cmake_dir = out_dir.join("cmake_build");
     std::fs::create_dir_all(&cmake_dir)?;
@@ -129,16 +140,20 @@ fn build_kompute_library(
         .define("KOMPUTE_OPT_USE_BUILT_IN_VULKAN_HEADERS", "ON");
 
     // Disable Vulkan version checking in CI environments where GPU drivers aren't available
+    // But enable it for self-hosted GPU runners which have proper GPU support
     // Also allow manual override via environment variable
-    let disable_vulkan_check = is_ci || env::var("KOMPUTE_DISABLE_VULKAN_CHECK").is_ok();
+    let disable_vulkan_check =
+        (is_ci && !is_self_hosted_gpu_runner) || env::var("KOMPUTE_DISABLE_VULKAN_CHECK").is_ok();
     if disable_vulkan_check {
         cmake_config.define("KOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK", "ON");
-        let reason = if is_ci {
-            "CI environment detected"
+        let reason = if is_ci && !is_self_hosted_gpu_runner {
+            "CI environment detected (non-GPU runner)"
         } else {
             "manual override via KOMPUTE_DISABLE_VULKAN_CHECK"
         };
         println!("cargo:warning=Disabling Vulkan version check: {}", reason);
+    } else if is_self_hosted_gpu_runner {
+        println!("cargo:warning=Enabling Vulkan version check: self-hosted GPU runner detected");
     }
 
     // Add AddressSanitizer flags to CMake build if asan feature is enabled
