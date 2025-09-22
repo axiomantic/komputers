@@ -42,9 +42,11 @@ libc = { version = "0.2", optional = true }
 
 [dev-dependencies]
 env_logger.workspace = true
-criterion.workspace = true
 proptest.workspace = true
 anyhow.workspace = true
+
+# Benchmarking dependencies (optional - only needed for benchmarks)
+criterion = { workspace = true, optional = true }
 
 [features]
 default = ["kompute-master"]
@@ -65,6 +67,7 @@ test-utils = []
 # Development-only features (not included in production release)
 # asan = ["kompute-sys/asan"]  # Commented out due to linker issues on macOS
 # crash-debug = ["backtrace", "signal-hook", "libc"]
+benchmarks = ["criterion"]
 
 [[example]]
 name = "defensive_guards_demo"

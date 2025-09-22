@@ -129,6 +129,11 @@ jobs:
           echo "/opt/homebrew/bin" >> $GITHUB_PATH
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
+          # Configure sccache for much faster compilation
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+          echo "SCCACHE_CACHE_SIZE=2G" >> $GITHUB_ENV
+          sccache --show-stats
+
           # Verify essential build tools
           cmake --version
           rustc --version
@@ -211,12 +216,12 @@ jobs:
           system_profiler SPDisplaysDataType | grep -A 5 "Chipset Model" || echo "GPU info not found"
 
       - name: Build all features
-        run: cargo build --all-features --release
+        run: cargo build --features "async,glsl,debug,validation,test-utils" --release
 
       - name: Run complete test suite
         run: |
           echo "🧪 Running complete test suite with GPU support"
-          cargo test --all-features --workspace -- --nocapture
+          cargo test --features "async,glsl,debug,validation,test-utils" --workspace -- --nocapture
 
       - name: Run GPU integration tests
         run: |
