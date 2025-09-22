@@ -170,10 +170,9 @@ mod async_tests {
         let data = vec![1.0f32, 2.0, 3.0, 4.0];
         let tensor = Tensor::new(&mut manager, &data)?;
 
-        let mut async_seq = AsyncSequence::new(&mut manager)?;
-
         // Record and execute multiple times
         for iteration in 0..3 {
+            let mut async_seq = AsyncSequence::new(&mut manager)?;
             async_seq.record_tensor_sync_device(tensor.handle())?;
 
             let start = Instant::now();
@@ -181,9 +180,6 @@ mod async_tests {
             let elapsed = start.elapsed();
 
             println!("✓ Iteration {} completed in {:?}", iteration, elapsed);
-
-            // Clear sequence for next iteration
-            // Note: In a real implementation, you might want a clear() method
         }
 
         Ok(())
