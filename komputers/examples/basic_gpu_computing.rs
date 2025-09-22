@@ -7,7 +7,7 @@
 //!
 //! This serves as an introduction to GPU computing with Kompute.
 
-use kompute::{Manager, Result, Tensor};
+use komputers::{Manager, Result, Tensor};
 
 fn main() -> Result<()> {
     println!("🚀 Kompute Basic GPU Computing Example");
@@ -31,10 +31,10 @@ fn main() -> Result<()> {
     );
 
     // Simple elementwise addition using the built-in SPIR-V shader
-    use kompute::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV;
+    use komputers::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV;
 
     // Create algorithm with tensors
-    let algorithm = kompute::Algorithm::with_tensors(
+    let algorithm = komputers::Algorithm::with_tensors(
         &mut manager,
         ELEMENTWISE_ADD_F32_SPIRV,
         &[&tensor_a, &tensor_b, &tensor_out],

@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "kompute-sys",
-    "kompute"
+    "komputers"
 ]
 resolver = "2"
 
@@ -12,10 +12,10 @@ edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/axiomantic/komputers"
 homepage = "https://github.com/axiomantic/komputers"
-documentation = "https://docs.rs/kompute"
+documentation = "https://docs.rs/komputers"
 description = "Production-ready Rust bindings for GPU computing with Vulkan"
-keywords = ["gpu", "vulkan", "compute", "tensor", "parallel"]
-categories = ["graphics", "science", "mathematics"]
+keywords = ["gpu", "vulkan", "compute", "tensor", "parallel", "ml", "ai", "kompute-bindings"]
+categories = ["graphics", "science", "mathematics", "algorithms", "development-tools"]
 readme = "README.md"
 rust-version = "1.70"
 

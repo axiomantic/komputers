@@ -1,8 +1,7 @@
 # Komputers: Experimental GPU Computing for Rust
 
-[![Crates.io](https://img.shields.io/crates/v/kompute.svg)](https://crates.io/crates/kompute)
-[![Documentation](https://docs.rs/kompute/badge.svg)](https://docs.rs/kompute)
-[![Versioned Docs](https://img.shields.io/badge/docs-versioned-blue.svg)](https://axiomantic.github.io/komputers/)
+[![Crates.io](https://img.shields.io/crates/v/komputers.svg)](https://crates.io/crates/komputers)
+[![Documentation](https://docs.rs/komputers/badge.svg)](https://docs.rs/komputers)
 [![CI](https://github.com/axiomantic/komputers/workflows/CI/badge.svg)](https://github.com/axiomantic/komputers/actions/workflows/ci.yml)
 [![Security Audit](https://github.com/axiomantic/komputers/workflows/Security%20Audit/badge.svg)](https://github.com/axiomantic/komputers/actions/workflows/security.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -60,18 +59,18 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-kompute = "0.1"
+komputers = "0.1"
 
 # Optional: Enable async GPU operations
-# kompute = { version = "0.1", features = ["async"] }
+# komputers = { version = "0.1", features = ["async"] }
 ```
 
 ### Basic GPU Computing
 
 ```rust
-use kompute::{Manager, Tensor, Algorithm};
+use komputers::{Manager, Tensor, Algorithm};
 
-fn main() -> kompute::Result<()> {
+fn main() -> komputers::Result<()> {
     // Create GPU manager (automatically selects best available device)
     let mut manager = Manager::new()?;
 
@@ -104,9 +103,9 @@ fn main() -> kompute::Result<()> {
 ### Multi-Type Tensor Operations
 
 ```rust
-use kompute::{Manager, Tensor, DataType};
+use komputers::{Manager, Tensor, DataType};
 
-fn multi_type_example() -> kompute::Result<()> {
+fn multi_type_example() -> komputers::Result<()> {
     let mut manager = Manager::new()?;
 
     // Create different data type tensors
@@ -131,9 +130,9 @@ fn multi_type_example() -> kompute::Result<()> {
 ### High-Level GPU Operations
 
 ```rust
-use kompute::{GpuOperations, WorkgroupConfig};
+use komputers::{GpuOperations, WorkgroupConfig};
 
-fn high_level_example() -> kompute::Result<()> {
+fn high_level_example() -> komputers::Result<()> {
     // High-level operations manager with automatic optimization
     let mut ops = GpuOperations::new()?;
 
@@ -155,10 +154,10 @@ fn high_level_example() -> kompute::Result<()> {
 
 ```rust
 #[cfg(feature = "async")]
-use kompute::{AsyncGpuExecutor, AsyncSequence};
+use komputers::{AsyncGpuExecutor, AsyncSequence};
 
 #[cfg(feature = "async")]
-async fn async_gpu_example() -> kompute::Result<()> {
+async fn async_gpu_example() -> komputers::Result<()> {
     let mut executor = AsyncGpuExecutor::new().await?;
 
     let input = Tensor::new(executor.manager(), &[1.0f32; 100])?;
@@ -179,9 +178,9 @@ async fn async_gpu_example() -> kompute::Result<()> {
 ### Error Recovery and Memory Optimization
 
 ```rust
-use kompute::{MemoryOptimizer, ErrorRecoveryManager};
+use komputers::{MemoryOptimizer, ErrorRecoveryManager};
 
-fn advanced_features_example() -> kompute::Result<()> {
+fn advanced_features_example() -> komputers::Result<()> {
     // Advanced memory optimization
     let memory_optimizer = MemoryOptimizer::new()?;
     let stats = memory_optimizer.memory_statistics()?;
@@ -248,7 +247,7 @@ Komputers includes automatic compatibility fixes for MoltenVK on macOS:
 ### Automatic Environment Setup
 
 ```rust
-use kompute::vulkan_setup::{configure_vulkan_environment, diagnose_vulkan_environment};
+use komputers::vulkan_setup::{configure_vulkan_environment, diagnose_vulkan_environment};
 
 // Automatic Vulkan configuration
 configure_vulkan_environment()?;
@@ -318,22 +317,20 @@ cargo test --test gpu_vendor_compatibility_matrix
 
 ### API Documentation
 
-- **[docs.rs](https://docs.rs/kompute)**: Official API documentation
-- **[Versioned Docs](https://axiomantic.github.io/komputers/)**: Version-specific documentation with examples
-- **[Latest Development](https://axiomantic.github.io/komputers/main/kompute/)**: Documentation for main branch
+- **[docs.rs](https://docs.rs/komputers)**: Official API documentation with examples, tutorials, and version selector
 
 ## Examples and Tutorials
 
 ### Complete Examples
 
-- **[Basic GPU Computing](kompute/examples/basic_gpu_computing.rs)**: Simple vector operations
-- **[Advanced GPU Operations](kompute/examples/advanced_gpu_operations.rs)**: Complex workflows and optimization
-- **[Multi-Type Tensors](kompute/examples/multi_type_tensors.rs)**: Working with different data types
-- **[Async Operations](kompute/examples/async_gpu_operations.rs)**: Non-blocking GPU computations
-- **[Scientific Computing](kompute/examples/scientific_computing.rs)**: Mathematical operations and algorithms
-- **[Machine Learning Operations](kompute/examples/machine_learning_operations.rs)**: ML-focused GPU computing
-- **[Image Processing Pipeline](kompute/examples/image_processing_pipeline.rs)**: GPU-accelerated image processing
-- **[Defensive Guards Demo](kompute/examples/defensive_guards_demo.rs)**: Error handling and safety patterns
+- **[Basic GPU Computing](komputers/examples/basic_gpu_computing.rs)**: Simple vector operations
+- **[Advanced GPU Operations](komputers/examples/advanced_gpu_operations.rs)**: Complex workflows and optimization
+- **[Multi-Type Tensors](komputers/examples/multi_type_tensors.rs)**: Working with different data types
+- **[Async Operations](komputers/examples/async_gpu_operations.rs)**: Non-blocking GPU computations
+- **[Scientific Computing](komputers/examples/scientific_computing.rs)**: Mathematical operations and algorithms
+- **[Machine Learning Operations](komputers/examples/machine_learning_operations.rs)**: ML-focused GPU computing
+- **[Image Processing Pipeline](komputers/examples/image_processing_pipeline.rs)**: GPU-accelerated image processing
+- **[Defensive Guards Demo](komputers/examples/defensive_guards_demo.rs)**: Error handling and safety patterns
 
 ## Contributing
 

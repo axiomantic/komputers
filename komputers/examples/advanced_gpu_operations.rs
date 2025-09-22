@@ -6,7 +6,7 @@
 //! - Error recovery and diagnostics
 //! - High-level GPU operations abstraction
 
-use kompute::{
+use komputers::{
     Algorithm, ErrorRecoveryManager, GpuOperations, Manager, MemoryOptimizer, MultiQueueManager,
     Result, Tensor, WorkgroupConfig,
 };

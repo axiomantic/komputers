@@ -4,7 +4,7 @@
 //! using Komputers, including matrix operations, activation functions,
 //! and gradient computations commonly used in neural networks.
 
-use kompute::{Algorithm, Manager, PerformanceProfiler, Result, Tensor};
+use komputers::{Algorithm, Manager, PerformanceProfiler, Result, Tensor};
 
 fn main() -> Result<()> {
     println!("🧠 Machine Learning Operations with GPU");

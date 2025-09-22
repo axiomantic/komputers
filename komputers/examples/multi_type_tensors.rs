@@ -3,7 +3,7 @@
 //! This example demonstrates Komputers's comprehensive support for multiple data types
 //! including f32, f64, i32, u32 tensors with runtime type detection and GPU operations.
 
-use kompute::{DataType, Manager, Result, Tensor};
+use komputers::{DataType, Manager, Result, Tensor};
 
 fn main() -> Result<()> {
     println!("🔢 Komputers Multi-Type Tensor Example");

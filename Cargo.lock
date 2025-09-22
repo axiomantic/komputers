@@ -631,7 +631,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "kompute"
+name = "kompute-sys"
+version = "0.1.0"
+dependencies = [
+ "ash",
+ "cmake",
+ "cxx",
+ "cxx-build",
+]
+
+[[package]]
+name = "komputers"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -653,16 +663,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "uuid",
-]
-
-[[package]]
-name = "kompute-sys"
-version = "0.1.0"
-dependencies = [
- "ash",
- "cmake",
- "cxx",
- "cxx-build",
 ]
 
 [[package]]

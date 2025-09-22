@@ -4,7 +4,7 @@
 //! acceleration, including filters, transformations, and analysis operations
 //! commonly used in computer vision and digital image processing.
 
-use kompute::{Algorithm, Manager, PerformanceProfiler, Result, Tensor};
+use komputers::{Algorithm, Manager, PerformanceProfiler, Result, Tensor};
 
 fn main() -> Result<()> {
     println!("🖼️  GPU-Accelerated Image Processing Pipeline");

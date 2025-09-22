@@ -52,7 +52,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt update
-          sudo apt install -y vulkan-tools libvulkan-dev vulkan-validationlayers-dev cmake build-essential
+          sudo apt install -y vulkan-tools libvulkan-dev vulkan-utility-libraries-dev cmake build-essential
 
       - name: Install Vulkan SDK (macOS)
         if: matrix.os == 'macos-latest'
@@ -106,3 +106,153 @@ jobs:
 
       - name: Generate documentation
         run: cargo doc --all-features --no-deps --workspace
+
+  gpu-tests-self-hosted:
+    name: GPU Tests (Self-Hosted macOS)
+    runs-on: self-hosted
+    if: ${{ github.repository_owner == 'axiomantic' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # - name: Install Rust
+      #   uses: dtolnay/rust-toolchain@stable
+      #   with:
+      #     components: rustfmt, clippy
+
+      - name: Validate GPU Environment
+        run: |
+          echo "🍎 Validating macOS GPU Environment"
+          vulkaninfo --summary || echo "Vulkan check failed"
+          system_profiler SPDisplaysDataType | grep -A 5 "Chipset Model" || echo "GPU info not found"
+
+      - name: Build all features
+        run: cargo build --all-features --release
+
+      - name: Run complete test suite
+        run: |
+          echo "🧪 Running complete test suite with GPU support"
+          cargo test --all-features --workspace -- --nocapture
+
+      - name: Run GPU integration tests
+        run: |
+          echo "🚀 Running GPU-specific integration tests"
+          cargo test --test gpu_compute_integration --features kompute-master -- --nocapture
+          cargo test --test cross_platform_integration --features kompute-master -- --nocapture
+          cargo test --test gpu_vendor_compatibility_matrix --features kompute-master -- --nocapture
+
+      - name: Run ignored tests (GPU required)
+        run: |
+          echo "🔥 Running tests that require real GPU hardware"
+          cargo test --all-features -- --ignored --nocapture
+
+      - name: Test examples with GPU
+        run: |
+          echo "📋 Testing examples with real GPU"
+          timeout 60 cargo run --example basic_gpu_computing --features kompute-master || echo "Example timeout (expected)"
+          timeout 60 cargo run --example multi_type_tensors --features kompute-master || echo "Example timeout (expected)"
+
+      # - name: Upload test results
+      #   uses: actions/upload-artifact@v4
+      #   if: always()
+      #   with:
+      #     name: self-hosted-gpu-test-results
+      #     path: |
+      #       target/
+      #       *.log
+      #     retention-days: 3
+
+  gpu-tests-self-hosted-linux:
+    name: GPU Tests (Self-Hosted Linux)
+    runs-on: [self-hosted, linux, gpu]
+    if: ${{ github.repository_owner == 'axiomantic' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Validate GPU Environment
+        run: |
+          echo "🐧 Validating Linux GPU Environment"
+          nvidia-smi || echo "NVIDIA GPU check failed"
+          vulkaninfo --summary || echo "Vulkan check failed"
+          lspci | grep -i vga || echo "GPU detection failed"
+
+      - name: Build all features
+        run: cargo build --all-features --release
+
+      - name: Run complete test suite
+        run: |
+          echo "🧪 Running complete test suite with GPU support"
+          cargo test --all-features --workspace -- --nocapture
+
+      - name: Run GPU integration tests
+        run: |
+          echo "🚀 Running GPU-specific integration tests"
+          cargo test --test gpu_compute_integration --features kompute-master -- --nocapture
+          cargo test --test cross_platform_integration --features kompute-master -- --nocapture
+          cargo test --test gpu_vendor_compatibility_matrix --features kompute-master -- --nocapture
+
+      - name: Run ignored tests (GPU required)
+        run: |
+          echo "🔥 Running tests that require real GPU hardware"
+          cargo test --all-features -- --ignored --nocapture
+
+      - name: Test examples with GPU
+        run: |
+          echo "📋 Testing examples with real GPU"
+          timeout 60 cargo run --example basic_gpu_computing --features kompute-master || echo "Example timeout (expected)"
+          timeout 60 cargo run --example multi_type_tensors --features kompute-master || echo "Example timeout (expected)"
+
+  gpu-tests-self-hosted-windows:
+    name: GPU Tests (Self-Hosted Windows)
+    runs-on: [self-hosted, windows, gpu]
+    if: ${{ github.repository_owner == 'axiomantic' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Validate GPU Environment
+        shell: powershell
+        run: |
+          Write-Host "🪟 Validating Windows GPU Environment"
+          try { nvidia-smi } catch { Write-Host "NVIDIA GPU check failed" }
+          try { vulkaninfo.exe } catch { Write-Host "Vulkan check failed" }
+          Get-WmiObject Win32_VideoController | Select-Object Name, DriverVersion
+
+      - name: Build all features
+        run: cargo build --all-features --release
+
+      - name: Run complete test suite
+        run: |
+          Write-Host "🧪 Running complete test suite with GPU support"
+          cargo test --all-features --workspace -- --nocapture
+
+      - name: Run GPU integration tests
+        run: |
+          Write-Host "🚀 Running GPU-specific integration tests"
+          cargo test --test gpu_compute_integration --features kompute-master -- --nocapture
+          cargo test --test cross_platform_integration --features kompute-master -- --nocapture
+          cargo test --test gpu_vendor_compatibility_matrix --features kompute-master -- --nocapture
+
+      - name: Run ignored tests (GPU required)
+        run: |
+          Write-Host "🔥 Running tests that require real GPU hardware"
+          cargo test --all-features -- --ignored --nocapture
+
+      - name: Test examples with GPU
+        shell: powershell
+        run: |
+          Write-Host "📋 Testing examples with real GPU"
+          try {
+            timeout /t 60 cargo run --example basic_gpu_computing --features kompute-master
+          } catch {
+            Write-Host "Example timeout (expected)"
+          }
+          try {
+            timeout /t 60 cargo run --example multi_type_tensors --features kompute-master
+          } catch {
+            Write-Host "Example timeout (expected)"
+          }

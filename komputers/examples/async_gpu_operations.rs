@@ -7,7 +7,7 @@
 //! - Integration with Rust async ecosystem (tokio, etc.)
 
 #[cfg(feature = "async")]
-use kompute::{AsyncGpuContext, AsyncGpuSequence, AsyncTensor, Result};
+use komputers::{AsyncGpuContext, AsyncGpuSequence, AsyncTensor, Result};
 
 #[cfg(feature = "async")]
 use std::time::{Duration, Instant};
@@ -259,7 +259,7 @@ async fn demonstrate_async_ecosystem_integration(context: &mut AsyncGpuContext) 
     // Wait for all tasks concurrently
     let start = Instant::now();
     let (result1, result2, gpu_result) = tokio::try_join!(handle1, handle2, gpu_handle)
-        .map_err(|e| kompute::KomputeError::compute(format!("Join error: {}", e)))?;
+        .map_err(|e| komputers::KomputeError::compute(format!("Join error: {}", e)))?;
 
     let total_duration = start.elapsed();
 
@@ -317,7 +317,7 @@ async fn demonstrate_async_ecosystem_integration(context: &mut AsyncGpuContext) 
 
 // Non-async fallback for when async feature is not enabled
 #[cfg(not(feature = "async"))]
-fn main() -> kompute::Result<()> {
+fn main() -> komputers::Result<()> {
     println!("🔄 Komputers Async GPU Operations Example");
     println!("==========================================");
     println!("\n⚠️ Async feature not enabled!");

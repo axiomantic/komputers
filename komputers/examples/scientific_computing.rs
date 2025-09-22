@@ -4,7 +4,7 @@
 //! using GPU acceleration, including numerical methods, simulations,
 //! and mathematical operations commonly used in scientific research.
 
-use kompute::{Algorithm, Manager, PerformanceProfiler, Result, Tensor};
+use komputers::{Algorithm, Manager, PerformanceProfiler, Result, Tensor};
 use std::f32::consts::PI;
 
 fn main() -> Result<()> {
