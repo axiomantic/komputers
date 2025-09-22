@@ -64,7 +64,7 @@ fn example_neural_layer(manager: &mut Manager, profiler: &mut PerformanceProfile
     let input_tensor = Tensor::new(manager, &input_data)?;
     let weight_tensor = Tensor::new(manager, &weight_data)?;
     let bias_tensor = Tensor::new(manager, &bias_data)?;
-    let mut output_tensor: Tensor<f32> = Tensor::uninit(manager, batch_size * output_size)?;
+    let output_tensor: Tensor<f32> = Tensor::uninit(manager, batch_size * output_size)?;
 
     profiler.end_operation("neural_layer_setup")?;
 
@@ -155,7 +155,7 @@ fn example_convolution(manager: &mut Manager, profiler: &mut PerformanceProfiler
 
     let image_tensor = Tensor::new(manager, &image_data)?;
     let kernel_tensor = Tensor::new(manager, &kernel_data)?;
-    let mut output_tensor: Tensor<f32> = Tensor::uninit(manager, output_size)?;
+    let output_tensor: Tensor<f32> = Tensor::uninit(manager, output_size)?;
 
     profiler.end_operation("convolution_setup")?;
 
@@ -178,8 +178,8 @@ fn example_convolution(manager: &mut Manager, profiler: &mut PerformanceProfiler
 
     let mut sequence = manager.sequence()?;
     // Dispatch with 2D workgroups for image processing
-    let workgroup_x = (output_width + 15) / 16; // 16x16 workgroup size
-    let workgroup_y = (output_height + 15) / 16;
+    let _workgroup_x = (output_width + 15) / 16; // 16x16 workgroup size
+    let _workgroup_y = (output_height + 15) / 16;
     sequence.record_algorithm_dispatch(algorithm.handle())?;
     sequence.eval()?;
 
@@ -218,7 +218,7 @@ fn example_gradient_descent(
     let param_count = 1000;
     let learning_rate = 0.001f32;
 
-    let mut weights: Vec<f32> = (0..param_count)
+    let weights: Vec<f32> = (0..param_count)
         .map(|i| (i as f32 * 0.01).sin()) // Initial weights
         .collect();
 
@@ -229,7 +229,7 @@ fn example_gradient_descent(
     let weight_tensor = Tensor::new(manager, &weights)?;
     let gradient_tensor = Tensor::new(manager, &gradients)?;
     let lr_tensor = Tensor::new(manager, &[learning_rate])?;
-    let mut updated_weights_tensor: Tensor<f32> = Tensor::uninit(manager, param_count)?;
+    let updated_weights_tensor: Tensor<f32> = Tensor::uninit(manager, param_count)?;
 
     profiler.end_operation("gradient_setup")?;
 
@@ -252,7 +252,7 @@ fn example_gradient_descent(
     )?;
 
     let mut sequence = manager.sequence()?;
-    let workgroups = (param_count + 255) / 256; // 256 threads per workgroup
+    let _workgroups = (param_count + 255) / 256; // 256 threads per workgroup
     sequence.record_algorithm_dispatch(algorithm.handle())?;
     sequence.eval()?;
 

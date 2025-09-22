@@ -184,9 +184,7 @@ fn test_memory_optimization_production() {
                     framework.record_performance("memory_statistics", stats_time);
 
                     // Validate statistics structure
-                    let stats_valid = stats.total_allocated >= 0
-                        && stats.total_free >= 0
-                        && stats.average_fragmentation >= 0.0;
+                    let stats_valid = stats.average_fragmentation >= 0.0;
                     framework.record_test("memory_statistics_valid", stats_valid);
 
                     println!(
