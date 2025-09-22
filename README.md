@@ -300,17 +300,20 @@ Komputers includes comprehensive testing suites:
 ### Continuous Integration
 
 ```bash
-# Run comprehensive test suite
-cargo test --release --all-features
+# Run comprehensive test suite (excludes benchmarks for faster builds)
+cargo test --release --features "async,glsl,debug,validation,test-utils"
 
-# Memory safety validation
-cargo test --features asan
+# Memory safety validation (if asan feature is available)
+# cargo test --features asan
 
 # Performance regression testing
 cargo test --test performance_regression_suite -- --nocapture
 
 # Cross-platform compatibility
 cargo test --test gpu_vendor_compatibility_matrix
+
+# Run benchmarks (heavier compilation with criterion)
+cargo test --features "benchmarks" --benches
 ```
 
 ## Documentation
@@ -349,8 +352,8 @@ sudo apt install vulkan-dev cmake build-essential
 # Install dependencies (macOS)
 brew install vulkan-headers vulkan-loader molten-vk cmake
 
-# Run tests
-cargo test --all-features
+# Run tests (excludes benchmarks for faster builds)
+cargo test --features "async,glsl,debug,validation,test-utils"
 ```
 
 ## License

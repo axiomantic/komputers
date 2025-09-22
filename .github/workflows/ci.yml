@@ -233,7 +233,7 @@ jobs:
       - name: Run ignored tests (GPU required)
         run: |
           echo "🔥 Running tests that require real GPU hardware"
-          cargo test --all-features -- --ignored --nocapture
+          cargo test --features "async,glsl,debug,validation,test-utils" -- --ignored --nocapture
 
       - name: Test examples with GPU
         run: |

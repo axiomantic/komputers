@@ -49,8 +49,8 @@ sudo apt install vulkan-tools libvulkan-dev vulkan-validationlayers-dev cmake bu
    # Build the project
    cargo build --all-features
 
-   # Run the test suite
-   cargo test --all-features
+   # Run the test suite (excludes benchmarks for faster builds)
+   cargo test --features "async,glsl,debug,validation,test-utils"
 
    # Run examples to verify GPU functionality
    cargo run --example basic_gpu_computing
@@ -137,7 +137,7 @@ All contributions must include appropriate tests:
 **Unit Tests:**
 
 ```bash
-cargo test --lib --all-features
+cargo test --lib --features "async,glsl,debug,validation,test-utils"
 ```
 
 **Integration Tests:**
