@@ -11,7 +11,7 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
   KOMPUTE_DISABLE_ASAN: 1 # Disable ASAN in CI to avoid linking issues
-  KOMPUTE_DISABLE_VULKAN_CHECK: 1 # Disable Vulkan version check in CI where GPU drivers aren't available
+  # KOMPUTE_DISABLE_VULKAN_CHECK: Unset for self-hosted GPU runners to enable proper Vulkan detection
 
 jobs:
   # Disabled regular CI runners - use self-hosted GPU runners instead
@@ -28,6 +28,8 @@ jobs:
   #           rust: beta
   #         - os: macos-latest
   #           rust: beta
+  #   env:
+  #     KOMPUTE_DISABLE_VULKAN_CHECK: 1 # Disable Vulkan version check for non-GPU runners
 
   #   steps:
   #     - uses: actions/checkout@v4
