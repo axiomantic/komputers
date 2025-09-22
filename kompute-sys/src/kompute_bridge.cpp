@@ -181,6 +181,9 @@ std::unique_ptr<Manager> create_manager(uint32_t device_id) {
     try {
         std::cerr << "DEBUG: Starting manager creation for device " << device_id << std::endl;
 
+        // Configure Vulkan environment first (critical for validation layers)
+        configure_vulkan_environment();
+
         // Apply PR #353 and #380 fixes for MoltenVK compatibility
         // Intelligent MoltenVK configuration based on platform detection
         auto config = platform_detection::load_platform_config();
