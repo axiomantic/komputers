@@ -83,14 +83,26 @@ mod async_tests {
         let tensor_a = Tensor::new(&mut manager, &data_a)?;
         let tensor_b = Tensor::new(&mut manager, &data_b)?;
 
-        // Execute operations asynchronously (placeholder - actual async operations not yet implemented)
+        // Test parallel execution of async sequences
         let start = Instant::now();
-        // TODO: Implement actual async operations
-        // executor.sync_device(&tensor_a).await?;
-        // executor.sync_device(&tensor_b).await?;
-        let elapsed = start.elapsed();
 
-        println!("✓ Async GPU executor created successfully in {:?}", elapsed);
+        // Create async sequences for each tensor
+        let mut seq_a = AsyncSequence::new(executor.manager())?;
+        seq_a.record_tensor_sync_device(tensor_a.handle())?;
+
+        let mut seq_b = AsyncSequence::new(executor.manager())?;
+        seq_b.record_tensor_sync_device(tensor_b.handle())?;
+
+        // Execute operations in parallel using the async executor
+        executor
+            .execute_parallel(vec![seq_a, seq_b], Duration::from_secs(10))
+            .await?;
+
+        let elapsed = start.elapsed();
+        println!(
+            "✓ Async GPU executor completed parallel operations in {:?}",
+            elapsed
+        );
 
         Ok(())
     }
