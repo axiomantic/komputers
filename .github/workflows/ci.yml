@@ -120,10 +120,21 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
+      - name: Configure Rust Environment
+        run: |
+          echo "🔧 Configuring Rust environment for self-hosted runner"
+          # Ensure Rust toolchain is in PATH (should already be installed on personal laptop)
+          export PATH="$HOME/.cargo/bin:$PATH"
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+          # Verify Rust installation
+          rustc --version
+          cargo --version
+          rustfmt --version || echo "rustfmt not found, installing..."
+          clippy-driver --version || echo "clippy not found, installing..."
+
+          # Install missing components if needed
+          rustup component add rustfmt clippy 2>/dev/null || echo "Components already installed"
 
       - name: Validate GPU Environment
         run: |
