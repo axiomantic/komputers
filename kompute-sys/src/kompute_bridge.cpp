@@ -67,12 +67,15 @@ void configure_vulkan_environment() {
         }
         std::cerr << "🔧 Validation layers available - letting Kompute decide usage" << std::endl;
     } else {
-        // Ensure validation layers are disabled
+        // Ensure validation layers are disabled - clear ALL possible layer environment variables
         unsetenv("VK_INSTANCE_LAYERS");
         unsetenv("VK_LAYER_PATH");
         unsetenv("VK_LOADER_LAYERS_ENABLE");
         unsetenv("VK_LAYER_ENABLES");
-        std::cerr << "🔧 Validation layers disabled - clean environment" << std::endl;
+        unsetenv("VK_LOADER_LAYERS_DISABLE");
+        unsetenv("VK_LAYER_SETTINGS_PATH");
+        unsetenv("VK_KHRONOS_VALIDATION_LAYER");
+        std::cerr << "🔧 Validation layers disabled - comprehensive environment cleanup" << std::endl;
     }
 
     // Print any warnings

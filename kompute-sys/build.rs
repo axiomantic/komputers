@@ -156,6 +156,14 @@ fn build_kompute_library(
         println!("cargo:warning=Enabling Vulkan version check: self-hosted GPU runner detected");
     }
 
+    // Disable validation layers in ALL CI environments to prevent ErrorLayerNotPresent
+    if is_ci {
+        cmake_config.define("KOMPUTE_DISABLE_VK_DEBUG_LAYERS", "ON");
+        cmake_config.define("KOMPUTE_OPT_DISABLE_VK_DEBUG_LAYERS", "ON");
+        cmake_config.define("KOMPUTE_VK_DEBUG_ENABLED", "OFF");
+        println!("cargo:warning=Disabling validation layers for CI environment");
+    }
+
     // Add AddressSanitizer flags to CMake build if asan feature is enabled
     // Also respect the KOMPUTE_DISABLE_ASAN environment variable
     let disable_asan = env::var("KOMPUTE_DISABLE_ASAN").is_ok();
@@ -190,6 +198,8 @@ fn build_kompute_library(
             cmake_config.define("KOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK", "ON");
             // Disable all debugging and validation features for MoltenVK compatibility
             cmake_config.define("KOMPUTE_DISABLE_VK_DEBUG_LAYERS", "ON");
+            cmake_config.define("KOMPUTE_OPT_DISABLE_VK_DEBUG_LAYERS", "ON");
+            cmake_config.define("KOMPUTE_VK_DEBUG_ENABLED", "OFF");
             cmake_config.define("CMAKE_BUILD_TYPE", "Release");
             // CRITICAL FIX: Force Vulkan API 1.2 for MoltenVK compatibility
             // "For anyone coming across this in the future, ensure that vk::ApplicationInfo.apiVersion is 1.2 or lower.
