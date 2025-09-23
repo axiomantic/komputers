@@ -1329,3 +1329,151 @@ void queue_destroy_handle(uint64_t handle) {
         throw std::runtime_error(std::string("Failed to destroy queue handle: ") + e.what());
     }
 }
+
+// =============================================================================
+// Config-based Manager Operations
+// =============================================================================
+
+std::unique_ptr<Manager> create_manager_with_config(
+    uint32_t device_id,
+    bool use_moltenvk,
+    bool use_validation,
+    bool use_portability_extension,
+    rust::Str icd_path,
+    rust::Slice<const rust::String> layer_paths
+) {
+    try {
+        std::cerr << "🔧 Creating manager with explicit configuration:" << std::endl;
+        std::cerr << "  Device ID: " << device_id << std::endl;
+        std::cerr << "  MoltenVK: " << (use_moltenvk ? "enabled" : "disabled") << std::endl;
+        std::cerr << "  Validation: " << (use_validation ? "enabled" : "disabled") << std::endl;
+        std::cerr << "  Portability: " << (use_portability_extension ? "enabled" : "disabled") << std::endl;
+
+        // Apply explicit configuration to environment
+        configure_vulkan_environment_from_config(
+            use_moltenvk,
+            use_validation,
+            use_portability_extension,
+            icd_path,
+            layer_paths
+        );
+
+        // Create Manager with the configured environment
+        auto manager = std::make_unique<kp::Manager>();
+
+        // Verify the manager is functional
+        auto devices = manager->listDevices();
+        if (devices.empty()) {
+            throw std::runtime_error("Manager created but found no devices with given configuration");
+        }
+
+        std::cerr << "✅ Manager created successfully with explicit configuration, found "
+                  << devices.size() << " devices" << std::endl;
+        return manager;
+
+    } catch (const std::exception& e) {
+        std::cerr << "❌ Failed to create manager with explicit configuration: " << e.what() << std::endl;
+        throw std::runtime_error(std::string("Failed to create manager with device ") +
+                                std::to_string(device_id) + " and explicit config: " + e.what());
+    }
+}
+
+int32_t get_device_count_with_config(
+    bool use_moltenvk,
+    bool use_validation,
+    bool use_portability_extension,
+    rust::Str icd_path,
+    rust::Slice<const rust::String> layer_paths
+) {
+    try {
+        std::cerr << "🔧 Enumerating devices with explicit configuration" << std::endl;
+
+        // Apply explicit configuration to environment
+        configure_vulkan_environment_from_config(
+            use_moltenvk,
+            use_validation,
+            use_portability_extension,
+            icd_path,
+            layer_paths
+        );
+
+        // Use Manager-based device enumeration with explicit configuration
+        auto manager = std::make_unique<kp::Manager>();
+        auto device_count = static_cast<int32_t>(manager->listDevices().size());
+
+        std::cerr << "✅ Found " << device_count << " devices with explicit configuration" << std::endl;
+        return device_count;
+
+    } catch (const std::exception& e) {
+        std::cerr << "❌ Failed to enumerate devices with explicit configuration: " << e.what() << std::endl;
+        return -1;
+    }
+}
+
+// Helper function to apply explicit configuration to environment
+void configure_vulkan_environment_from_config(
+    bool use_moltenvk,
+    bool use_validation,
+    bool use_portability_extension,
+    rust::Str icd_path,
+    rust::Slice<const rust::String> layer_paths
+) {
+    // Note: use_portability_extension is currently unused but reserved for future implementation
+    (void)use_portability_extension;
+    std::cerr << "🔧 Applying explicit Vulkan configuration to environment" << std::endl;
+
+    // Configure MoltenVK
+    if (use_moltenvk) {
+        std::string icd_path_str(icd_path);
+        if (!icd_path_str.empty()) {
+            setenv("VK_ICD_FILENAMES", icd_path_str.c_str(), 1);
+            std::cerr << "🔧 Set VK_ICD_FILENAMES: " << icd_path_str << std::endl;
+        }
+
+        // Set MoltenVK API version variables
+        setenv("MVK_VULKAN_API_VERSION_MAJOR", "1", 1);
+        setenv("MVK_VULKAN_API_VERSION_MINOR", "2", 1);
+        setenv("MVK_VULKAN_API_VERSION", "1.2.0", 1);
+        setenv("MVK_CONFIG_API_VERSION_TO_ADVERTISE", "1.2.0", 1);
+
+        std::cerr << "🔧 Configured MoltenVK for API 1.2 compatibility" << std::endl;
+    } else {
+        // Clear MoltenVK configuration
+        unsetenv("VK_ICD_FILENAMES");
+        std::cerr << "🔧 MoltenVK disabled - cleared ICD configuration" << std::endl;
+    }
+
+    // Configure validation layers
+    if (use_validation && !layer_paths.empty()) {
+        // Build layer path string from provided paths
+        std::string layer_path_str;
+        for (size_t i = 0; i < layer_paths.size(); ++i) {
+            std::string layer_path(layer_paths[i]);
+            if (i > 0) layer_path_str += ":";
+
+            // Extract directory from full path if it's a .json file
+            size_t dir_end = layer_path.find_last_of('/');
+            if (dir_end != std::string::npos &&
+                layer_path.length() >= 5 &&
+                layer_path.substr(layer_path.length() - 5) == ".json") {
+                layer_path_str += layer_path.substr(0, dir_end);
+            } else {
+                layer_path_str += layer_path;
+            }
+        }
+
+        if (!layer_path_str.empty()) {
+            setenv("VK_LAYER_PATH", layer_path_str.c_str(), 1);
+            std::cerr << "🔧 Set VK_LAYER_PATH: " << layer_path_str << std::endl;
+        }
+
+        std::cerr << "🔧 Validation layers configured" << std::endl;
+    } else {
+        // Clear validation layer configuration
+        unsetenv("VK_INSTANCE_LAYERS");
+        unsetenv("VK_LAYER_PATH");
+        std::cerr << "🔧 Validation layers disabled - cleared layer configuration" << std::endl;
+    }
+
+    std::cerr << "✅ Explicit Vulkan configuration applied" << std::endl;
+}

@@ -117,6 +117,7 @@ pub mod spirv_utils;
 pub mod tensor;
 #[cfg(test)]
 pub mod test_utils;
+pub mod vulkan_config;
 pub mod vulkan_setup;
 
 // Feature-gated async support
@@ -172,6 +173,7 @@ pub use queue::Queue;
 pub use sequence::Sequence;
 pub use spirv_utils::{CommonKernels, ShaderCompilationGuide, SpirvUtils};
 pub use tensor::{DataType, Tensor, TensorData};
+pub use vulkan_config::VulkanConfig;
 pub use vulkan_setup::{
     configure_vulkan_environment, configure_vulkan_environment_intelligent,
     diagnose_vulkan_environment, verify_vulkan_availability,

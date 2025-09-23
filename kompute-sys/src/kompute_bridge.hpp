@@ -89,6 +89,33 @@ extern std::mutex registry_mutex;
 std::unique_ptr<Manager> create_manager(uint32_t device_id);
 int32_t get_device_count();
 
+// Config-based Manager operations
+std::unique_ptr<Manager> create_manager_with_config(
+    uint32_t device_id,
+    bool use_moltenvk,
+    bool use_validation,
+    bool use_portability_extension,
+    rust::Str icd_path,
+    rust::Slice<const rust::String> layer_paths
+);
+
+int32_t get_device_count_with_config(
+    bool use_moltenvk,
+    bool use_validation,
+    bool use_portability_extension,
+    rust::Str icd_path,
+    rust::Slice<const rust::String> layer_paths
+);
+
+// Helper function for config-based environment setup
+void configure_vulkan_environment_from_config(
+    bool use_moltenvk,
+    bool use_validation,
+    bool use_portability_extension,
+    rust::Str icd_path,
+    rust::Slice<const rust::String> layer_paths
+);
+
 // Legacy SharedPtr operations (kept for compatibility)
 std::shared_ptr<Tensor> create_tensor_f32(Manager& manager, rust::Slice<const float> data);
 std::shared_ptr<Tensor> create_tensor_uninit_f32(Manager& manager, size_t size);

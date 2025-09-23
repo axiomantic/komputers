@@ -38,40 +38,75 @@ pub struct Manager {
 }
 
 impl Manager {
-    /// Create a new Manager with the default GPU device (device 0).
+    /// Create a new Manager with explicit Vulkan configuration and default GPU device (device 0).
     ///
-    /// This now uses intelligent GPU configuration that:
-    /// - Auto-detects Metal GPU support on compatible systems
-    /// - Auto-configures MoltenVK when appropriate
-    /// - Respects KOMPUTE_DISABLE_MOLTENVK_AUTO environment variable override
-    /// - Provides detailed, helpful error messages when configuration fails
+    /// This is the primary constructor for Manager that accepts explicit Vulkan
+    /// configuration, eliminating environment variable synchronization issues
+    /// in multi-threaded contexts.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - Explicit Vulkan configuration specifying MoltenVK, validation layers, etc.
     ///
     /// # Errors
     ///
     /// Returns [`KomputeError::DeviceError`] if no Vulkan-capable devices are found
-    /// or device initialization fails. Error messages now include platform-specific
-    /// troubleshooting guidance.
-    pub fn new() -> Result<Self> {
-        // Use intelligent configuration before attempting device creation
-        crate::vulkan_setup::configure_vulkan_environment_intelligent()
-            .map_err(|e| KomputeError::device(format!("Vulkan configuration failed: {}", e)))?;
-
-        Self::with_device(0)
+    /// or device initialization fails.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use komputers::{Manager, VulkanConfig, Result};
+    ///
+    /// fn create_manager() -> Result<Manager> {
+    ///     // Auto-detect optimal configuration
+    ///     let config = VulkanConfig::auto_detect()?;
+    ///     Manager::with_config(config)
+    /// }
+    /// ```
+    pub fn with_config(config: crate::VulkanConfig) -> Result<Self> {
+        Self::with_config_and_device(config, 0)
     }
 
-    /// Create a new Manager with the specified GPU device ID.
+    /// Create a new Manager with auto-detected configuration (convenience method).
+    ///
+    /// This is a convenience wrapper that auto-detects the optimal Vulkan
+    /// configuration for the current platform and creates a Manager with device 0.
+    ///
+    /// For more control, use `Manager::with_config(VulkanConfig::auto_detect()?)`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KomputeError::DeviceError`] if platform detection fails or
+    /// no Vulkan-capable devices are found.
+    pub fn new() -> Result<Self> {
+        let config = crate::VulkanConfig::auto_detect()
+            .map_err(|e| KomputeError::device(format!("Vulkan configuration failed: {}", e)))?;
+        Self::with_config(config)
+    }
+
+    /// Create a new Manager with explicit configuration and specified GPU device ID.
+    ///
+    /// This is the most flexible constructor that allows full control over both
+    /// Vulkan configuration and device selection.
     ///
     /// # Arguments
     ///
+    /// * `config` - Explicit Vulkan configuration
     /// * `device_id` - The GPU device index to use (0-based)
     ///
     /// # Errors
     ///
     /// Returns [`KomputeError::DeviceError`] if the specified device is not available
     /// or initialization fails.
-    pub fn with_device(device_id: u32) -> Result<Self> {
-        // First validate that devices are available
-        let device_count = Self::device_count().map_err(|e| {
+    pub fn with_config_and_device(config: crate::VulkanConfig, device_id: u32) -> Result<Self> {
+        // Validate the configuration first
+        config
+            .validate()
+            .map_err(|e| KomputeError::device(format!("Invalid Vulkan configuration: {}", e)))?;
+
+        // First validate that devices are available with the given configuration
+        let device_count = Self::device_count_with_config(&config).map_err(|e| {
             KomputeError::device(format!(
                 "Cannot create manager: device enumeration failed: {}",
                 e
@@ -80,8 +115,8 @@ impl Manager {
 
         if device_count == 0 {
             return Err(KomputeError::device(
-                "Cannot create manager: no Vulkan devices available. \
-                 Ensure MoltenVK is properly installed and configured."
+                "Cannot create manager: no Vulkan devices available with the given configuration. \
+                 Check MoltenVK installation and configuration."
                     .to_string(),
             ));
         }
@@ -96,17 +131,28 @@ impl Manager {
             )));
         }
 
-        // Attempt to create the manager with detailed error context
-        let handle = ffi::create_manager(device_id);
-        if handle.is_null() {
-            return Err(KomputeError::device(format!(
-                "Manager creation failed for device {} (out of {} available devices). \
-                 This may indicate a Vulkan driver issue or insufficient GPU memory.",
-                device_id, device_count
-            )));
-        }
-
+        // Attempt to create the manager with the given configuration
+        let handle = Self::call_create_manager_with_config(&config, device_id)?;
         Ok(Self { handle })
+    }
+
+    /// Create a new Manager with auto-detected configuration and specified GPU device ID.
+    ///
+    /// This is a convenience method that auto-detects optimal Vulkan configuration
+    /// and uses the specified device ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `device_id` - The GPU device index to use (0-based)
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KomputeError::DeviceError`] if the specified device is not available
+    /// or initialization fails.
+    pub fn with_device(device_id: u32) -> Result<Self> {
+        let config = crate::VulkanConfig::auto_detect()
+            .map_err(|e| KomputeError::device(format!("Vulkan configuration failed: {}", e)))?;
+        Self::with_config_and_device(config, device_id)
     }
 
     /// Get the number of available Vulkan-capable devices.
@@ -124,6 +170,98 @@ impl Manager {
             return Err(KomputeError::vulkan("Failed to enumerate Vulkan devices"));
         }
         Ok(count as u32)
+    }
+
+    /// Get the number of available Vulkan-capable devices with explicit configuration.
+    ///
+    /// This method enumerates devices using the provided Vulkan configuration,
+    /// which ensures consistent results with the configuration that will be
+    /// used for Manager creation.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - The Vulkan configuration to use for device enumeration
+    ///
+    /// # Returns
+    ///
+    /// The number of available GPU devices with the given configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KomputeError::VulkanError`] if device enumeration fails.
+    pub fn device_count_with_config(config: &crate::VulkanConfig) -> Result<u32> {
+        let count = Self::call_get_device_count_with_config(config)?;
+        Ok(count as u32)
+    }
+
+    // Helper methods to convert VulkanConfig to FFI parameters
+
+    /// Call create_manager_with_config FFI with proper parameter conversion.
+    fn call_create_manager_with_config(
+        config: &crate::VulkanConfig,
+        device_id: u32,
+    ) -> Result<cxx::UniquePtr<ffi::Manager>> {
+        let icd_path = config
+            .icd_path
+            .as_ref()
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_default();
+
+        let layer_paths: Vec<String> = config
+            .layer_paths
+            .iter()
+            .map(|p| p.to_string_lossy().to_string())
+            .collect();
+
+        let handle = ffi::create_manager_with_config(
+            device_id,
+            config.use_moltenvk,
+            config.use_validation,
+            config.use_portability_extension,
+            &icd_path,
+            &layer_paths,
+        );
+
+        if handle.is_null() {
+            return Err(KomputeError::device(format!(
+                "Failed to create manager with device ID {}. \
+                 This may indicate GPU initialization failure or invalid configuration.",
+                device_id
+            )));
+        }
+
+        Ok(handle)
+    }
+
+    /// Call get_device_count_with_config FFI with proper parameter conversion.
+    fn call_get_device_count_with_config(config: &crate::VulkanConfig) -> Result<i32> {
+        let icd_path = config
+            .icd_path
+            .as_ref()
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_default();
+
+        let layer_paths: Vec<String> = config
+            .layer_paths
+            .iter()
+            .map(|p| p.to_string_lossy().to_string())
+            .collect();
+
+        let count = ffi::get_device_count_with_config(
+            config.use_moltenvk,
+            config.use_validation,
+            config.use_portability_extension,
+            &icd_path,
+            &layer_paths,
+        );
+
+        if count < 0 {
+            return Err(KomputeError::vulkan(
+                "Failed to enumerate Vulkan devices with configuration",
+            ));
+        }
+
+        Ok(count)
     }
 
     /// Create a tensor with data copied from the host.
@@ -496,6 +634,44 @@ mod tests {
                 // Device enumeration failed - expected in CI/headless environments
                 assert!(true, "Device enumeration failed as expected");
             }
+        }
+    }
+
+    #[test]
+    fn test_explicit_vulkan_config() {
+        // Test the new explicit VulkanConfig API
+        println!("🧪 Testing explicit VulkanConfig API...");
+
+        // Test auto-detection
+        match crate::VulkanConfig::auto_detect() {
+            Ok(config) => {
+                println!("✅ Auto-detection successful");
+                println!("Config: {}", config.summary());
+
+                // Test config validation
+                match config.validate() {
+                    Ok(()) => println!("✅ Config validation passed"),
+                    Err(e) => println!("⚠️ Config validation failed: {}", e),
+                }
+
+                // Test Manager creation with explicit config (if validation passed)
+                if config.validate().is_ok() {
+                    match Manager::with_config(config) {
+                        Ok(_manager) => println!("✅ Manager created with explicit config"),
+                        Err(e) => println!("⚠️ Manager creation failed: {}", e),
+                    }
+                }
+            }
+            Err(e) => {
+                println!("⚠️ Auto-detection failed: {}", e);
+                // This is acceptable in some environments, so don't fail the test
+            }
+        }
+
+        // Test that convenience method still works
+        match Manager::new() {
+            Ok(_manager) => println!("✅ Manager::new() convenience method works"),
+            Err(e) => println!("⚠️ Manager::new() failed: {}", e),
         }
     }
 

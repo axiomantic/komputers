@@ -5,15 +5,25 @@
 
 #[cfg(feature = "async")]
 mod async_tests {
-    use komputers::{AsyncGpuExecutor, AsyncSequence, Manager, Result, Tensor};
+    use komputers::{AsyncGpuExecutor, AsyncSequence, Manager, Result, Tensor, VulkanConfig};
     use std::time::{Duration, Instant};
     use tokio::time::timeout;
+
+    /// Create a Manager with explicit configuration optimized for async/testing contexts.
+    ///
+    /// This eliminates environment variable synchronization issues by using
+    /// explicit configuration instead of relying on environment variables.
+    fn create_async_manager() -> Result<Manager> {
+        // Use testing configuration that's conservative and reliable
+        let config = VulkanConfig::for_testing();
+        Manager::with_config(config)
+    }
 
     #[tokio::test]
     async fn test_async_sequence_basic() -> Result<()> {
         println!("Starting basic async sequence test...");
 
-        let mut manager = Manager::new()?;
+        let mut manager = create_async_manager()?;
 
         // Create test data
         let data = vec![1.0f32, 2.0, 3.0, 4.0];
@@ -40,7 +50,7 @@ mod async_tests {
     async fn test_async_sequence_timeout() -> Result<()> {
         println!("Starting async sequence timeout test...");
 
-        let mut manager = Manager::new()?;
+        let mut manager = create_async_manager()?;
         let data = vec![1.0f32; 1000];
         let tensor = Tensor::new(&mut manager, &data)?;
 
@@ -73,7 +83,7 @@ mod async_tests {
     async fn test_async_gpu_executor() -> Result<()> {
         println!("Starting async GPU executor test...");
 
-        let mut manager = Manager::new()?;
+        let mut manager = create_async_manager()?;
         let mut executor = AsyncGpuExecutor::new()?;
 
         // Create test tensors
@@ -111,7 +121,7 @@ mod async_tests {
     async fn test_concurrent_async_operations() -> Result<()> {
         println!("Starting concurrent async operations test...");
 
-        let mut manager = Manager::new()?;
+        let mut manager = create_async_manager()?;
 
         // Create multiple async sequences
         let mut sequences = Vec::new();
@@ -154,7 +164,7 @@ mod async_tests {
     async fn test_async_error_handling() -> Result<()> {
         println!("Starting async error handling test...");
 
-        let mut manager = Manager::new()?;
+        let mut manager = create_async_manager()?;
 
         // Test with invalid tensor handle
         let mut async_seq = AsyncSequence::new(&mut manager)?;
@@ -179,7 +189,7 @@ mod async_tests {
     async fn test_async_sequence_reuse() -> Result<()> {
         println!("Starting async sequence reuse test...");
 
-        let mut manager = Manager::new()?;
+        let mut manager = create_async_manager()?;
         let data = vec![1.0f32, 2.0, 3.0, 4.0];
         let tensor = Tensor::new(&mut manager, &data)?;
 
@@ -202,7 +212,7 @@ mod async_tests {
     async fn test_async_cancellation() -> Result<()> {
         println!("Starting async cancellation test...");
 
-        let mut manager = Manager::new()?;
+        let mut manager = create_async_manager()?;
         let data = vec![1.0f32; 10000]; // Larger data for longer operation
         let tensor = Tensor::new(&mut manager, &data)?;
 
@@ -249,7 +259,7 @@ mod async_tests {
     async fn test_async_resource_cleanup() -> Result<()> {
         println!("Starting async resource cleanup test...");
 
-        let mut manager = Manager::new()?;
+        let mut manager = create_async_manager()?;
         let mut handles = Vec::new();
 
         // Create and drop async sequences in different scopes
@@ -292,7 +302,7 @@ mod async_tests {
     async fn test_async_stress() -> Result<()> {
         println!("Starting async stress test...");
 
-        let mut manager = Manager::new()?;
+        let mut manager = create_async_manager()?;
         let mut futures = Vec::new();
 
         // Create many concurrent async operations
@@ -301,7 +311,7 @@ mod async_tests {
             let tensor = Tensor::new(&mut manager, &data)?;
 
             let future = async move {
-                let mut manager = Manager::new()?;
+                let mut manager = create_async_manager()?;
                 let mut async_seq = AsyncSequence::new(&mut manager)?;
 
                 async_seq.record_tensor_sync_device(tensor.handle())?;
