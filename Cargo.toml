@@ -32,8 +32,8 @@ ash = "0.37"
 thiserror = "1.0"
 anyhow = "1.0"
 
-# Async support (for future use)
-tokio = { version = "1.0", features = ["rt", "rt-multi-thread", "time", "test-util", "macros"] }
+# Async support (optimized features)
+tokio = { version = "1.0", features = ["rt", "time", "macros", "sync"] }
 futures = "0.3"
 
 # Testing and benchmarking

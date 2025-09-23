@@ -23,17 +23,28 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache cargo registry
+      - name: Cache cargo registry and tools
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/registry
-            ~/.cargo/git
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/.cargo/bin/cargo-machete
             target
-          key: ${{ runner.os }}-cargo-machete-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-machete-${{ hashFiles('**/Cargo.lock') }}-v1
+          restore-keys: |
+            ${{ runner.os }}-cargo-machete-
 
-      - name: Install cargo-machete
-        run: cargo install cargo-machete
+      - name: Install cargo-machete (if not cached)
+        run: |
+          if ! command -v cargo-machete &> /dev/null; then
+            echo "Installing cargo-machete..."
+            cargo install cargo-machete
+          else
+            echo "cargo-machete already installed (from cache)"
+            cargo-machete --version
+          fi
 
       - name: Check for unused dependencies
         run: |
@@ -68,17 +79,28 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache cargo registry
+      - name: Cache cargo registry and tools
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/registry
-            ~/.cargo/git
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/.cargo/bin/cargo-geiger
             target
-          key: ${{ runner.os }}-cargo-geiger-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-geiger-${{ hashFiles('**/Cargo.lock') }}-v1
+          restore-keys: |
+            ${{ runner.os }}-cargo-geiger-
 
-      - name: Install cargo-geiger
-        run: cargo install cargo-geiger
+      - name: Install cargo-geiger (if not cached)
+        run: |
+          if ! command -v cargo-geiger &> /dev/null; then
+            echo "Installing cargo-geiger..."
+            cargo install cargo-geiger
+          else
+            echo "cargo-geiger already installed (from cache)"
+            cargo-geiger --version
+          fi
 
       - name: Unsafe code analysis
         run: |
@@ -137,17 +159,28 @@ jobs:
           sudo apt update
           sudo apt install -y vulkan-tools libvulkan-dev cmake build-essential
 
-      - name: Cache cargo registry
+      - name: Cache cargo registry and tools
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/registry
-            ~/.cargo/git
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/.cargo/bin/cargo-bloat
             target
-          key: ${{ runner.os }}-cargo-bloat-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-bloat-${{ hashFiles('**/Cargo.lock') }}-v1
+          restore-keys: |
+            ${{ runner.os }}-cargo-bloat-
 
-      - name: Install cargo-bloat
-        run: cargo install cargo-bloat
+      - name: Install cargo-bloat (if not cached)
+        run: |
+          if ! command -v cargo-bloat &> /dev/null; then
+            echo "Installing cargo-bloat..."
+            cargo install cargo-bloat
+          else
+            echo "cargo-bloat already installed (from cache)"
+            cargo-bloat --version
+          fi
 
       - name: Build release binary
         run: cargo build --release --all-features
@@ -205,17 +238,28 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache cargo registry
+      - name: Cache cargo registry and tools
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/registry
-            ~/.cargo/git
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/.cargo/bin/cargo-deadlinks
             target
-          key: ${{ runner.os }}-cargo-deadlinks-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-deadlinks-${{ hashFiles('**/Cargo.lock') }}-v1
+          restore-keys: |
+            ${{ runner.os }}-cargo-deadlinks-
 
-      - name: Install cargo-deadlinks
-        run: cargo install cargo-deadlinks
+      - name: Install cargo-deadlinks (if not cached)
+        run: |
+          if ! command -v cargo-deadlinks &> /dev/null; then
+            echo "Installing cargo-deadlinks..."
+            cargo install cargo-deadlinks
+          else
+            echo "cargo-deadlinks already installed (from cache)"
+            cargo-deadlinks --version
+          fi
 
       - name: Build documentation
         run: cargo doc --all-features --no-deps
@@ -248,17 +292,28 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache cargo registry
+      - name: Cache cargo registry and tools
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/registry
-            ~/.cargo/git
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/.cargo/bin/cargo-license
             target
-          key: ${{ runner.os }}-cargo-license-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-license-${{ hashFiles('**/Cargo.lock') }}-v1
+          restore-keys: |
+            ${{ runner.os }}-cargo-license-
 
-      - name: Install cargo-license
-        run: cargo install cargo-license
+      - name: Install cargo-license (if not cached)
+        run: |
+          if ! command -v cargo-license &> /dev/null; then
+            echo "Installing cargo-license..."
+            cargo install cargo-license
+          else
+            echo "cargo-license already installed (from cache)"
+            cargo-license --version
+          fi
 
       - name: Generate license report
         run: |

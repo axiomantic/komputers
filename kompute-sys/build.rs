@@ -1,5 +1,6 @@
 use std::env;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 #[derive(Debug, Clone)]
 enum KomputeVersion {
@@ -39,6 +40,32 @@ fn determine_kompute_version() -> KomputeVersion {
         // This should be caught by compile_error! but just in case
         panic!("No Kompute version feature enabled!")
     }
+}
+
+/// Detect available C++ compiler cache (sccache > ccache > none)
+fn detect_compiler_cache() -> Option<String> {
+    // Check for sccache first (Rust ecosystem preference)
+    if let Ok(output) = Command::new("sccache").arg("--version").output() {
+        if output.status.success() {
+            return Some("sccache".to_string());
+        }
+    }
+
+    // Fall back to ccache
+    if let Ok(output) = Command::new("ccache").arg("--version").output() {
+        if output.status.success() {
+            return Some("ccache".to_string());
+        }
+    }
+
+    // Check for environment override
+    if let Ok(launcher) = env::var("CMAKE_CXX_COMPILER_LAUNCHER") {
+        if !launcher.is_empty() {
+            return Some(launcher);
+        }
+    }
+
+    None
 }
 
 fn main() {
@@ -129,6 +156,18 @@ fn build_kompute_library(
     std::fs::create_dir_all(&build_dir)?;
 
     let mut cmake_config = cmake::Config::new(&cmake_dir);
+
+    // Detect and configure C++ compiler caching (sccache or ccache)
+    if let Some(compiler_launcher) = detect_compiler_cache() {
+        println!(
+            "cargo:warning=Using {} for C++ compilation caching",
+            compiler_launcher
+        );
+        cmake_config
+            .define("CMAKE_CXX_COMPILER_LAUNCHER", &compiler_launcher)
+            .define("CMAKE_C_COMPILER_LAUNCHER", &compiler_launcher);
+    }
+
     cmake_config
         .out_dir(&build_dir)
         .define("CMAKE_BUILD_TYPE", "Release")
