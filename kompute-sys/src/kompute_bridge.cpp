@@ -257,33 +257,23 @@ int32_t get_device_count() {
         // Configure Vulkan environment first
         configure_vulkan_environment();
 
-        // Use direct Vulkan calls to enumerate devices without creating a full Manager
-        // This avoids potential initialization issues with the Manager constructor
+        // STRATEGY CHANGE: Instead of raw Vulkan instance creation, use Manager
+        // Since Manager creation is working perfectly in both sync and async contexts,
+        // use it for device enumeration to avoid VK_ERROR_INCOMPATIBLE_DRIVER issues
 
-        // Create Vulkan instance for device enumeration only
-        VkApplicationInfo appInfo{};
-        appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = "Kompute Device Enumeration";
-        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.pEngineName = "Kompute";
-        appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.apiVersion = VK_API_VERSION_1_2;
+        std::cerr << "🔧 Using Manager-based device enumeration for compatibility" << std::endl;
+        auto manager = std::make_unique<kp::Manager>();
 
-        VkInstanceCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-        createInfo.pApplicationInfo = &appInfo;
+        // Get device count from the successfully created Manager
+        return static_cast<int32_t>(manager->listDevices().size());
 
-        // Intelligent portability extension configuration
-        std::vector<const char*> extensions;
-        auto config = platform_detection::load_platform_config();
-        auto platform_info = platform_detection::detect_platform();
-        auto decision = platform_detection::make_platform_decision(platform_info, config);
+    } catch (const std::exception& e) {
+        std::cerr << "❌ Failed to enumerate devices using Manager: " << e.what() << std::endl;
+        return -1;
+    }
+}
 
-        if (decision.use_portability_extension) {
-            extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-            createInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-            std::cerr << "🔧 Device enumeration using portability extension (" << decision.reasoning << ")" << std::endl;
-        }
+// Tensor operations
 
         // Configure validation layers if enabled and available
         std::vector<const char*> layers;
