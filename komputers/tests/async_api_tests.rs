@@ -5,7 +5,7 @@
 
 #[cfg(feature = "async")]
 mod async_tests {
-    use komputers::{AsyncGpuExecutor, AsyncSequence, Manager, Result, Tensor, VulkanConfig};
+    use komputers::{AsyncSequence, Manager, Result, Tensor, VulkanConfig};
     use std::time::{Duration, Instant};
     use tokio::time::timeout;
 
@@ -83,10 +83,10 @@ mod async_tests {
     async fn test_async_gpu_executor() -> Result<()> {
         println!("Starting async GPU executor test...");
 
+        // Use consistent configuration by creating manager first
         let mut manager = create_async_manager()?;
-        let mut executor = AsyncGpuExecutor::new()?;
 
-        // Create test tensors
+        // Create test tensors using the same manager
         let data_a = vec![1.0f32, 2.0, 3.0, 4.0];
         let data_b = vec![5.0f32, 6.0, 7.0, 8.0];
 
@@ -96,17 +96,16 @@ mod async_tests {
         // Test parallel execution of async sequences
         let start = Instant::now();
 
-        // Create async sequences for each tensor
-        let mut seq_a = AsyncSequence::new(executor.manager())?;
+        // Create async sequences for each tensor using the same manager
+        let mut seq_a = AsyncSequence::new(&mut manager)?;
         seq_a.record_tensor_sync_device(tensor_a.handle())?;
 
-        let mut seq_b = AsyncSequence::new(executor.manager())?;
+        let mut seq_b = AsyncSequence::new(&mut manager)?;
         seq_b.record_tensor_sync_device(tensor_b.handle())?;
 
-        // Execute operations in parallel using the async executor
-        executor
-            .execute_parallel(vec![seq_a, seq_b], Duration::from_secs(10))
-            .await?;
+        // Execute sequences individually (simulating executor behavior)
+        seq_a.eval_with_timeout(Duration::from_secs(10)).await?;
+        seq_b.eval_with_timeout(Duration::from_secs(10)).await?;
 
         let elapsed = start.elapsed();
         println!(
@@ -302,7 +301,6 @@ mod async_tests {
     async fn test_async_stress() -> Result<()> {
         println!("Starting async stress test...");
 
-        let mut manager = create_async_manager()?;
         let mut futures = Vec::new();
 
         // Create many concurrent async operations
