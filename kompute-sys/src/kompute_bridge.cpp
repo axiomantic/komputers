@@ -274,64 +274,6 @@ int32_t get_device_count() {
 }
 
 // Tensor operations
-
-        // Configure validation layers if enabled and available
-        std::vector<const char*> layers;
-        if (decision.use_validation) {
-            layers.push_back("VK_LAYER_KHRONOS_validation");
-            std::cerr << "🔧 Device enumeration using validation layers" << std::endl;
-        }
-
-        createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-        createInfo.ppEnabledExtensionNames = extensions.empty() ? nullptr : extensions.data();
-        createInfo.enabledLayerCount = static_cast<uint32_t>(layers.size());
-        createInfo.ppEnabledLayerNames = layers.empty() ? nullptr : layers.data();
-
-        VkInstance instance;
-        VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
-        if (result != VK_SUCCESS) {
-            // If validation layers were requested but failed, try without them
-            if (decision.use_validation && result == VK_ERROR_LAYER_NOT_PRESENT) {
-                std::cerr << "⚠️  Validation layers requested but not available, retrying without them..." << std::endl;
-
-                // Retry without validation layers
-                createInfo.enabledLayerCount = 0;
-                createInfo.ppEnabledLayerNames = nullptr;
-
-                result = vkCreateInstance(&createInfo, nullptr, &instance);
-                if (result == VK_SUCCESS) {
-                    std::cerr << "✅ Vulkan instance created successfully without validation layers" << std::endl;
-                } else {
-                    std::cerr << "❌ Failed to create Vulkan instance even without validation layers: " << result << std::endl;
-                    return -1;
-                }
-            } else {
-                std::cerr << "❌ Failed to create Vulkan instance for device enumeration: " << result << std::endl;
-                return -1;
-            }
-        } else if (decision.use_validation) {
-            std::cerr << "✅ Vulkan instance created successfully with validation layers" << std::endl;
-        }
-
-        // Enumerate physical devices
-        uint32_t deviceCount = 0;
-        result = vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-
-        vkDestroyInstance(instance, nullptr);
-
-        if (result != VK_SUCCESS) {
-            std::cerr << "Failed to enumerate physical devices: " << result << std::endl;
-            return -1;
-        }
-
-        return static_cast<int32_t>(deviceCount);
-    } catch (const std::exception& e) {
-        std::cerr << "Exception in get_device_count: " << e.what() << std::endl;
-        return -1;
-    }
-}
-
-// Tensor operations
 std::shared_ptr<Tensor> create_tensor_f32(Manager& manager, rust::Slice<const float> data) {
     try {
         std::vector<float> cpp_data(data.begin(), data.end());
