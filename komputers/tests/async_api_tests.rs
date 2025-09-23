@@ -307,13 +307,12 @@ mod async_tests {
 
         // Create many concurrent async operations
         for i in 0..20 {
-            let data: Vec<f32> = vec![i as f32; 50];
-            let tensor = Tensor::new(&mut manager, &data)?;
-
             let future = async move {
                 let mut manager = create_async_manager()?;
-                let mut async_seq = AsyncSequence::new(&mut manager)?;
+                let data: Vec<f32> = vec![i as f32; 50];
+                let tensor = Tensor::new(&mut manager, &data)?;
 
+                let mut async_seq = AsyncSequence::new(&mut manager)?;
                 async_seq.record_tensor_sync_device(tensor.handle())?;
                 async_seq.eval_with_timeout(Duration::from_secs(10)).await?;
 
