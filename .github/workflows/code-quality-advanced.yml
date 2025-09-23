@@ -312,7 +312,7 @@ jobs:
             cargo install cargo-license
           else
             echo "cargo-license already installed (from cache)"
-            cargo-license --version
+            cargo license --help | head -2 || echo "cargo-license is installed"
           fi
 
       - name: Generate license report
