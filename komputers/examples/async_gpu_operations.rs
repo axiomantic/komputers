@@ -16,7 +16,7 @@ use std::time::{Duration, Instant};
 use tokio::time::timeout;
 
 #[cfg(feature = "async")]
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     println!("🔄 Komputers Async GPU Operations Example");
     println!("==========================================");
