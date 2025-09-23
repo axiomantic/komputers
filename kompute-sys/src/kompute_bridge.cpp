@@ -7,81 +7,89 @@
 #include <vector>
 #include <unistd.h>
 #include <vulkan/vulkan.h>
+#include <mutex>
+#include <atomic>
+
+// Thread-safe environment configuration to prevent race conditions in async contexts
+static std::once_flag vulkan_env_configured;
 
 // Intelligent Vulkan environment configuration with platform detection
 void configure_vulkan_environment() {
-    using namespace platform_detection;
+    // Ensure environment is configured only once, thread-safely
+    std::call_once(vulkan_env_configured, []() {
+        using namespace platform_detection;
 
-    // Load platform configuration from environment
-    auto config = load_platform_config();
+        // Load platform configuration from environment
+        auto config = load_platform_config();
 
-    // Detect platform capabilities
-    auto platform_info = detect_platform();
+        // Detect platform capabilities
+        auto platform_info = detect_platform();
 
-    // Make intelligent decisions based on platform and user preferences
-    auto decision = make_platform_decision(platform_info, config);
+        // Make intelligent decisions based on platform and user preferences
+        auto decision = make_platform_decision(platform_info, config);
 
-    // Print detection results if verbose mode enabled
-    print_platform_info(platform_info, decision, config.verbose_detection);
+        // Print detection results if verbose mode enabled
+        print_platform_info(platform_info, decision, config.verbose_detection);
 
-    // Configure MoltenVK if decided to use it
-    if (decision.use_moltenvk) {
-        const char* vulkan_sdk = std::getenv("VULKAN_SDK");
-        if (vulkan_sdk) {
-            // Check if VK_ICD_FILENAMES is already set and points to an existing file
-            const char* existing_icd = std::getenv("VK_ICD_FILENAMES");
-            if (existing_icd && access(existing_icd, R_OK) == 0) {
-                // Already correctly set, don't override
-                std::cerr << "🔧 Using existing VK_ICD_FILENAMES: " << existing_icd << std::endl;
-            } else {
-                // Try common locations for MoltenVK ICD
-                std::vector<std::string> icd_candidates = {
-                    std::string(vulkan_sdk) + "/etc/vulkan/icd.d/MoltenVK_icd.json",
-                    std::string(vulkan_sdk) + "/share/vulkan/icd.d/MoltenVK_icd.json"
-                };
+        // Configure MoltenVK if decided to use it
+        if (decision.use_moltenvk) {
+            const char* vulkan_sdk = std::getenv("VULKAN_SDK");
+            if (vulkan_sdk) {
+                // Check if VK_ICD_FILENAMES is already set and points to an existing file
+                const char* existing_icd = std::getenv("VK_ICD_FILENAMES");
+                if (existing_icd && access(existing_icd, R_OK) == 0) {
+                    // Already correctly set, don't override
+                    std::cerr << "🔧 Using existing VK_ICD_FILENAMES: " << existing_icd << std::endl;
+                } else {
+                    // Try common locations for MoltenVK ICD
+                    std::vector<std::string> icd_candidates = {
+                        std::string(vulkan_sdk) + "/etc/vulkan/icd.d/MoltenVK_icd.json",
+                        std::string(vulkan_sdk) + "/share/vulkan/icd.d/MoltenVK_icd.json"
+                    };
 
-                for (const auto& icd_path : icd_candidates) {
-                    if (access(icd_path.c_str(), R_OK) == 0) {
-                        setenv("VK_ICD_FILENAMES", icd_path.c_str(), 1);
-                        std::cerr << "🔧 Set VK_ICD_FILENAMES: " << icd_path << std::endl;
-                        break;
+                    for (const auto& icd_path : icd_candidates) {
+                        if (access(icd_path.c_str(), R_OK) == 0) {
+                            setenv("VK_ICD_FILENAMES", icd_path.c_str(), 1);
+                            std::cerr << "🔧 Set VK_ICD_FILENAMES: " << icd_path << std::endl;
+                            break;
+                        }
                     }
                 }
             }
         }
-    }
 
-    // Configure validation layers based on decision - simple and direct
-    if (decision.use_validation) {
-        // Only set layer path, don't set VK_INSTANCE_LAYERS (let Kompute decide)
-        const char* vulkan_sdk = std::getenv("VULKAN_SDK");
-        if (vulkan_sdk) {
-            const char* existing_layer = std::getenv("VK_LAYER_PATH");
-            if (!existing_layer) {
-                std::string layer_path = std::string(vulkan_sdk) + "/share/vulkan/explicit_layer.d";
-                if (access(layer_path.c_str(), R_OK) == 0) {
-                    setenv("VK_LAYER_PATH", layer_path.c_str(), 1);
-                    std::cerr << "🔧 Set VK_LAYER_PATH for validation layers: " << layer_path << std::endl;
+        // Configure validation layers based on decision - simple and direct
+        if (decision.use_validation) {
+            // Only set layer path, don't set VK_INSTANCE_LAYERS (let Kompute decide)
+            const char* vulkan_sdk = std::getenv("VULKAN_SDK");
+            if (vulkan_sdk) {
+                const char* existing_layer = std::getenv("VK_LAYER_PATH");
+                if (!existing_layer) {
+                    std::string layer_path = std::string(vulkan_sdk) + "/share/vulkan/explicit_layer.d";
+                    if (access(layer_path.c_str(), R_OK) == 0) {
+                        setenv("VK_LAYER_PATH", layer_path.c_str(), 1);
+                        std::cerr << "🔧 Set VK_LAYER_PATH for validation layers: " << layer_path << std::endl;
+                    }
                 }
             }
+            std::cerr << "🔧 Validation layers available - letting Kompute decide usage" << std::endl;
+        } else {
+            // Ensure validation layers are disabled - clear ALL possible layer environment variables
+            unsetenv("VK_INSTANCE_LAYERS");
+            unsetenv("VK_LAYER_PATH");
+            unsetenv("VK_LOADER_LAYERS_ENABLE");
+            unsetenv("VK_LAYER_ENABLES");
+            unsetenv("VK_LOADER_LAYERS_DISABLE");
+            unsetenv("VK_LAYER_SETTINGS_PATH");
+            unsetenv("VK_KHRONOS_VALIDATION_LAYER");
+            std::cerr << "🔧 Validation layers disabled - comprehensive environment cleanup" << std::endl;
         }
-        std::cerr << "🔧 Validation layers available - letting Kompute decide usage" << std::endl;
-    } else {
-        // Ensure validation layers are disabled - clear ALL possible layer environment variables
-        unsetenv("VK_INSTANCE_LAYERS");
-        unsetenv("VK_LAYER_PATH");
-        unsetenv("VK_LOADER_LAYERS_ENABLE");
-        unsetenv("VK_LAYER_ENABLES");
-        unsetenv("VK_LOADER_LAYERS_DISABLE");
-        unsetenv("VK_LAYER_SETTINGS_PATH");
-        unsetenv("VK_KHRONOS_VALIDATION_LAYER");
-        std::cerr << "🔧 Validation layers disabled - comprehensive environment cleanup" << std::endl;
-    }
 
-    // Print any warnings
-    for (const auto& warning : decision.warnings) {
-        std::cerr << warning << std::endl;
-    }
+        // Print any warnings
+        for (const auto& warning : decision.warnings) {
+            std::cerr << warning << std::endl;
+        }
+    }); // End of std::call_once lambda
 }
 
 // OPTION 2: Custom Manager creation with PR #353 MoltenVK compatibility fix
