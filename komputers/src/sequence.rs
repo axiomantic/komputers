@@ -526,6 +526,7 @@ impl<State> Drop for Sequence<State> {
 
 #[cfg(test)]
 mod tests {
+    #[allow(unused_imports)]
     use super::*;
 
     // These tests will be added in Phase 3 to verify compile-time safety

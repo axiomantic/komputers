@@ -103,6 +103,27 @@ path = "examples/multi_type_tensors.rs"
 name = "scientific_computing"
 path = "examples/scientific_computing.rs"
 
+# Revolutionary safety examples showcasing the hybrid validation system
+[[example]]
+name = "basic_gpu_safety"
+path = "docs/examples/basic_gpu_safety.rs"
+
+[[example]]
+name = "cross_manager_safety"
+path = "docs/examples/cross_manager_safety.rs"
+
+[[example]]
+name = "consuming_builder_safety"
+path = "docs/examples/consuming_builder_safety.rs"
+
+[[example]]
+name = "spirv_algorithm_safety"
+path = "docs/examples/spirv_algorithm_safety.rs"
+
+[[example]]
+name = "performance_safety_overhead"
+path = "docs/examples/performance_safety_overhead.rs"
+
 # Benchmarks will be added later
 # [[bench]]
 # name = "tensor_operations"

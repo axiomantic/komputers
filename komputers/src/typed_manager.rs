@@ -667,6 +667,7 @@ pub fn create_async_manager_with_config(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(test)]
     use crate::VulkanConfig;
 
     #[test]
@@ -710,6 +711,7 @@ mod tests {
         assert_ne!(manager1.id().id(), manager2.id().id());
     }
 
+    #[cfg(feature = "async")]
     #[tokio::test]
     async fn test_type_safe_tensor_creation() {
         // Skip if no Vulkan available
@@ -736,6 +738,7 @@ mod tests {
         assert!(async_tensor.handle().raw_value() > 0);
     }
 
+    #[cfg(feature = "async")]
     #[tokio::test]
     async fn test_type_safe_sequence_operations() {
         // Skip if no Vulkan available
@@ -747,7 +750,7 @@ mod tests {
         let data = vec![1.0f32, 2.0, 3.0];
 
         let sync_tensor = sync_manager.create_tensor(&data).unwrap();
-        let mut sync_sequence = sync_manager.create_sequence().unwrap();
+        let sync_sequence = sync_manager.create_sequence().unwrap();
 
         // This should work - same manager type and sync mode
         let result = sync_sequence.record_tensor_sync_device(sync_tensor.handle());

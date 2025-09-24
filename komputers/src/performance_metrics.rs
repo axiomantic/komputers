@@ -745,7 +745,7 @@ mod tests {
         // Simulate high validation overhead
         std::thread::sleep(Duration::from_millis(100));
 
-        let report = profiler.end_session().unwrap();
+        let _report = profiler.end_session().unwrap();
         // In a real scenario with high validation overhead, recommendations would be generated
         // This test mainly verifies the structure compiles and runs
     }
