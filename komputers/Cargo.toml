@@ -83,9 +83,6 @@ path = "examples/basic_gpu_computing.rs"
 name = "advanced_gpu_operations"
 path = "examples/advanced_gpu_operations.rs"
 
-[[example]]
-name = "async_gpu_operations"
-path = "examples/async_gpu_operations.rs"
 
 [[example]]
 name = "image_processing_pipeline"

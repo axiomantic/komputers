@@ -248,12 +248,7 @@ pub mod runtime_validation;
 // Workgroup validation system for GPU compute operations
 pub mod workgroup_validation;
 
-// Feature-gated async support (temporarily disabled - needs update for consuming builder)
-// #[cfg(feature = "async")]
-// pub mod async_executor;
-
-// #[cfg(feature = "async")]
-// pub mod async_gpu;
+// Feature-gated async support - async_executor and async_gpu removed due to deprecated APIs
 
 #[cfg(feature = "async")]
 pub mod async_sequence;

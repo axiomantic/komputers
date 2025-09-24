@@ -77,11 +77,6 @@ fn test_advanced_gpu_operations_example() {
 }
 
 #[test]
-fn test_async_gpu_operations_example() {
-    assert_example_runs_successfully("async_gpu_operations");
-}
-
-#[test]
 fn test_image_processing_pipeline_example() {
     assert_example_runs_successfully("image_processing_pipeline");
 }
@@ -113,7 +108,6 @@ fn test_all_examples_compile() {
         "defensive_guards_demo",
         "basic_gpu_computing",
         "advanced_gpu_operations",
-        "async_gpu_operations",
         "image_processing_pipeline",
         "machine_learning_operations",
         "multi_type_tensors",
