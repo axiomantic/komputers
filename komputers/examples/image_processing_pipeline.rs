@@ -164,7 +164,7 @@ fn example_gaussian_blur(
     let workgroup_x = (width + 15) / 16;
     let workgroup_y = (height + 15) / 16;
     sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    sequence.execute()?;
 
     profiler.end_operation("gaussian_compute")?;
 
@@ -239,7 +239,7 @@ fn example_edge_detection(
     let workgroup_x = (width + 15) / 16;
     let workgroup_y = (height + 15) / 16;
     sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    sequence.execute()?;
 
     profiler.end_operation("edge_compute")?;
 
@@ -310,7 +310,7 @@ fn example_histogram_equalization(
     let mut sequence = manager.sequence()?;
     let workgroup_x = (total_pixels + 255) / 256;
     sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    sequence.execute()?;
 
     profiler.end_operation("histogram_compute")?;
 
@@ -347,7 +347,7 @@ fn example_histogram_equalization(
     let mut sequence = manager.sequence()?;
     let workgroup_x = (total_pixels + 255) / 256;
     sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    sequence.execute()?;
 
     profiler.end_operation("equalization_compute")?;
 
@@ -423,7 +423,7 @@ fn example_morphological_operations(
     let workgroup_x = (width + 15) / 16;
     let workgroup_y = (height + 15) / 16;
     sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    sequence.execute()?;
     profiler.end_operation("erosion_compute")?;
 
     // Dilation operation
@@ -437,7 +437,7 @@ fn example_morphological_operations(
 
     let mut sequence = manager.sequence()?;
     sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    sequence.execute()?;
     profiler.end_operation("dilation_compute")?;
 
     // Analyze morphological operations
@@ -507,7 +507,7 @@ fn example_color_space_conversion(
     let mut sequence = manager.sequence()?;
     let workgroup_x = (total_pixels + 255) / 256;
     sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    sequence.execute()?;
 
     profiler.end_operation("color_conversion_compute")?;
 

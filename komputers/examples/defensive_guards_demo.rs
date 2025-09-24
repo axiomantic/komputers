@@ -66,20 +66,22 @@ fn main() -> Result<()> {
     // Test 6: Sequence operations with invalid handles
     println!("\n6. Testing Sequence operations with invalid handles...");
     if let Ok(mut manager) = Manager::new() {
-        if let Ok(mut sequence) = Sequence::new(&mut manager) {
-            // Test with invalid tensor handle (0)
-            match sequence.record_tensor_sync_device(0) {
-                Ok(_) => println!("❌ Unexpected success with invalid tensor handle"),
-                Err(e) => println!("✅ Expected error: {}", e),
-            }
+        // Test with invalid tensor handle (0)
+        match manager
+            .sequence()
+            .and_then(|seq| seq.record_tensor_sync_device(0))
+        {
+            Ok(_) => println!("❌ Unexpected success with invalid tensor handle"),
+            Err(e) => println!("✅ Expected error: {}", e),
+        }
 
-            // Test with invalid algorithm handle (0)
-            match sequence.record_algorithm_dispatch(0) {
-                Ok(_) => println!("❌ Unexpected success with invalid algorithm handle"),
-                Err(e) => println!("✅ Expected error: {}", e),
-            }
-        } else {
-            println!("⚠️  Sequence creation failed (expected in non-GPU environments)");
+        // Test with invalid algorithm handle (0)
+        match manager
+            .sequence()
+            .and_then(|seq| seq.record_algorithm_dispatch(0))
+        {
+            Ok(_) => println!("❌ Unexpected success with invalid algorithm handle"),
+            Err(e) => println!("✅ Expected error: {}", e),
         }
     } else {
         println!("⚠️  Manager creation failed (expected in non-GPU environments)");

@@ -173,8 +173,8 @@ fn demonstrate_multi_queue_operations(manager: &mut Manager) -> Result<()> {
     let start = Instant::now();
 
     // In a real implementation, you would submit these sequences in parallel
-    sequence1.eval()?;
-    sequence2.eval()?;
+    sequence1.execute()?;
+    sequence2.execute()?;
 
     let parallel_duration = start.elapsed();
     println!(

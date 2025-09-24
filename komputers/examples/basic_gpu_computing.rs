@@ -40,9 +40,10 @@ fn main() -> Result<()> {
         &[&tensor_a, &tensor_b, &tensor_out],
     )?;
 
-    let mut sequence = manager.sequence()?;
-    sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    manager
+        .sequence()?
+        .record_algorithm_dispatch(algorithm.handle())?
+        .execute()?;
 
     // Get the results
     let result_data = tensor_out.to_vec()?;

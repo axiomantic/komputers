@@ -75,7 +75,7 @@ fn example_monte_carlo_pi(manager: &mut Manager, profiler: &mut PerformanceProfi
     let mut sequence = manager.sequence()?;
     let workgroups = (num_samples + 255) / 256;
     sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    sequence.execute()?;
 
     profiler.end_operation("monte_carlo_compute")?;
 
@@ -177,7 +177,7 @@ fn example_nbody_simulation(
     let mut sequence = manager.sequence()?;
     let workgroups = (num_bodies + 63) / 64; // 64 threads per workgroup for good occupancy
     sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    sequence.execute()?;
 
     profiler.end_operation("nbody_force_calculation")?;
 
@@ -252,7 +252,7 @@ fn example_numerical_integration(
     let mut sequence = manager.sequence()?;
     let workgroups = ((n + 1) + 255) / 256;
     sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    sequence.execute()?;
 
     profiler.end_operation("function_evaluation")?;
 
@@ -326,7 +326,7 @@ fn example_frequency_analysis(
     let mut sequence = manager.sequence()?;
     let workgroups = ((n / 2) + 63) / 64;
     sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    sequence.execute()?;
 
     profiler.end_operation("dft_computation")?;
 
@@ -439,7 +439,7 @@ fn example_heat_equation(manager: &mut Manager, profiler: &mut PerformanceProfil
         let workgroups_x = (nx + 15) / 16;
         let workgroups_y = (ny + 15) / 16;
         sequence.record_algorithm_dispatch(algorithm.handle())?;
-        sequence.eval()?;
+        sequence.execute()?;
 
         // Swap tensors for next iteration (in real implementation)
         if (step + 1) % 20 == 0 {
