@@ -334,6 +334,9 @@ impl<T: TensorData> Tensor<T> {
             ));
         }
 
+        // Register the tensor handle with the manager for runtime validation
+        manager.register_handle(handle);
+
         Ok(Self {
             handle,
             _phantom: PhantomData,
@@ -391,6 +394,9 @@ impl<T: TensorData> Tensor<T> {
                 "Uninitialized tensor creation returned invalid handle",
             ));
         }
+
+        // Register the tensor handle with the manager for runtime validation
+        manager.register_handle(handle);
 
         Ok(Self {
             handle,

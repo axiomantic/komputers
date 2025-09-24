@@ -98,10 +98,11 @@ impl GpuOps {
     {
         let start_time = std::time::Instant::now();
 
-        // Use basic sequence for tensor synchronization
-        let mut sequence = manager.sequence()?;
-        sequence.record_tensor_sync_local(tensor.handle())?;
-        sequence.eval()?;
+        // Use consuming builder pattern for tensor synchronization
+        manager
+            .sequence()?
+            .record_tensor_sync_local(tensor.handle())?
+            .execute()?;
 
         let execution_time = start_time.elapsed();
 

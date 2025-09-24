@@ -3,6 +3,7 @@
 use crate::error::{KomputeError, Result};
 use crate::manager::Manager;
 use crate::tensor::Tensor;
+use crate::workgroup_validation::{DynamicWorkgroupConfig, GpuLimits, WorkgroupValidation};
 use kompute_sys::ffi;
 use std::collections::HashMap;
 
@@ -84,6 +85,9 @@ impl Algorithm {
                 "Algorithm creation returned invalid handle",
             ));
         }
+
+        // Register the algorithm handle with the manager for runtime validation
+        manager.register_handle(handle);
 
         Ok(Self {
             handle,
@@ -324,11 +328,199 @@ impl Algorithm {
         }
     }
 
+    /// Validate workgroup configuration for this algorithm
+    ///
+    /// This method validates that the given workgroup configuration is suitable
+    /// for execution with this algorithm. It performs both static validation
+    /// and runtime GPU capability checking.
+    ///
+    /// # Arguments
+    ///
+    /// * `workgroup` - The workgroup configuration to validate
+    /// * `gpu_limits` - GPU capability limits for runtime validation
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` if the workgroup is valid for this algorithm
+    /// * `Err(KomputeError)` if validation fails
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use komputers::{Algorithm, DynamicWorkgroupConfig, GpuLimits};
+    ///
+    /// let workgroup = DynamicWorkgroupConfig::new(256, 1, 1)?;
+    /// let gpu_limits = GpuLimits::detect()?;
+    /// algorithm.validate_workgroup_dispatch(&workgroup, &gpu_limits)?;
+    /// # Ok::<(), komputers::KomputeError>(())
+    /// ```
+    pub fn validate_workgroup_dispatch(
+        &self,
+        workgroup: &DynamicWorkgroupConfig,
+        gpu_limits: &GpuLimits,
+    ) -> Result<()> {
+        // First validate against GPU hardware limits
+        workgroup.validate_against_gpu(gpu_limits)?;
+
+        // Check if algorithm has any bound tensors for element count validation
+        if !self.bound_tensors.is_empty() {
+            // TODO: Add tensor size vs workgroup size validation
+            // This would require knowing tensor dimensions and compute requirements
+        }
+
+        // Algorithm-specific validation passed
+        Ok(())
+    }
+
+    /// Get recommended workgroup configuration for this algorithm
+    ///
+    /// This method analyzes the algorithm's bound tensors and provides an
+    /// optimized workgroup configuration for the target GPU.
+    ///
+    /// # Arguments
+    ///
+    /// * `gpu_limits` - GPU capability information for optimization
+    ///
+    /// # Returns
+    ///
+    /// An optimized workgroup configuration for this algorithm
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use komputers::{Algorithm, GpuLimits};
+    ///
+    /// let gpu_limits = GpuLimits::detect()?;
+    /// let optimal_workgroup = algorithm.recommend_workgroup_config(&gpu_limits);
+    /// # Ok::<(), komputers::KomputeError>(())
+    /// ```
+    pub fn recommend_workgroup_config(&self, gpu_limits: &GpuLimits) -> DynamicWorkgroupConfig {
+        // Analyze bound tensors to determine optimal workgroup size
+        let total_bound_tensors = self.bound_tensors.len() as u32;
+
+        // For now, use conservative defaults based on number of bound tensors
+        // TODO: Integrate with actual tensor size analysis
+        let dimensions = if total_bound_tensors <= 1 {
+            1 // Simple 1D operations
+        } else if total_bound_tensors <= 3 {
+            2 // 2D operations (e.g., matrix operations)
+        } else {
+            3 // Complex 3D operations
+        };
+
+        // Use GPU limits to recommend optimal configuration
+        gpu_limits.recommend_workgroup(256, dimensions)
+    }
+
+    /// Get performance hints for algorithm execution
+    ///
+    /// This method analyzes the algorithm's characteristics and provides
+    /// performance optimization hints for better GPU utilization.
+    ///
+    /// # Returns
+    ///
+    /// Performance hints and recommendations for this algorithm
+    pub fn get_performance_hints(&self) -> AlgorithmPerformanceHints {
+        AlgorithmPerformanceHints {
+            bound_tensor_count: self.bound_tensors.len(),
+            is_compute_bound: self.bound_tensors.len() > 2,
+            is_memory_bound: self.bound_tensors.len() <= 2,
+            recommended_workgroup_size: if self.bound_tensors.len() > 3 {
+                512
+            } else {
+                256
+            },
+        }
+    }
+
     /// Get the internal handle value.
     ///
     /// This is used for interfacing with other handle-based operations.
     pub fn handle(&self) -> u64 {
         self.handle
+    }
+}
+
+/// Performance hints for algorithm execution
+///
+/// Provides insights into algorithm characteristics and optimization
+/// recommendations for better GPU utilization.
+#[derive(Debug, Clone)]
+pub struct AlgorithmPerformanceHints {
+    /// Number of tensors bound to this algorithm
+    pub bound_tensor_count: usize,
+    /// Whether this algorithm is likely compute-bound
+    pub is_compute_bound: bool,
+    /// Whether this algorithm is likely memory-bound
+    pub is_memory_bound: bool,
+    /// Recommended workgroup size for optimal performance
+    pub recommended_workgroup_size: u32,
+}
+
+impl AlgorithmPerformanceHints {
+    /// Get optimization recommendations
+    pub fn get_recommendations(&self) -> Vec<String> {
+        let mut recommendations = Vec::new();
+
+        if self.is_memory_bound {
+            recommendations.push(
+                "Consider optimizing memory access patterns for better performance".to_string(),
+            );
+            recommendations
+                .push("Use smaller workgroup sizes to reduce memory pressure".to_string());
+        }
+
+        if self.is_compute_bound {
+            recommendations.push(
+                "Consider using larger workgroup sizes for better compute utilization".to_string(),
+            );
+            recommendations
+                .push("Optimize algorithm logic to reduce computational complexity".to_string());
+        }
+
+        if self.bound_tensor_count > 4 {
+            recommendations.push(
+                "High tensor count may impact memory bandwidth - consider tensor reuse".to_string(),
+            );
+        }
+
+        if self.bound_tensor_count == 0 {
+            recommendations.push(
+                "No tensors bound - algorithm may not perform any meaningful work".to_string(),
+            );
+        }
+
+        if recommendations.is_empty() {
+            recommendations.push("Algorithm configuration looks optimal".to_string());
+        }
+
+        recommendations
+    }
+
+    /// Get performance score (0-100, higher is better)
+    pub fn performance_score(&self) -> u8 {
+        let mut score = 50; // Base score
+
+        // Optimal tensor count (2-4 tensors is usually good)
+        if (2..=4).contains(&self.bound_tensor_count) {
+            score += 20;
+        } else if self.bound_tensor_count > 4 {
+            score -= 10; // Too many tensors can hurt performance
+        } else if self.bound_tensor_count == 0 {
+            score -= 20; // No tensors is usually bad
+        }
+
+        // Balance between compute and memory bound
+        if !self.is_compute_bound && !self.is_memory_bound {
+            score += 10; // Well-balanced is good
+        }
+
+        // Reasonable workgroup size
+        if (128..=512).contains(&self.recommended_workgroup_size) {
+            score += 15;
+        }
+
+        score.min(100).max(0)
     }
 }
 
@@ -343,6 +535,43 @@ unsafe impl Send for Algorithm {}
 
 // Algorithms can be shared between threads with proper synchronization
 unsafe impl Sync for Algorithm {}
+
+// Implement WorkgroupValidation trait for Algorithm
+impl WorkgroupValidation for Algorithm {
+    /// Validate workgroup configuration for this algorithm
+    fn validate_workgroup(&self, config: &DynamicWorkgroupConfig) -> Result<()> {
+        // Basic workgroup validation
+        if config.total_size() == 0 {
+            return Err(KomputeError::compute("Workgroup size cannot be zero"));
+        }
+
+        if config.total_size() > 1024 {
+            return Err(KomputeError::compute(
+                "Workgroup size exceeds maximum limit of 1024",
+            ));
+        }
+
+        // Algorithm-specific validation
+        if self.bound_tensors.is_empty() {
+            // No tensors bound - workgroup size doesn't matter much
+            return Ok(());
+        }
+
+        // For algorithms with many bound tensors, smaller workgroups may be better
+        if self.bound_tensors.len() > 4 && config.total_size() > 256 {
+            return Err(KomputeError::compute(
+                "Large workgroup sizes may not be optimal for algorithms with many bound tensors",
+            ));
+        }
+
+        Ok(())
+    }
+
+    /// Get recommended workgroup configuration for this algorithm
+    fn recommend_workgroup(&self, gpu_limits: &GpuLimits) -> DynamicWorkgroupConfig {
+        self.recommend_workgroup_config(gpu_limits)
+    }
+}
 
 #[cfg(test)]
 mod tests {

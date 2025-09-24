@@ -2,11 +2,14 @@
 
 use crate::algorithm::Algorithm;
 use crate::error::{KomputeError, Result};
+use crate::runtime_validation::ManagerInstance;
 use crate::sequence::Sequence;
 use crate::tensor::{Tensor, TensorData};
+use crate::types::{HasManagerId, RuntimeManagerId};
 use cxx::UniquePtr;
 use kompute_sys::ffi;
 use std::pin::Pin;
+use std::sync::Arc;
 
 /// GPU device manager for resource allocation and compute operations.
 ///
@@ -35,6 +38,8 @@ use std::pin::Pin;
 /// ```
 pub struct Manager {
     handle: UniquePtr<ffi::Manager>,
+    /// Runtime validation instance for cross-manager handle tracking
+    validation_instance: Arc<ManagerInstance>,
 }
 
 impl Manager {
@@ -133,7 +138,15 @@ impl Manager {
 
         // Attempt to create the manager with the given configuration
         let handle = Self::call_create_manager_with_config(&config, device_id)?;
-        Ok(Self { handle })
+
+        // Create runtime validation instance
+        let manager_id = RuntimeManagerId::new();
+        let validation_instance = ManagerInstance::new(manager_id.id());
+
+        Ok(Self {
+            handle,
+            validation_instance,
+        })
     }
 
     /// Create a new Manager with auto-detected configuration and specified GPU device ID.
@@ -607,6 +620,36 @@ impl Manager {
     /// Using the handle after the Manager is dropped results in undefined behavior.
     pub(crate) fn handle(&mut self) -> Pin<&mut ffi::Manager> {
         self.handle.pin_mut()
+    }
+
+    /// Get access to the runtime validation instance
+    ///
+    /// This method provides access to the manager's validation instance for
+    /// advanced runtime validation scenarios.
+    pub fn validation_instance(&self) -> &Arc<ManagerInstance> {
+        &self.validation_instance
+    }
+
+    /// Register a handle as belonging to this manager instance
+    ///
+    /// This method should be called whenever a new handle is created by this manager
+    /// to enable runtime validation of cross-manager handle usage.
+    pub(crate) fn register_handle(&self, handle: u64) {
+        self.validation_instance.register_handle(handle);
+    }
+
+    /// Validate that a handle belongs to this manager instance
+    ///
+    /// This method checks if the given handle was created by this manager instance.
+    pub(crate) fn validate_handle(&self, handle: u64) -> Result<()> {
+        self.validation_instance.validate_handle(handle)
+    }
+}
+
+// Implement HasManagerId trait for runtime validation
+impl HasManagerId for Manager {
+    fn manager_id(&self) -> u64 {
+        self.validation_instance.id()
     }
 }
 

@@ -120,15 +120,32 @@ pub mod test_utils;
 pub mod vulkan_config;
 pub mod vulkan_setup;
 
-// Feature-gated async support
-#[cfg(feature = "async")]
-pub mod async_executor;
+// Type-safe handle system for compile-time validation
+pub mod handle;
+pub mod typed_manager;
+pub mod types;
+
+// Runtime validation system for cross-manager handle safety
+pub mod runtime_validation;
+
+// Workgroup validation system for GPU compute operations
+pub mod workgroup_validation;
+
+// Feature-gated async support (temporarily disabled - needs update for consuming builder)
+// #[cfg(feature = "async")]
+// pub mod async_executor;
+
+// #[cfg(feature = "async")]
+// pub mod async_gpu;
 
 #[cfg(feature = "async")]
-pub mod async_gpu;
+pub mod async_sequence;
+
+// Performance profiling and metrics system
+pub mod performance_metrics;
 
 // Re-export main types
-pub use algorithm::Algorithm;
+pub use algorithm::{Algorithm, AlgorithmPerformanceHints};
 pub use algorithm_binding::{
     AccessPattern, AlgorithmBinding, BindingTemplate, BindingValidationReport,
     CommonBindingTemplates, ParameterSpec, TensorBinding, TensorDataType, ValidationRule,
@@ -179,14 +196,55 @@ pub use vulkan_setup::{
     diagnose_vulkan_environment, verify_vulkan_availability,
 };
 
-// Feature-gated async support
-#[cfg(feature = "async")]
-pub use async_executor::{AsyncGpuExecutor, AsyncSequence, AsyncSequenceExecution};
+// Type-safe handle system exports
+pub use handle::{
+    AlgorithmType, AsyncAlgorithmHandle, AsyncMarker, AsyncQueueHandle, AsyncSequenceHandle,
+    AsyncTensorHandle, CompatibleHandles, Handle, IsAsync, IsSync, QueueType, SequenceType,
+    SyncAlgorithmHandle, SyncMarker, SyncQueueHandle, SyncSequenceHandle, SyncTensorHandle,
+    TensorType, UntypedHandle,
+};
+pub use runtime_validation::{
+    get_validation_metrics, is_validation_enabled, is_validation_overhead_acceptable,
+    register_handle_with_manager, register_handles_batch, set_validation_enabled,
+    validate_handle_with_manager, validate_handles_same_manager, ManagerInstance,
+};
+pub use typed_manager::{
+    create_async_manager, create_async_manager_with_config, create_sync_manager,
+    create_sync_manager_with_config, AsyncManager, AsyncTypedAlgorithm, AsyncTypedSequence,
+    AsyncTypedTensor, SyncManager, TypedAlgorithm, TypedSequence, TypedTensor,
+};
+pub use types::{
+    AsyncManagerType, DefaultAsyncManager, DefaultManagerId, DefaultSyncManager, HasManagerId,
+    ManagerId, RuntimeManagerId, SyncManagerType, TypeSafetyError,
+};
+pub use workgroup_validation::{
+    common_1d, common_2d, common_3d, DynamicWorkgroupConfig, GpuLimits, VendorInfo,
+    WorkgroupConfig as TypedWorkgroupConfig, WorkgroupPerformanceHints, WorkgroupValidation,
+};
+
+// Feature-gated async support (temporarily disabled - needs update for consuming builder)
+// #[cfg(feature = "async")]
+// pub use async_executor::{AsyncGpuExecutor, AsyncSequence, AsyncSequenceExecution};
+
+// #[cfg(feature = "async")]
+// pub use async_gpu::{
+//     AsyncComputeKernel, AsyncGpuContext, AsyncSequence as AsyncGpuSequence, AsyncTensor,
+//     AsyncWorkflowBuilder,
+// };
 
 #[cfg(feature = "async")]
-pub use async_gpu::{
-    AsyncComputeKernel, AsyncGpuContext, AsyncSequence as AsyncGpuSequence, AsyncTensor,
-    AsyncWorkflowBuilder,
+pub use async_sequence::{
+    async_utils, AsyncPerformanceMetrics, AsyncSequence as TypedAsyncSequence,
+    AsyncSequenceExecution as TypedAsyncSequenceExecution, AsyncSequenceResult,
+};
+
+// Performance profiling and metrics (with aliases to avoid conflicts)
+pub use performance_metrics::{
+    global_profiler, GlobalStatistics, OperationCategory, OperationProfile, OptimizationCategory,
+    OptimizationRecommendation as MetricsOptimizationRecommendation, PerformanceImprovement,
+    PerformanceProfiler as MetricsPerformanceProfiler, ProfilerConfig,
+    RecommendationPriority as MetricsRecommendationPriority, SessionReport, SessionSummary,
+    ValidationMetrics,
 };
 
 /// Version information for the kompute crate.
