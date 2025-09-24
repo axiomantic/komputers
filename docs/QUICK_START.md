@@ -5,6 +5,7 @@ Get productive with Komputers revolutionary type-safe GPU computing in just 5 mi
 ## 🎯 What You'll Accomplish
 
 By the end of this 5-minute guide, you'll:
+
 - ✅ Set up Komputers with Vulkan
 - ✅ Run your first type-safe GPU operation
 - ✅ See compile-time safety in action
@@ -31,11 +32,13 @@ default = ["async"]
 ```
 
 **Vulkan Setup:**
+
 - **Linux**: `sudo apt install vulkan-tools vulkan-utils` (Ubuntu/Debian)
 - **macOS**: Vulkan automatically available via MoltenVK
 - **Windows**: Install GPU drivers (Vulkan included)
 
 Verify Vulkan is working:
+
 ```bash
 vulkaninfo  # Should show your GPU information
 ```
@@ -80,11 +83,13 @@ fn main() -> Result<()> {
 ```
 
 Run it:
+
 ```bash
 cargo run
 ```
 
 Expected output:
+
 ```
 🚀 Starting type-safe GPU computing...
 ✅ GPU manager initialized successfully
@@ -146,6 +151,7 @@ fn demonstrate_safety() {
 ```
 
 **Try uncommenting this code** - you'll see helpful compile errors like:
+
 ```
 error: cannot use handle from different manager instance
   --> src/main.rs:XX:YY
@@ -209,11 +215,13 @@ fn robust_gpu_computing() -> Result<()> {
 Congratulations! You've just experienced the future of type-safe GPU computing. Here's where to go next:
 
 ### 📚 Learn More
+
 - **[API Reference](API_REFERENCE.md)** - Complete documentation with examples
 - **[Migration Guide](MIGRATION_GUIDE.md)** - Upgrade from unsafe GPU patterns
 - **[Best Practices](BEST_PRACTICES.md)** - Advanced usage patterns
 
 ### 🔬 Explore Features
+
 - **[Async GPU Operations](examples/async_gpu_operations.rs)** - Non-blocking GPU computing
 - **[Performance Profiling](examples/performance_monitoring.rs)** - AI-driven optimization
 - **[Workgroup Optimization](examples/workgroup_optimization.rs)** - Advanced GPU tuning
@@ -222,6 +230,7 @@ Congratulations! You've just experienced the future of type-safe GPU computing. 
 ### 🚀 Advanced Patterns
 
 **Async GPU Computing:**
+
 ```rust
 use komputers::*;
 
@@ -241,6 +250,7 @@ async fn async_example() -> Result<()> {
 ```
 
 **Performance Monitoring:**
+
 ```rust
 use komputers::performance_metrics::*;
 
@@ -261,6 +271,7 @@ fn optimized_example() -> Result<()> {
 ## 🎉 You Did It!
 
 In just 5 minutes, you've:
+
 - ✅ Set up type-safe GPU computing
 - ✅ Seen compile-time safety prevent crashes
 - ✅ Run actual GPU operations safely
@@ -272,19 +283,23 @@ In just 5 minutes, you've:
 ## 🆘 Troubleshooting
 
 **GPU not detected?**
+
 ```bash
 vulkaninfo  # Check Vulkan setup
 ```
 
 **Compilation errors?**
+
 - Ensure Rust 1.70+: `rustc --version`
 - Update dependencies: `cargo update`
 
 **Runtime errors?**
+
 - Check GPU drivers are up to date
 - Verify Vulkan is properly installed
 
 **Need help?**
+
 - Check [Troubleshooting Guide](TROUBLESHOOTING.md)
 - Join [GitHub Discussions](https://github.com/axiomantic/komputers/discussions)
 - File an [Issue](https://github.com/axiomantic/komputers/issues) with your error

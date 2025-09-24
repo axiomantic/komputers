@@ -520,7 +520,7 @@ impl AlgorithmPerformanceHints {
             score += 15;
         }
 
-        score.min(100).max(0)
+        score.clamp(0, 100)
     }
 }
 

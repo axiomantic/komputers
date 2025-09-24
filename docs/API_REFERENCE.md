@@ -30,6 +30,7 @@ pub struct Manager {
 ```
 
 #### Safety Guarantees
+
 - **Memory Safety**: All GPU resources automatically cleaned up via RAII
 - **Handle Tracking**: All created handles are tracked for validation
 - **Vulkan Management**: Automatic device initialization and cleanup
@@ -37,7 +38,7 @@ pub struct Manager {
 
 #### Construction
 
-```rust
+````rust
 impl Manager {
     /// Create a new GPU manager with automatic Vulkan setup
     ///
@@ -73,11 +74,11 @@ impl Manager {
     /// ```
     pub fn with_config(config: VulkanConfig) -> Result<Self, KomputeError>;
 }
-```
+````
 
 #### Resource Creation
 
-```rust
+````rust
 impl Manager {
     /// Create a type-safe sequence for recording GPU operations
     ///
@@ -126,7 +127,7 @@ impl Manager {
     /// ```
     pub fn manager_id(&self) -> u64;
 }
-```
+````
 
 ### Tensor<T>
 
@@ -139,6 +140,7 @@ pub struct Tensor<T: TensorData> {
 ```
 
 #### Safety Guarantees
+
 - **Type Safety**: Generic over data types with compile-time validation
 - **Memory Safety**: Automatic GPU memory allocation and cleanup
 - **Handle Validation**: All operations validated against creating manager
@@ -146,7 +148,7 @@ pub struct Tensor<T: TensorData> {
 
 #### Construction
 
-```rust
+````rust
 impl<T: TensorData> Tensor<T> {
     /// Create tensor from host data with automatic GPU upload
     ///
@@ -196,11 +198,11 @@ impl<T: TensorData> Tensor<T> {
     /// ```
     pub fn uninit(manager: &mut Manager, size: usize) -> Result<Self, KomputeError>;
 }
-```
+````
 
 #### Data Access
 
-```rust
+````rust
 impl<T: TensorData> Tensor<T> {
     /// Get tensor data with automatic host synchronization
     ///
@@ -252,7 +254,7 @@ impl<T: TensorData> Tensor<T> {
     /// ```
     pub fn handle(&self) -> u64;
 }
-```
+````
 
 ### Sequence<State>
 
@@ -269,6 +271,7 @@ pub struct Executed;
 ```
 
 #### Safety Guarantees
+
 - **Type-State Safety**: Consuming builder pattern prevents reuse and ensures execution
 - **Operation Validation**: All recorded operations validated at record time
 - **Resource Tracking**: Cross-manager handle usage prevented
@@ -276,7 +279,7 @@ pub struct Executed;
 
 #### Recording Operations (Consuming Builder Pattern)
 
-```rust
+````rust
 impl Sequence<Recording> {
     /// Record tensor device synchronization (consuming)
     ///
@@ -365,7 +368,7 @@ impl Sequence<Recording> {
     /// ```
     pub fn execute(self) -> Result<SequenceResult, KomputeError>;
 }
-```
+````
 
 #### Execution Results
 
@@ -434,7 +437,7 @@ pub type AsyncQueueHandle<ManagerType> = Handle<QueueType, AsyncMarker, ManagerT
 
 #### Handle Operations
 
-```rust
+````rust
 impl<ObjectType, SyncMode, ManagerType> Handle<ObjectType, SyncMode, ManagerType> {
     /// Create new typed handle from raw value
     ///
@@ -479,7 +482,7 @@ impl<ObjectType, SyncMode, ManagerType> Handle<ObjectType, SyncMode, ManagerType
     /// ```
     pub fn to_untyped(self) -> UntypedHandle;
 }
-```
+````
 
 #### Compatibility Checking
 
@@ -656,7 +659,7 @@ The runtime validation system provides efficient validation for scenarios that c
 
 ### Configuration
 
-```rust
+````rust
 /// Enable or disable runtime validation globally
 ///
 /// # Arguments
@@ -692,11 +695,11 @@ pub fn set_validation_enabled(enabled: bool);
 /// }
 /// ```
 pub fn is_validation_enabled() -> bool;
-```
+````
 
 ### Validation Functions
 
-```rust
+````rust
 /// Validate that a handle belongs to a specific manager
 ///
 /// # Arguments
@@ -748,11 +751,11 @@ pub fn validate_handle_with_manager(handle: u64, manager: &Manager) -> Result<()
 /// # Ok::<(), komputers::KomputeError>(())
 /// ```
 pub fn validate_handles_same_manager(handles: &[u64]) -> Result<(), KomputeError>;
-```
+````
 
 ### Performance Monitoring
 
-```rust
+````rust
 /// Get validation performance metrics
 ///
 /// # Returns
@@ -792,11 +795,11 @@ pub fn get_validation_metrics() -> Option<String>;
 /// }
 /// ```
 pub fn is_validation_overhead_acceptable(total_operation_time: Duration) -> bool;
-```
+````
 
 ### Manager Instance Tracking
 
-```rust
+````rust
 /// Register a handle with a manager for validation
 ///
 /// # Arguments
@@ -826,7 +829,7 @@ pub fn register_handle_with_manager(handle: u64, manager: &Manager);
 /// register_handles_batch(&[handle1, handle2, handle3], &manager);
 /// ```
 pub fn register_handles_batch(handles: &[u64], manager: &Manager);
-```
+````
 
 ### Usage Example
 
@@ -882,6 +885,7 @@ pub struct AsyncSequence<State = Recording> {
 ```
 
 #### Safety Guarantees
+
 - **Cancellation Safety**: Operations can be safely cancelled at await points
 - **Type Safety**: Same phantom type system as synchronous operations
 - **Resource Management**: Automatic cleanup even if futures are dropped
@@ -889,7 +893,7 @@ pub struct AsyncSequence<State = Recording> {
 
 #### Construction and Recording
 
-```rust
+````rust
 impl AsyncSequence<Recording> {
     /// Record tensor sync operation asynchronously (consuming)
     ///
@@ -952,7 +956,7 @@ impl AsyncSequence<Recording> {
     /// ```
     pub fn execute_async(self) -> AsyncSequenceExecution;
 }
-```
+````
 
 #### AsyncSequenceExecution Future
 
@@ -999,7 +1003,7 @@ pub struct AsyncPerformanceMetrics {
 
 ### Async Utilities
 
-```rust
+````rust
 /// Utility functions for async GPU operations
 pub mod async_utils {
     use super::*;
@@ -1065,7 +1069,7 @@ pub mod async_utils {
         manager: &mut AsyncManager
     ) -> Result<AsyncSequence<Recording>, KomputeError>;
 }
-```
+````
 
 ### Complete Async Example
 
@@ -1135,9 +1139,10 @@ async fn main() -> Result<()> {
 
 ---
 
-*[This is Part 1 of the API Reference. The complete documentation continues with Performance Profiling, Workgroup Validation, Error Types, and more components...]*
+_[This is Part 1 of the API Reference. The complete documentation continues with Performance Profiling, Workgroup Validation, Error Types, and more components...]_
 
 **Next sections to be documented:**
+
 - 📊 Performance Profiling (performance_metrics.rs)
 - 🏗️ Workgroup Validation (workgroup_validation.rs)
 - ❌ Error Types (Complete error hierarchy)

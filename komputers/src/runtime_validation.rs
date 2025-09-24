@@ -187,6 +187,7 @@ impl ValidationMetrics {
 #[derive(Debug)]
 pub struct ManagerInstance {
     id: u64,
+    #[allow(dead_code)]
     created_at: Instant,
 }
 

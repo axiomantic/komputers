@@ -50,6 +50,7 @@ fn main() -> Result<()> {
 **Before Komputers:** GPU computing in Rust was "write code and pray it doesn't crash" - manual handle management, cryptic segfaults, and runtime surprises.
 
 **With Komputers:** GPU computing becomes **impossible to use incorrectly**. Our hybrid validation system:
+
 - **85% compile-time prevention** - Most errors caught before your code even runs
 - **15% runtime validation** - Remaining edge cases caught with detailed error messages
 - **<5% performance overhead** - Revolutionary safety at zero cost
@@ -266,17 +267,18 @@ Komputers implements a **hybrid validation architecture** that combines the best
 
 ## 📊 Performance & Safety Metrics
 
-| Metric | Target | Achieved | Status |
-|--------|--------|----------|---------|
-| Compile-time error prevention | 80%+ | 85% | ✅ Exceeded |
-| Runtime validation overhead | <5% | 2.3% avg | ✅ Excellent |
-| Memory safety | 100% | 100% | ✅ Perfect |
-| API ergonomics | Rust-idiomatic | Consuming builders | ✅ Excellent |
-| Cross-platform support | Linux/macOS/Windows | Full support | ✅ Complete |
+| Metric                        | Target              | Achieved           | Status       |
+| ----------------------------- | ------------------- | ------------------ | ------------ |
+| Compile-time error prevention | 80%+                | 85%                | ✅ Exceeded  |
+| Runtime validation overhead   | <5%                 | 2.3% avg           | ✅ Excellent |
+| Memory safety                 | 100%                | 100%               | ✅ Perfect   |
+| API ergonomics                | Rust-idiomatic      | Consuming builders | ✅ Excellent |
+| Cross-platform support        | Linux/macOS/Windows | Full support       | ✅ Complete  |
 
 ## 🔬 Technical Innovation
 
 ### Phantom Type System
+
 Our type system uses phantom types to encode safety information directly in the type system:
 
 ```rust
@@ -287,6 +289,7 @@ pub struct Handle<ObjectType, SyncMode, ManagerType> {
 ```
 
 ### Consuming Builder Pattern
+
 Following Rust idioms like `std::process::Command`, our APIs consume ownership to prevent misuse:
 
 ```rust
@@ -297,6 +300,7 @@ impl Sequence<Recording> {
 ```
 
 ### Efficient Runtime Validation
+
 Global handle registry with smart caching and lifecycle tracking:
 
 ```rust
@@ -306,19 +310,20 @@ static HANDLE_REGISTRY: LazyLock<Mutex<HandleRegistry>> =
 
 ## 🌟 What Makes Komputers Different
 
-| Traditional GPU Computing | Komputers Type-Safe Approach |
-|---------------------------|------------------------------|
-| Manual handle management | Automatic RAII resource management |
+| Traditional GPU Computing          | Komputers Type-Safe Approach            |
+| ---------------------------------- | --------------------------------------- |
+| Manual handle management           | Automatic RAII resource management      |
 | Runtime crashes from wrong handles | 85% of errors prevented at compile time |
-| Cryptic segfaults | Clear, actionable error messages |
-| Hope-and-pray debugging | Impossible-to-misuse APIs |
-| Performance vs safety tradeoff | Revolutionary safety at zero cost |
+| Cryptic segfaults                  | Clear, actionable error messages        |
+| Hope-and-pray debugging            | Impossible-to-misuse APIs               |
+| Performance vs safety tradeoff     | Revolutionary safety at zero cost       |
 
 ## 🚧 Development Status
 
 **Current Version:** 0.3.0 (Revolutionary Safety Release)
 
 **Phase 1-4 Implementation:** ✅ **COMPLETED** (2025-01-24)
+
 - ✅ Type-safe handle system with phantom types
 - ✅ Runtime validation with <5% overhead
 - ✅ Consuming builder pattern integration
@@ -327,12 +332,14 @@ static HANDLE_REGISTRY: LazyLock<Mutex<HandleRegistry>> =
 - ✅ Workgroup validation with const generics
 
 **Phase 5 (In Progress):** Comprehensive Documentation
+
 - 🚧 Complete API reference with examples
 - 🚧 Migration guide from unsafe patterns
 - 🚧 Performance optimization guide
 - 🚧 Best practices documentation
 
 **Roadmap Future Enhancements:**
+
 - Tensor dimension safety with const generics: `Tensor<T, const N: usize>`
 - SPIR-V shader parameter compile-time validation
 - GPU memory layout and alignment safety
@@ -344,6 +351,7 @@ static HANDLE_REGISTRY: LazyLock<Mutex<HandleRegistry>> =
 We welcome contributions! This revolutionary safety system makes GPU computing accessible to all Rust developers.
 
 **Development Principles:**
+
 - Type safety first, performance second
 - Impossible to misuse APIs
 - Comprehensive testing with real GPU operations
@@ -367,4 +375,4 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 
 **Transform your GPU computing from "hope it doesn't crash" to "impossible to misuse" with Komputers revolutionary type-safe approach.**
 
-*Built with 🦀 Rust and ⚡ Vulkan for maximum performance and safety.*
+_Built with 🦀 Rust and ⚡ Vulkan for maximum performance and safety._
