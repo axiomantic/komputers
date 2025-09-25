@@ -1,109 +1,94 @@
-//! # Komputers: Revolutionary Type-Safe GPU Computing
+//! # Komputers: Type-Safe GPU Computing for Rust
 //!
-//! Transform GPU computing from **"hope it doesn't crash"** to **"impossible to misuse"**
-//! with Komputers' revolutionary hybrid compile-time + runtime validation system.
+//! A Rust wrapper for Vulkan GPU compute operations, built on the [Kompute](https://github.com/KomputeProject/kompute)
+//! C++ framework. Komputers provides memory-safe GPU computing with compile-time and runtime safety checks.
 //!
-//! Built on Vulkan via the [Kompute](https://github.com/KomputeProject/kompute) framework,
-//! Komputers provides memory-safe, type-safe GPU computing with zero-cost abstractions.
+//! ## Features
 //!
-//! ## 🚀 Revolutionary Safety Features
+//! - **Type Safety**: Compile-time validation of GPU resource usage and tensor operations
+//! - **Memory Safety**: RAII resource management with automatic cleanup and lifetime tracking
+//! - **Cross-Manager Protection**: Runtime validation prevents resource corruption across GPU contexts
+//! - **Consuming Builders**: Rust-idiomatic APIs that prevent accidental reuse of GPU sequences
+//! - **Async Support**: Optional async/await support for non-blocking GPU operations
 //!
-//! Our hybrid validation system prevents **85% of GPU errors at compile time** and catches
-//! the remaining 15% at runtime with **<5% performance overhead**:
+//! ## Quick Start
 //!
-//! - **🛡️ Compile-Time Safety**: Phantom types prevent cross-manager errors before your code runs
-//! - **⚡ Runtime Validation**: Intelligent checks catch edge cases with detailed error messages
-//! - **🔒 Consuming Builders**: Rust-idiomatic APIs that prevent reuse and ensure execution
-//! - **🚀 Zero-Cost Abstractions**: Revolutionary safety with no performance penalty
-//! - **🔄 Async/Await Support**: Type-safe asynchronous GPU operations with cancellation safety
-//!
-//! ## 🎯 Quick Start: Revolutionary Safety in Action
-//!
-//! ### Basic Type-Safe GPU Operations
+//! ### Basic GPU Operations
 //!
 //! ```rust,no_run
 //! use komputers::{Manager, Tensor, Result};
 //!
-//! fn revolutionary_safety_example() -> Result<()> {
-//!     // Create GPU manager with automatic resource tracking
+//! fn main() -> Result<()> {
 //!     let mut manager = Manager::new()?;
-//!
-//!     // Create type-safe tensors with automatic GPU memory management
 //!     let tensor = Tensor::new(&mut manager, &[1.0f32, 2.0, 3.0, 4.0])?;
 //!
-//!     // ✅ Type-safe consuming builder pattern - impossible to misuse!
+//!     // Consuming builder pattern ensures sequences are used exactly once
 //!     let result = manager
-//!         .sequence()?                                    // Create execution sequence
-//!         .record_tensor_sync_device(tensor.handle())?   // Upload data to GPU
-//!         .record_tensor_sync_local(tensor.handle())?    // Download results
-//!         .execute()?;                                    // Execute safely (consumes sequence)
+//!         .sequence()?
+//!         .record_tensor_sync_device(tensor.handle())?
+//!         .record_tensor_sync_local(tensor.handle())?
+//!         .execute()?;
 //!
-//!     println!("✅ Safe execution: {} operations in {:?}",
+//!     println!("Executed {} operations in {:?}",
 //!              result.operation_count, result.execution_time);
-//!
-//!     // ❌ This CANNOT compile - sequence already consumed!
-//!     // result.execute()?;  // COMPILE ERROR: use after move
-//!
 //!     Ok(())
 //! }
 //! ```
 //!
-//! ### Compile-Time Safety Prevention
+//! ### Cross-Manager Safety
 //!
 //! ```rust,compile_fail
 //! use komputers::{Manager, Tensor};
 //!
-//! fn impossible_cross_manager_usage() -> komputers::Result<()> {
+//! fn cross_manager_example() -> komputers::Result<()> {
 //!     let mut manager1 = Manager::new()?;
 //!     let mut manager2 = Manager::new()?;
 //!
 //!     let tensor = Tensor::new(&mut manager1, &[1.0f32])?;
 //!
-//!     // ❌ This CANNOT compile - cross-manager usage prevented!
+//!     // This will be caught at runtime with a clear error message
 //!     manager2.sequence()?
-//!         .record_tensor_sync_device(tensor.handle())?  // RUNTIME ERROR with clear message
+//!         .record_tensor_sync_device(tensor.handle())?
 //!         .execute()?;
 //!
 //!     Ok(())
 //! }
 //! ```
 //!
-//! ### Type-Safe Async GPU Operations
+//! ### Async Operations
 //!
 //! ```rust,no_run
 //! # #[cfg(feature = "async")]
 //! use komputers::*;
 //!
 //! # #[cfg(feature = "async")]
-//! async fn async_safety_example() -> Result<()> {
-//!     let mut manager = Manager::new()?;  // Async-compatible manager
+//! async fn async_example() -> Result<()> {
+//!     let mut manager = Manager::new()?;
 //!     let tensor = Tensor::new(&mut manager, &[1.0f32, 2.0, 3.0])?;
 //!
-//!     // ✅ Type-safe async execution with cancellation safety
 //!     let result = manager
 //!         .sequence()?
 //!         .record_tensor_sync_device(tensor.handle())?
-//!         .execute_async()?                              // Returns future
-//!         .await?;                                       // Cancellation-safe await
+//!         .execute_async()?
+//!         .await?;
 //!
-//!     println!("🚀 Async GPU execution: {:?}", result.execution_time);
+//!     println!("Async execution completed in {:?}", result.execution_time);
 //!     Ok(())
 //! }
 //! ```
 //!
-//! ## 🏗️ Revolutionary Architecture
+//! ## Architecture
 //!
-//! Komputers implements a **hybrid validation architecture** that combines the best
-//! of compile-time and runtime safety:
+//! Komputers combines compile-time and runtime validation:
 //!
-//! - **[`Manager`]**: GPU device management with automatic resource tracking
-//! - **[`Tensor<T>`]**: Type-safe GPU memory with phantom type validation
-//! - **[`Sequence<State>`]**: Consuming builder for type-state safety
-//! - **[`Algorithm`]**: SPIR-V compute shaders with workgroup validation
-//! - **Handle System**: Phantom types encode safety information in the type system
-//! - **Runtime Validation**: Global registry prevents cross-manager usage
+//! - **[`Manager`]**: GPU device management with resource tracking
+//! - **[`Tensor<T>`]**: Type-safe GPU memory with automatic cleanup
+//! - **[`Sequence<State>`]**: Consuming builder for operation chaining
+//! - **[`Algorithm`]**: SPIR-V compute shaders with validation
+//! - **Handle System**: Phantom types prevent resource misuse
+//! - **Runtime Validation**: Cross-manager usage detection
 //!
-//! ## 🔬 Technical Innovation
+//! ## Implementation Details
 //!
 //! ### Phantom Type System
 //! ```rust,ignore
@@ -117,80 +102,66 @@
 //! ```rust,ignore
 //! impl Sequence<Recording> {
 //!     pub fn record_tensor_sync_device(mut self, handle: u64) -> Result<Self>;
-//!     pub fn execute(self) -> Result<SequenceResult>;  // Consumes self!
+//!     pub fn execute(self) -> Result<SequenceResult>;  // Consumes self
 //! }
 //! ```
 //!
-//! ### Efficient Runtime Validation
+//! ### Runtime Validation
 //! ```rust,ignore
 //! static HANDLE_REGISTRY: LazyLock<Mutex<HandleRegistry>> =
 //!     LazyLock::new(|| Mutex::new(HandleRegistry::new()));
 //! ```
 //!
-//! ## 📊 Performance & Safety Metrics
+//! ## Komputers vs wgpu
 //!
-//! | Metric | Target | Achieved | Status |
-//! |--------|--------|----------|--------|
-//! | Compile-time error prevention | 80%+ | **85%** | ✅ Exceeded |
-//! | Runtime validation overhead | <5% | **2.3% avg** | ✅ Excellent |
-//! | Memory safety | 100% | **100%** | ✅ Perfect |
-//! | API ergonomics | Rust-idiomatic | **Consuming builders** | ✅ Excellent |
+//! **When to choose Komputers:**
+//! - High-level compute operations with tensors and algorithms
+//! - Need built-in safety validation for cross-manager resource usage
+//! - Prefer consuming builders that prevent accidental reuse
+//! - Working with machine learning, scientific computing, or image processing
+//! - Want automatic memory management and RAII cleanup
 //!
-//! ## 🌟 What Makes Komputers Revolutionary
+//! **When to choose wgpu:**
+//! - Need graphics rendering (wgpu supports both compute and graphics)
+//! - Want lower-level control over GPU resources and binding
+//! - Prefer WebGPU API compatibility and broader platform support
+//! - Need more mature ecosystem and documentation
+//! - Working with game development or complex graphics pipelines
 //!
-//! | Traditional GPU Computing | Komputers Type-Safe Approach |
-//! |---------------------------|------------------------------|
-//! | Manual handle management | Automatic RAII resource management |
-//! | Runtime crashes from wrong handles | 85% of errors prevented at compile time |
-//! | Cryptic segfaults | Clear, actionable error messages |
-//! | Hope-and-pray debugging | Impossible-to-misuse APIs |
-//! | Performance vs safety tradeoff | Revolutionary safety at zero cost |
+//! **Feature Comparison:**
 //!
-//! ## 📚 Complete Documentation
+//! | Feature | Komputers | wgpu |
+//! |---------|-----------|------|
+//! | API Level | High-level compute wrapper | Low-level WebGPU implementation |
+//! | Safety Model | Compile-time + runtime validation | Standard Rust memory safety |
+//! | Graphics Support | Compute only | Full graphics + compute |
+//! | Backend | Vulkan via Kompute | Vulkan, Metal, DX12, WebGPU |
+//! | Tensor Operations | Built-in tensor types | Manual buffer management |
+//! | Cross-Manager Safety | Automatic validation | Manual resource tracking |
+//! | Learning Curve | Moderate (tensor-focused) | Steep (low-level GPU concepts) |
+//! | Use Cases | ML, scientific computing, GPGPU | Games, graphics, general compute |
 //!
-//! - **[Quick Start Guide](https://github.com/axiomantic/komputers/blob/main/docs/QUICK_START.md)** - 5-minute onboarding to type-safe GPU computing
-//! - **[API Reference](https://github.com/axiomantic/komputers/blob/main/docs/API_REFERENCE.md)** - Comprehensive examples and usage patterns
-//! - **[Migration Guide](https://github.com/axiomantic/komputers/blob/main/docs/MIGRATION_GUIDE.md)** - Upgrade from unsafe GPU patterns
-//! - **[Performance Guide](https://github.com/axiomantic/komputers/blob/main/docs/PERFORMANCE_GUIDE.md)** - Optimization and profiling
-//! - **[Examples](https://github.com/axiomantic/komputers/tree/main/docs/examples)** - Working examples for common patterns
+//! ## Error Handling
 //!
-//! ## 🚀 Features
-//!
-//! - **🛡️ Revolutionary Safety**: 85% compile-time + 15% runtime validation
-//! - **⚡ Zero-Cost Abstractions**: Type safety with no performance overhead
-//! - **🔄 Async/Await Support**: Cancellation-safe GPU operations with tokio
-//! - **🏗️ Consuming Builders**: Rust-idiomatic APIs prevent misuse
-//! - **📊 Performance Profiling**: AI-driven optimization recommendations
-//! - **🌍 Cross-Platform**: Linux, Windows, macOS with Vulkan drivers
-//! - **🎯 Workgroup Validation**: Compile-time + runtime GPU optimization
-//! - **🔍 Intelligent Errors**: Clear, actionable error messages with context
-//!
-//! ## 🆘 Error Handling
-//!
-//! All operations return comprehensive [`Result`] types with detailed [`KomputeError`]
-//! information. Our revolutionary validation system transforms cryptic GPU crashes
-//! into clear, actionable error messages:
+//! Operations return [`Result`] types with detailed [`KomputeError`] information:
 //!
 //! ```rust,no_run
 //! # use komputers::*;
 //! # fn example() -> Result<()> {
 //! match manager.sequence()?.execute() {
 //!     Ok(result) => {
-//!         println!("✅ Success: {} operations", result.operation_count);
+//!         println!("Success: {} operations", result.operation_count);
 //!     },
 //!     Err(KomputeError::TypeSafety(safety_error)) => {
-//!         eprintln!("🛡️ Safety system prevented crash: {}", safety_error);
-//!         eprintln!("💡 This error shows our validation working correctly!");
+//!         eprintln!("Safety validation failed: {}", safety_error);
 //!     },
 //!     Err(other) => {
-//!         eprintln!("❌ GPU error with clear context: {}", other);
+//!         eprintln!("GPU error: {}", other);
 //!     }
 //! }
 //! # Ok(())
 //! # }
 //! ```
-//!
-//! **Ready to revolutionize your GPU computing? Install Komputers and experience the future of type-safe GPU operations! 🚀**
 
 #![deny(missing_docs)]
 #![warn(rust_2018_idioms)]
@@ -203,11 +174,11 @@
 #[cfg(not(feature = "kompute-master"))]
 compile_error!(
     "
-❌ NO KOMPUTE VERSION SELECTED
-✅ SOLUTION: v0.1.0 release only supports kompute-master
-📖 Example: cargo build --features kompute-master
-⚠️  Note: This release uses Kompute master branch due to compatibility requirements
-💡 Future releases may support official Kompute versions when compatibility is resolved
+NO KOMPUTE VERSION SELECTED
+SOLUTION: v0.1.0 release only supports kompute-master
+Example: cargo build --features kompute-master
+Note: This release uses Kompute master branch due to compatibility requirements
+Future releases may support official Kompute versions when compatibility is resolved
 "
 );
 
