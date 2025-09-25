@@ -1,23 +1,23 @@
-//! # Performance vs Safety Analysis
+//! # Safety Validation Analysis
 //!
-//! This example measures and demonstrates that Komputers' revolutionary safety system
-//! adds minimal overhead (<5%) while providing complete protection against GPU crashes.
+//! This example demonstrates Komputers' comprehensive safety system
+//! and its validation capabilities for protecting against GPU errors.
 //!
 //! ## What You'll See:
-//! - 📊 Actual performance measurements of safety validation overhead
-//! - ⚡ Comparison of operations with and without validation
-//! - 🎯 Demonstration that safety is nearly "zero-cost"
-//! - 📈 Analysis showing safety benefits far outweigh minimal cost
+//! - 🛡️ Safety validation system in action
+//! - ✅ Comparison of validated vs unvalidated operations
+//! - 🎯 Demonstration of comprehensive safety coverage
+//! - 📈 Analysis showing safety validation effectiveness
 //!
-//! ## Key Metrics:
-//! - Runtime validation: <5% overhead (typically 1-3%)
-//! - Compile-time safety: 0% runtime overhead (type system only)
-//! - Memory safety: 0% overhead (RAII pattern)
-//! - Cross-manager validation: <1% overhead (handle checking)
+//! ## Key Safety Features:
+//! - Runtime validation: Comprehensive error detection and prevention
+//! - Compile-time safety: Type system validation (compile-time only)
+//! - Memory safety: RAII-based resource management
+//! - Cross-manager validation: Handle integrity checking
 //!
-//! ## The Revolutionary Trade-off:
-//! Traditional GPU: 0% safety overhead, 100% crash risk
-//! Komputers: <5% safety overhead, 0% crash risk
+//! ## The Safety Philosophy:
+//! Traditional GPU: No validation, high crash risk
+//! Komputers: Comprehensive validation, reliable execution
 //!
 //! ## Run this example:
 //! ```bash
@@ -83,9 +83,9 @@ fn main() -> Result<()> {
     println!("\n💾 Step 6: Memory Safety Analysis");
     analyze_memory_safety(&mut manager)?;
 
-    // Step 7: Compile-time safety (zero cost)
-    println!("\n⚡ Step 7: Compile-Time Safety (Zero Cost)");
-    demonstrate_zero_cost_safety();
+    // Step 7: Compile-time safety validation
+    println!("\n🛡️ Step 7: Compile-Time Safety Validation");
+    demonstrate_compile_time_safety();
 
     println!("\n🎉 CONCLUSION: Revolutionary Safety with Minimal Cost!");
     println!("=====================================");
@@ -292,8 +292,8 @@ fn get_approximate_memory_usage() -> usize {
         * 1024 // Convert KB to bytes
 }
 
-fn demonstrate_zero_cost_safety() {
-    println!("   ⚡ Zero-Cost Compile-Time Safety Features:");
+fn demonstrate_compile_time_safety() {
+    println!("   🛡️ Compile-Time Safety Features:");
     println!("      ✅ Type-safe tensors: Tensor<f32> vs Tensor<i32>");
     println!("         Runtime cost: 0% (phantom types compile away)");
 
@@ -307,7 +307,7 @@ fn demonstrate_zero_cost_safety() {
     println!("         Runtime cost: 0% (type system validation)");
 
     println!("\n   🚀 Total compile-time safety cost: 0%");
-    println!("      All safety features use Rust's zero-cost abstraction principles!");
+    println!("      All safety features use Rust's compile-time validation principles!");
 }
 
 #[cfg(test)]

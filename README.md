@@ -8,7 +8,7 @@
 
 Rust bindings for the [Kompute](https://github.com/KomputeProject/kompute) GPU compute framework.
 
-Komputers provides GPU computing with Vulkan through a Rust interface. It includes tensor operations, SPIR-V algorithm support, and memory management for GPU workloads.
+Komputers provides safety-first GPU computing with Vulkan through a Rust interface. It prioritizes correctness, reliability, and cross-platform compatibility for GPU tensor operations, SPIR-V algorithm support, and memory management.
 
 ## Status
 
@@ -120,18 +120,18 @@ fn multi_type_example() -> komputers::Result<()> {
 use komputers::{GpuOperations, WorkgroupConfig};
 
 fn high_level_example() -> komputers::Result<()> {
-    // High-level operations manager with automatic optimization
+    // High-level operations manager with safety-first validation
     let mut ops = GpuOperations::new()?;
 
     let source = Tensor::new(ops.manager(), &[1.0f32; 1000])?;
     let mut dest = Tensor::uninit::<f32>(ops.manager(), 1000)?;
 
-    // Optimized GPU copy with automatic workgroup sizing
+    // Safe GPU copy with validated workgroup sizing
     ops.copy(&source, &mut dest)?;
 
-    // Custom workgroup configuration for advanced use cases
-    let workgroup = WorkgroupConfig::optimal_1d(1000);
-    println!("Optimal workgroup: {}x{}x{}", workgroup.x, workgroup.y, workgroup.z);
+    // Custom workgroup configuration with safety validation
+    let workgroup = WorkgroupConfig::validated_1d(1000);
+    println!("Safe workgroup: {}x{}x{}", workgroup.x, workgroup.y, workgroup.z);
 
     Ok(())
 }
@@ -244,15 +244,16 @@ let report = diagnose_vulkan_environment()?;
 println!("Vulkan Status: {}", report.status);
 ```
 
-## Performance
+## Safety-First Design
 
-Komputers includes performance features:
+Komputers prioritizes safety, reliability, and correctness:
 
-- **Rust Zero-Cost Abstractions**: Compile-time optimization with minimal runtime overhead
-- **Memory Management**: GPU memory pooling and defragmentation
-- **Data Transfer**: Staging buffers to minimize host-GPU memory copies
-- **Workgroup Sizing**: Workgroup configuration based on GPU architecture
-- **Multi-Queue Support**: Concurrent GPU execution across multiple command queues
+- **Memory Safety**: RAII-based GPU resource management with automatic cleanup
+- **Type Safety**: Compile-time and runtime validation for all GPU operations
+- **Cross-Platform Reliability**: Consistent behavior across Linux, Windows, and macOS
+- **Error Recovery**: Comprehensive error handling with recovery strategies
+- **Validation System**: Runtime checks to prevent GPU errors and resource leaks
+- **Multi-Queue Safety**: Thread-safe concurrent GPU execution
 
 ## Safety
 
@@ -278,7 +279,7 @@ Komputers includes testing suites:
 
 - **Test Suites**: Unit, integration, and end-to-end testing
 - **Memory Safety**: AddressSanitizer and LeakSanitizer integration
-- **Performance Testing**: Benchmarking with regression detection
+- **Correctness Validation**: Functional testing with comprehensive error detection
 - **Cross-Platform**: Testing across Linux, Windows, macOS
 - **GPU Hardware**: Testing across NVIDIA, AMD, Intel, Apple GPUs
 
@@ -291,8 +292,8 @@ cargo test --release --features "async,glsl,debug,validation,test-utils"
 # Memory safety validation (if asan feature is available)
 # cargo test --features asan
 
-# Performance regression testing
-cargo test --test performance_regression_suite -- --nocapture
+# Safety and correctness validation
+cargo test --test safety_validation_suite -- --nocapture
 
 # Cross-platform compatibility
 cargo test --test gpu_vendor_compatibility_matrix

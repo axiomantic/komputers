@@ -464,20 +464,12 @@ impl Manager {
     /// - **Memory Safety**: Automatic GPU memory allocation and cleanup via RAII
     /// - **Data Integrity**: Host data automatically uploaded to GPU memory
     ///
-    /// ## 🚀 Zero-Cost Abstractions
+    /// ## 🛡️ Safety Features
     ///
-    /// - **Type overhead**: Zero - generic parameters erased at compile time
-    /// - **Handle overhead**: 8 bytes (u64) - same as raw pointer
-    /// - **Validation overhead**: <1% of operation time
-    /// - **Memory layout**: Optimal GPU memory alignment automatically applied
-    ///
-    /// ## ⚡ Performance Characteristics
-    ///
-    /// - **Small tensors (<1KB)**: ~1-5μs creation + GPU upload
-    /// - **Medium tensors (1MB)**: ~100μs creation + ~1ms upload
-    /// - **Large tensors (100MB)**: ~1ms creation + ~10-50ms upload
-    /// - **Memory efficiency**: Packed layout, no padding overhead
-    /// - **Upload optimization**: Automatic staging buffer for large transfers
+    /// - **Type Safety**: Generic parameters validated at compile time
+    /// - **Memory Safety**: Automatic GPU memory management with RAII cleanup
+    /// - **Cross-Platform**: Consistent behavior across Linux, Windows, and macOS
+    /// - **Error Recovery**: Comprehensive error handling with detailed diagnostics
     ///
     /// # Type Parameters
     ///
@@ -682,20 +674,20 @@ impl Manager {
     /// - **Handle Tracking**: Sequence handle automatically registered for validation
     /// - **Resource Safety**: Automatic cleanup if sequence is dropped without execution
     ///
-    /// ## 🚀 Zero-Cost Abstractions
+    /// ## 🛡️ Safety Features
     ///
-    /// - **Creation time**: ~100ns (extremely fast)
-    /// - **Memory overhead**: ~64 bytes per sequence
-    /// - **Validation overhead**: <1% of operation time
-    /// - **Builder pattern**: Zero runtime cost - pure compile-time safety
+    /// - **Type-State Safety**: Compile-time prevention of invalid sequences
+    /// - **Resource Tracking**: Automatic validation of all operations
+    /// - **Cross-Manager Safety**: Runtime validation prevents resource corruption
+    /// - **Memory Safety**: Automatic cleanup with RAII patterns
     ///
-    /// ## ⚡ Performance Characteristics
+    /// ## 🔄 Batch Operations
     ///
-    /// Sequences batch GPU operations for optimal performance:
-    /// - **Memory transfers**: Batch upload/download operations
-    /// - **Compute dispatches**: Execute multiple algorithms in sequence
-    /// - **Synchronization**: Minimal GPU-CPU synchronization points
-    /// - **Command buffer reuse**: Efficient Vulkan command buffer management
+    /// Sequences organize GPU operations for safety and reliability:
+    /// - **Memory transfers**: Validated upload/download operations
+    /// - **Compute dispatches**: Type-checked algorithm execution
+    /// - **Error recovery**: Comprehensive error handling and cleanup
+    /// - **Resource management**: Automatic Vulkan resource lifecycle
     ///
     /// # Returns
     ///
@@ -906,7 +898,7 @@ impl Manager {
     /// Create a tensor filled with a specific value.
     ///
     /// This method creates a new tensor where all elements are initialized to the
-    /// specified fill value. It's optimized for large tensors and provides a
+    /// specified fill value. It provides reliable initialization for tensors and offers a
     /// convenient way to create tensors with uniform values.
     ///
     /// # Arguments

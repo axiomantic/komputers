@@ -16,7 +16,7 @@ readme = "README.md"
 
 [dependencies]
 # Core dependencies
-kompute-sys = { version = "0.1.0", path = "../kompute-sys" }
+kompute-sys = { version = "0.4.0", path = "../kompute-sys" }
 ash.workspace = true
 thiserror.workspace = true
 log.workspace = true

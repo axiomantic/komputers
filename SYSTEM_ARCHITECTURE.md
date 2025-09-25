@@ -2,7 +2,7 @@
 
 ## 1. Core Philosophy & Guiding Principles
 
-Komputers is built upon the foundation of memory-safe systems programming with zero-cost abstractions for GPU computing. The system embodies the principle that GPU compute power should be accessible through idiomatic Rust interfaces without sacrificing performance or safety.
+Komputers is built upon the foundation of memory-safe systems programming with safety-first design for GPU computing. The system embodies the principle that GPU compute power should be accessible through idiomatic Rust interfaces while prioritizing reliability, correctness, and cross-platform compatibility.
 
 ### 1.1. Guiding Technical Principles
 
@@ -14,13 +14,13 @@ The implementation is governed by the following non-negotiable principles:
 - **Principle of Integration**: All components must work harmoniously within the larger system architecture.
 - **Principle of Evolution**: The architecture must support growth, change, and continuous improvement.
 - **Principle of Safety**: Memory safety and resource management must be guaranteed at compile time wherever possible.
-- **Principle of Performance**: Zero-cost abstractions with minimal overhead compared to C++ API.
+- **Principle of Safety**: Runtime and compile-time safety validation ensures reliable GPU resource management.
 
 ## 2. Architectural Overview
 
 ### 2.1. High-Level Architecture
 
-The system is structured around a three-layer architecture with clear separation of concerns, providing memory safety, idiomatic Rust APIs, and high performance GPU computing capabilities.
+The system is structured around a three-layer architecture with clear separation of concerns, providing memory safety, idiomatic Rust APIs, and reliable cross-platform GPU computing capabilities.
 
 **Core Components:**
 
@@ -87,7 +87,7 @@ The system interfaces with:
 
 **Critical Characteristics**:
 
-- Zero-cost abstractions with compile-time optimization
+- Type-safe abstractions with compile-time validation
 - Type-safe tensor operations with generic data types
 - Fluent API design following Rust conventions
 
@@ -95,7 +95,7 @@ The system interfaces with:
 
 ### 4.1. Data Models
 
-The system uses strongly-typed data structures with generic parameters to ensure type safety and performance optimization.
+The system uses strongly-typed data structures with generic parameters to ensure type safety and reliable resource management.
 
 **Core Data Structures**:
 
@@ -167,7 +167,7 @@ impl<T: TensorData> Tensor<T> {
 - Compile-time type safety through generics and phantom types
 - Runtime type validation for C++ FFI boundary safety
 - Automatic type conversion policies for cross-language operations
-- Zero-cost abstractions maintaining performance parity with C++
+- Type-safe abstractions ensuring reliable GPU resource management
 
 ### 4.4. Data Flow
 
@@ -306,7 +306,7 @@ All development must reference these documents appropriately:
 - Manager::create_queue() method (required for MultiQueueManager)
 - Real async GPU integration (current implementation is polling simulation)
 - Advanced algorithm configuration (workgroups, specialization constants)
-- Performance optimization for large tensor operations
+- Enhanced validation and error recovery for large tensor operations
 
 ### 11.2. Implementation Roadmap
 
@@ -314,7 +314,7 @@ All development must reference these documents appropriately:
 - **✅ Phase 2 (Completed)**: Advanced GPU features with cross-platform memory optimization
 - **✅ Phase 3 (Completed)**: Multi-type tensor support with enhanced creation methods and runtime type detection
 - **Phase 4 (Next)**: Real async GPU integration with Vulkan synchronization primitives
-- **Phase 5 (Future)**: Advanced memory management and performance optimization
+- **Phase 5 (Future)**: Advanced memory management and safety validation
 - **Phase 6 (Future)**: Multi-queue architecture and advanced algorithm configuration
 
 ### 11.2. Evolution Strategy

@@ -37,8 +37,9 @@ use std::sync::{Arc, Mutex, Weak};
 use std::time::Instant;
 
 /// Global flag to control validation on/off
-/// Defaults to enabled in debug builds, disabled in release builds
-static VALIDATION_ENABLED: AtomicBool = AtomicBool::new(cfg!(debug_assertions));
+/// **SAFETY-FIRST CONFIGURATION**: Defaults to enabled in ALL builds for production readiness
+/// Only disable if performance is absolutely critical and safety trade-offs are understood
+static VALIDATION_ENABLED: AtomicBool = AtomicBool::new(true);
 
 /// Global registry for tracking manager instances and their handles
 static HANDLE_REGISTRY: std::sync::LazyLock<Mutex<HandleRegistry>> =
@@ -347,10 +348,32 @@ pub fn is_validation_overhead_acceptable(total_operation_time: std::time::Durati
 
 /// Enable or disable runtime validation (for performance tuning)
 ///
+/// **SAFETY WARNING**: Disabling validation reduces safety guarantees!
+///
 /// When disabled, all validation functions return Ok(()) immediately.
-/// This allows for maximum performance in production when validation
-/// overhead is not acceptable.
+/// This removes important safety checks for cross-manager contamination
+/// and handle lifecycle validation.
+///
+/// **Only disable validation if:**
+/// - Performance is absolutely critical
+/// - You understand the safety trade-offs
+/// - You have comprehensive testing in place
+/// - You're using release builds with optimizations
+///
+/// **Production Safety Recommendation**: Keep validation enabled unless
+/// performance profiling demonstrates unacceptable overhead.
 pub fn set_validation_enabled(enabled: bool) {
+    if !enabled {
+        log::warn!("⚠️  SAFETY WARNING: Disabling runtime validation reduces safety guarantees");
+        log::warn!(
+            "⚠️  Cross-manager contamination and handle lifecycle violations may go undetected"
+        );
+        log::warn!("⚠️  Only disable validation if performance is absolutely critical");
+        log::warn!("⚠️  Consider using release builds with optimizations instead");
+        log::warn!("⚠️  Ensure comprehensive testing covers all validation scenarios");
+    } else {
+        log::info!("✅ Runtime validation enabled - safety-first configuration active");
+    }
     VALIDATION_ENABLED.store(enabled, Ordering::Relaxed);
 }
 

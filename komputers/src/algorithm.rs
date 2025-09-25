@@ -21,7 +21,7 @@ use std::collections::HashMap;
 /// - **Tensor Binding Validation**: Type-safe tensor parameter binding with clear errors
 /// - **Workgroup Optimization**: Automatic workgroup size validation and optimization
 /// - **Resource Lifecycle**: RAII cleanup and automatic handle management
-/// - **Performance Monitoring**: Built-in execution timing and optimization hints
+/// - **Resource Monitoring**: Built-in execution tracking and resource validation
 ///
 /// ## 🚀 Type-Safe SPIR-V Compute Workflows
 ///
@@ -123,13 +123,13 @@ use std::collections::HashMap;
 /// }
 /// ```
 ///
-/// ## 📊 Performance & Optimization
+/// ## 🛡️ Safety & Reliability
 ///
 /// - **Automatic SPIR-V Validation**: Prevents runtime shader compilation errors
-/// - **Workgroup Size Optimization**: GPU-specific workgroup size recommendations
-/// - **Memory Access Patterns**: Tensor binding validation for optimal GPU memory usage
-/// - **Cross-Platform**: Works on NVIDIA, AMD, Intel, and Apple GPUs via Vulkan
-/// - **Pipeline Caching**: SPIR-V compilation results cached for repeated execution
+/// - **Workgroup Size Validation**: GPU-specific workgroup configuration checks
+/// - **Memory Access Patterns**: Tensor binding validation for safe GPU memory usage
+/// - **Cross-Platform**: Reliable execution on NVIDIA, AMD, Intel, and Apple GPUs via Vulkan
+/// - **Pipeline Caching**: SPIR-V compilation results cached for consistent execution
 ///
 /// ## 🔬 Technical Architecture
 ///
@@ -145,10 +145,10 @@ use std::collections::HashMap;
 /// - Invalid SPIR-V causing cryptic runtime crashes
 /// - Wrong tensors bound to wrong shader parameters (silent corruption)
 /// - Compute shaders used with wrong GPU contexts (crashes)
-/// - Manual workgroup size tuning and suboptimal performance
+/// - Manual workgroup size configuration with validation errors
 ///
-/// Komputers' `Algorithm` eliminates these issues through revolutionary validation,
-/// making GPU compute errors impossible and performance optimization automatic!
+/// Komputers' `Algorithm` eliminates these issues through comprehensive validation,
+/// making GPU compute errors detectable and resource management automatic!
 ///
 /// **Ready to experience bulletproof GPU compute? Create your first type-safe algorithm! 🚀**
 pub struct Algorithm {
@@ -942,14 +942,14 @@ impl Algorithm {
         gpu_limits.recommend_workgroup(256, dimensions)
     }
 
-    /// Get performance hints for algorithm execution
+    /// Get resource usage hints for algorithm execution
     ///
     /// This method analyzes the algorithm's characteristics and provides
-    /// performance optimization hints for better GPU utilization.
+    /// resource usage information for reliable GPU execution.
     ///
     /// # Returns
     ///
-    /// Performance hints and recommendations for this algorithm
+    /// Resource usage hints and recommendations for this algorithm
     pub fn get_performance_hints(&self) -> AlgorithmPerformanceHints {
         AlgorithmPerformanceHints {
             bound_tensor_count: self.bound_tensors.len(),

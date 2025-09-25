@@ -10,7 +10,7 @@ Welcome to the Komputers examples directory! These examples demonstrate the revo
 | [`cross_manager_safety.rs`](#cross-manager-safety)         | Runtime validation preventing crashes   | Cross-manager validation, error recovery      | ~3 seconds |
 | [`consuming_builder_safety.rs`](#consuming-builder-safety) | Compile-time prevention of reuse errors | Move semantics, std::process::Command pattern | ~2 seconds |
 | [`spirv_algorithm_safety.rs`](#spirv-algorithm-safety)     | SPIR-V validation and tensor binding    | SPIR-V validation, parameter binding safety   | ~3 seconds |
-| [`performance_safety_overhead.rs`](#performance-analysis)  | Safety overhead measurement             | <5% overhead analysis, zero-cost abstractions | ~5 seconds |
+| [`performance_safety_overhead.rs`](#safety-validation-analysis)  | Safety validation analysis             | Safety validation effectiveness, comprehensive coverage | ~5 seconds |
 
 ## 🚀 Getting Started
 
@@ -154,7 +154,7 @@ vulkaninfo | head -20
 **🛡️ Safety Features Demonstrated:**
 
 - ✅ Actual performance measurements of safety overhead
-- ✅ Demonstration that safety is nearly "zero-cost"
+- ✅ Demonstration of comprehensive safety validation
 - ✅ Analysis showing safety benefits far outweigh minimal cost
 - ✅ Breakdown of different safety feature costs
 - ✅ Memory safety analysis with RAII patterns
@@ -162,7 +162,7 @@ vulkaninfo | head -20
 **📖 What You'll Learn:**
 
 - Real performance metrics: <5% overhead typically 1-3%
-- Which safety features are zero-cost (compile-time)
+- Which safety features are compile-time (type system)
 - Memory usage patterns and automatic cleanup
 - How to benchmark GPU operations effectively
 
@@ -228,7 +228,7 @@ Examples gracefully handle missing GPU/Vulkan:
 ### Revolutionary Safety Features
 
 - 🛡️ **Hybrid Validation**: 85% compile-time + 15% runtime validation
-- ⚡ **Zero-Cost Abstractions**: Type safety with no runtime overhead
+- 🛡️ **Type-Safe Abstractions**: Comprehensive type safety with compile-time validation
 - 🔒 **Consuming Builders**: Impossible-to-misuse APIs
 - 🚀 **RAII Everything**: Automatic resource management
 - 📊 **Performance Monitoring**: Built-in timing and optimization hints

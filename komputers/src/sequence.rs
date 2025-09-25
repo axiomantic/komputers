@@ -132,13 +132,13 @@ pub struct SequenceResult {
 /// }
 /// ```
 ///
-/// ## 📊 Performance & Efficiency
+/// ## 🛡️ Safety & Reliability
 ///
-/// - **Zero-Cost Type States**: `PhantomData<State>` compiles away completely
-/// - **Batched GPU Operations**: All operations recorded then executed together
-/// - **Minimal Overhead**: <1% runtime cost for complete safety guarantees
-/// - **Automatic Optimization**: GPU driver can optimize recorded command sequences
-/// - **Performance Timing**: Built-in execution timing for optimization analysis
+/// - **Type-Safe States**: `PhantomData<State>` provides compile-time validation
+/// - **Batched GPU Operations**: All operations validated then executed safely together
+/// - **Comprehensive Safety**: Runtime validation ensures complete safety guarantees
+/// - **Driver Integration**: GPU driver handles recorded command sequences reliably
+/// - **Execution Tracking**: Built-in execution timing for resource analysis
 ///
 /// ## 🔬 Technical Architecture
 ///

@@ -244,7 +244,7 @@ impl DataType {
 /// - **Cross-Manager Validation**: Runtime checks prevent using tensors with wrong managers
 /// - **Handle-Based Security**: Each tensor has unique handle tracked by its manager
 /// - **Memory Corruption Prevention**: Safe host-device synchronization patterns
-/// - **Zero-Cost Type Abstraction**: No runtime overhead for type safety
+/// - **Type Safety**: Compile-time validation with runtime checks
 ///
 /// ## 🚀 Type-Safe GPU Memory Management
 ///
@@ -324,13 +324,13 @@ impl DataType {
 /// }
 /// ```
 ///
-/// ## 📊 Performance & Memory Efficiency
+/// ## 📊 Memory Safety & Reliability
 ///
-/// - **Zero-Cost Abstractions**: Type safety adds no runtime overhead
-/// - **Efficient GPU Allocation**: Direct Vulkan memory management
-/// - **Automatic Resource Tracking**: No manual handle cleanup required
-/// - **Cross-Platform**: Works on NVIDIA, AMD, Intel, and Apple GPUs
-/// - **Memory Pool Integration**: Efficient allocation for repeated operations
+/// - **Type Safety**: Compile-time validation with runtime verification
+/// - **Cross-Platform Compatibility**: Consistent behavior across Linux, Windows, and macOS
+/// - **Automatic Resource Management**: RAII-based cleanup prevents memory leaks
+/// - **GPU Vendor Support**: Works reliably on NVIDIA, AMD, Intel, and Apple GPUs
+/// - **Error Recovery**: Comprehensive error handling and diagnostics
 ///
 /// ## 🔬 Technical Architecture
 ///
@@ -528,12 +528,12 @@ impl<T: TensorData, const N: usize> DimensionTensor<T, N> {
     /// performance for scenarios where the tensor will be filled by GPU compute operations.
     /// The tensor handle is registered with the manager's safety system for cross-validation.
     ///
-    /// ## ⚡ Performance-Optimized Creation
+    /// ## 🛡️ Safe Memory Allocation
     ///
-    /// - **Zero Host-Device Copy**: No data transfer during creation
-    /// - **Direct GPU Allocation**: Minimal allocation overhead
-    /// - **Type-Safe Handles**: Full safety system integration
-    /// - **Optimal for Compute**: Perfect for algorithm outputs and intermediate results
+    /// - **Safe Memory Allocation**: No host data transfer during creation
+    /// - **Type-Safe Handles**: Full integration with safety validation system
+    /// - **Cross-Platform Support**: Consistent behavior across all supported platforms
+    /// - **Reliable for Compute**: Suitable for algorithm outputs and intermediate results
     ///
     /// ## ⚠️ Safety Considerations
     ///
@@ -560,10 +560,10 @@ impl<T: TensorData, const N: usize> DimensionTensor<T, N> {
     /// ```rust,no_run
     /// use komputers::{Manager, Tensor, Result};
     ///
-    /// fn performance_optimized_workflow() -> Result<()> {
+    /// fn safe_memory_workflow() -> Result<()> {
     ///     let mut manager = Manager::new()?;
     ///
-    ///     // ⚡ Create large uninitialized tensor for compute output
+    ///     // 🛡️ Create large uninitialized tensor for compute output
     ///     let output = Tensor::<f32>::uninit(&mut manager, 1_000_000)?;
     ///
     ///     // ✅ Use in GPU compute sequence (will be filled by algorithm)
@@ -630,10 +630,10 @@ impl<T: TensorData, const N: usize> DimensionTensor<T, N> {
         })
     }
 
-    /// Get the number of elements in the tensor with zero-cost validation.
+    /// Get the number of elements in the tensor with safe validation.
     ///
     /// Returns the element count (not byte count) directly from the GPU tensor metadata.
-    /// This operation has zero overhead and requires no GPU synchronization.
+    /// This operation is safe and requires no GPU synchronization.
     ///
     /// # Returns
     ///
@@ -664,7 +664,7 @@ impl<T: TensorData, const N: usize> DimensionTensor<T, N> {
     /// Get the total size in bytes of the tensor's GPU memory allocation.
     ///
     /// Returns the actual bytes allocated on the GPU, which equals `size() * sizeof(T)`.
-    /// This is useful for memory usage analysis and performance optimization.
+    /// This is useful for memory usage analysis and resource management.
     ///
     /// # Returns
     ///
