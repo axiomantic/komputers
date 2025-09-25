@@ -3,7 +3,7 @@
 // This example demonstrates type-safe GPU computing patterns
 // using the Komputers library with compile-time safety features.
 
-use komputers::{Manager, Tensor, Algorithm, DataType, Result};
+use komputers::{Algorithm, DataType, Manager, Result, Tensor};
 
 fn main() -> Result<()> {
     // Create GPU manager
@@ -64,7 +64,7 @@ fn algorithm_type_safety(manager: &mut Manager) -> Result<()> {
     let algorithm = Algorithm::with_tensors(
         manager,
         ELEMENTWISE_ADD_F32_SPIRV,
-        &[&input_a, &input_b, &output]
+        &[&input_a, &input_b, &output],
     )?;
 
     // Execute with type-safe operations using consuming builder pattern
@@ -85,7 +85,11 @@ fn algorithm_type_safety(manager: &mut Manager) -> Result<()> {
     for i in 0..4 {
         let expected = data_a[i] + data_b[i];
         let actual = output_data[i];
-        assert!((expected - actual).abs() < 0.001, "Computation error at index {}", i);
+        assert!(
+            (expected - actual).abs() < 0.001,
+            "Computation error at index {}",
+            i
+        );
     }
 
     println!("Computation verified successfully");
@@ -117,7 +121,7 @@ fn multi_type_example(manager: &mut Manager) -> Result<()> {
 /// Verify tensor has expected data type
 fn verify_tensor_type<T: komputers::TensorData>(
     tensor: &Tensor<T>,
-    expected_type: DataType
+    expected_type: DataType,
 ) -> Result<()> {
     let actual_type = tensor.data_type()?;
     if actual_type == expected_type {

@@ -129,14 +129,17 @@ configure_vulkan_environment()?;
 ### Platform-Specific Considerations
 
 **macOS (MoltenVK):**
+
 - Automatic MoltenVK detection and configuration
 - Set `KOMPUTE_DISABLE_MOLTENVK_AUTO=1` to disable auto-setup if needed
 
 **Linux:**
+
 - Ensure Vulkan drivers are installed for your GPU
 - Ubuntu/Debian: `apt install vulkan-tools libvulkan-dev`
 
 **Windows:**
+
 - Install Vulkan SDK from LunarG
 - GPU drivers typically include Vulkan support
 
@@ -286,6 +289,7 @@ println!("Available devices: {}", report.device_count);
 ### Avoid These Patterns
 
 **Don't create multiple managers unnecessarily:**
+
 ```rust
 // Bad: Multiple managers for same GPU
 let manager1 = Manager::new()?;
@@ -297,6 +301,7 @@ let mut manager = Manager::new()?;
 ```
 
 **Don't ignore error context:**
+
 ```rust
 // Bad: Generic error handling
 operation().unwrap(); // Loses error information
@@ -309,6 +314,7 @@ match operation() {
 ```
 
 **Don't assume GPU availability:**
+
 ```rust
 // Bad: Assume GPU is always available
 let manager = Manager::new().unwrap();

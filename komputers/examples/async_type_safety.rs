@@ -4,10 +4,7 @@
 // using Komputers with compile-time and runtime safety checks.
 
 #[cfg(feature = "async")]
-use komputers::{
-    Manager, Tensor, DataType, Result,
-    async_sequence::AsyncSequence
-};
+use komputers::{async_sequence::AsyncSequence, DataType, Manager, Result, Tensor};
 use std::time::Duration;
 
 #[cfg(feature = "async")]
@@ -128,7 +125,9 @@ async fn async_operation_with_timeout(manager: &mut Manager) -> komputers::Resul
     match tokio::time::timeout(Duration::from_secs(10), execution).await {
         Ok(Ok(result)) => Ok(result.execution_time),
         Ok(Err(gpu_error)) => Err(gpu_error),
-        Err(_timeout) => Err(komputers::KomputeError::compute("Async GPU operation timed out")),
+        Err(_timeout) => Err(komputers::KomputeError::compute(
+            "Async GPU operation timed out",
+        )),
     }
 }
 

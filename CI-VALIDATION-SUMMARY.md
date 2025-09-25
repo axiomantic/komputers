@@ -5,10 +5,12 @@ This document outlines what the Komputers CI system validates to ensure code qua
 ## 🔍 What CI Validates
 
 ### Documentation & Examples Verification Job
+
 **Runs on**: Ubuntu Latest (every push/PR to main/develop)
 **Purpose**: Ensures all examples and documentation work without requiring GPU hardware
 
 **Validates**:
+
 - ✅ All examples compile with proper feature flags
 - ✅ All algorithm.rs rustdoc examples pass (recently fixed)
 - ✅ Critical async_sequence.rs doctests work
@@ -18,10 +20,12 @@ This document outlines what the Komputers CI system validates to ensure code qua
 - ✅ Specific critical examples compile (type_safe_gpu_computing, async_type_safety, basic_gpu_computing)
 
 ### GPU Tests on Self-Hosted Runner
+
 **Runs on**: Self-hosted macOS with real GPU hardware
 **Purpose**: Validates GPU functionality with actual hardware
 
 **Validates**:
+
 - ✅ All examples compile with GPU features enabled
 - ✅ Critical documentation tests work with real GPU
 - ✅ Examples can be executed (with timeout protection)
@@ -30,10 +34,12 @@ This document outlines what the Komputers CI system validates to ensure code qua
 - ✅ Cross-platform compatibility
 
 ### Advanced Code Quality Checks
+
 **Runs on**: Ubuntu Latest (weekly + PR)
 **Purpose**: Comprehensive code quality analysis
 
 **Validates**:
+
 - ✅ Critical documentation tests for quality assurance
 - ✅ Documentation links are not broken
 - ✅ License compliance
@@ -66,6 +72,7 @@ When CI passes, you can be confident that:
 ## 🚀 Future Improvements
 
 The CI system is designed to be extended with:
+
 - Windows GPU testing (when self-hosted Windows runner available)
 - Linux GPU testing (when self-hosted Linux runner available)
 - Additional doctest coverage as more examples are fixed
