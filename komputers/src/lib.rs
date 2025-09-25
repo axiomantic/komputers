@@ -112,34 +112,29 @@
 //!     LazyLock::new(|| Mutex::new(HandleRegistry::new()));
 //! ```
 //!
-//! ## Komputers vs wgpu
+//! ## Comparison with Other Rust GPU Libraries
 //!
-//! **When to choose Komputers:**
-//! - High-level compute operations with tensors and algorithms
-//! - Need built-in safety validation for cross-manager resource usage
-//! - Prefer consuming builders that prevent accidental reuse
-//! - Working with machine learning, scientific computing, or image processing
-//! - Want automatic memory management and RAII cleanup
+//! | Feature | Komputers | wgpu | candle | burn | RustCUDA |
+//! |---------|-----------|------|--------|------|----------|
+//! | **Maturity** | ❌ New | ✅ Mature | ✅ Active | ✅ Active | ✅ Stable |
+//! | **Graphics Support** | ❌ Compute only | ✅ Full graphics | ❌ ML only | ❌ ML only | ❌ Compute only |
+//! | **Platform Support** | ❌ Vulkan only | ✅ Cross-platform | ✅ Cross-platform | ✅ Cross-platform | ❌ CUDA only |
+//! | **Backend** | Vulkan via Kompute | Vulkan/Metal/DX12 | Multiple | Multiple | NVIDIA CUDA |
+//! | **Built-in Tensors** | ✅ Yes | ❌ Manual buffers | ✅ Yes | ✅ Yes | ❌ Manual |
+//! | **ML Focus** | ❌ General compute | ❌ General purpose | ✅ Inference | ✅ Training | ❌ General compute |
+//! | **Memory Safety** | ✅ Enhanced | ✅ Standard Rust | ✅ Standard Rust | ✅ Standard Rust | ❌ Unsafe required |
+//! | **Learning Curve** | ❓ Moderate | ❓ Steep | ✅ Easy for ML | ✅ Easy for ML | ❓ Steep |
+//! | **Documentation** | ❌ Limited | ✅ Extensive | ✅ Good | ✅ Good | ✅ Good |
+//! | **Ecosystem** | ❌ Small | ✅ Large | ✅ Growing | ✅ Growing | ✅ Established |
 //!
-//! **When to choose wgpu:**
-//! - Need graphics rendering (wgpu supports both compute and graphics)
-//! - Want lower-level control over GPU resources and binding
-//! - Prefer WebGPU API compatibility and broader platform support
-//! - Need more mature ecosystem and documentation
-//! - Working with game development or complex graphics pipelines
+//! **Honest Assessment:**
 //!
-//! **Feature Comparison:**
+//! - **For ML/AI**: Consider [candle](https://github.com/huggingface/candle) or [burn](https://burn.dev/) first - they're purpose-built and more mature
+//! - **For graphics**: Use [wgpu](https://wgpu.rs/) - it's the clear choice with excellent support
+//! - **For NVIDIA-specific compute**: [RustCUDA](https://github.com/Rust-GPU/Rust-CUDA) offers direct CUDA access
+//! - **For Komputers**: Consider it if you need the specific safety features for general Vulkan compute work
 //!
-//! | Feature | Komputers | wgpu |
-//! |---------|-----------|------|
-//! | API Level | High-level compute wrapper | Low-level WebGPU implementation |
-//! | Safety Model | Compile-time + runtime validation | Standard Rust memory safety |
-//! | Graphics Support | Compute only | Full graphics + compute |
-//! | Backend | Vulkan via Kompute | Vulkan, Metal, DX12, WebGPU |
-//! | Tensor Operations | Built-in tensor types | Manual buffer management |
-//! | Cross-Manager Safety | Automatic validation | Manual resource tracking |
-//! | Learning Curve | Moderate (tensor-focused) | Steep (low-level GPU concepts) |
-//! | Use Cases | ML, scientific computing, GPGPU | Games, graphics, general compute |
+//! Komputers is experimental and adds an extra layer over Kompute. Most users are better served by the more mature alternatives above.
 //!
 //! ## Error Handling
 //!
