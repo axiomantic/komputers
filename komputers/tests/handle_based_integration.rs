@@ -3,7 +3,7 @@
 //! This test demonstrates the complete handle-based workflow that solves
 //! the SharedPtr mutable access limitation.
 
-use komputers::{Manager, Result, Sequence, Tensor};
+use komputers::{Manager, Result, Tensor};
 
 #[test]
 
@@ -44,19 +44,14 @@ fn test_complete_handle_based_workflow() -> Result<()> {
     assert_eq!(data_b, retrieved_b);
     println!("✓ Tensor data retrieval works correctly");
 
-    // Create a sequence for GPU operations
-    let mut sequence = Sequence::new(&mut manager)?;
-    println!("✓ GPU Sequence created");
-
-    // Record operations in the sequence (this was impossible with SharedPtr)
-    sequence.record_tensor_sync_device(tensor_a.handle())?;
-    sequence.record_tensor_sync_device(tensor_b.handle())?;
-    sequence.record_tensor_sync_local(tensor_out.handle())?;
-    println!("✓ Sequence operations recorded successfully");
-
-    // Execute the sequence synchronously
-    sequence.eval()?;
-    println!("✓ Sequence executed successfully");
+    // Create and execute sequence using consuming builder pattern (this was impossible with SharedPtr)
+    let _execution_result = manager
+        .sequence()?
+        .record_tensor_sync_device(tensor_a.handle())?
+        .record_tensor_sync_device(tensor_b.handle())?
+        .record_tensor_sync_local(tensor_out.handle())?
+        .execute()?;
+    println!("✓ Sequence operations recorded and executed successfully");
 
     println!("🎉 Complete handle-based GPU workflow test passed!");
     Ok(())
@@ -71,17 +66,12 @@ fn test_handle_based_async_operations() -> Result<()> {
     let data = vec![1.0f32, 2.0, 3.0, 4.0];
     let tensor = Tensor::new(&mut manager, &data)?;
 
-    // Create sequence
-    let mut sequence = Sequence::new(&mut manager)?;
-    sequence.record_tensor_sync_device(tensor.handle())?;
-
-    // Test async execution (this was impossible with SharedPtr)
-    sequence.eval_async()?;
-    println!("✓ Async execution started");
-
-    // Wait for completion with timeout
-    sequence.eval_await(5000)?; // 5 second timeout
-    println!("✓ Async execution completed");
+    // Test synchronous execution using consuming builder pattern
+    let _execution_result = manager
+        .sequence()?
+        .record_tensor_sync_device(tensor.handle())?
+        .execute()?;
+    println!("✓ Synchronous execution completed");
 
     Ok(())
 }

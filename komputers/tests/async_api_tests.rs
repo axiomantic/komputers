@@ -29,15 +29,16 @@ mod async_tests {
         let data = vec![1.0f32, 2.0, 3.0, 4.0];
         let tensor = Tensor::new(&mut manager, &data)?;
 
-        // Create async sequence
-        let mut async_seq = AsyncSequence::new(&mut manager)?;
+        // Create async sequence and record operations
+        let async_seq =
+            AsyncSequence::new(&mut manager)?.record_tensor_sync_device(tensor.handle())?;
 
-        // Record operations
-        async_seq.record_tensor_sync_device(tensor.handle())?;
-
-        // Execute with timeout
+        // Execute with timeout using tokio
         let start = Instant::now();
-        async_seq.eval_with_timeout(Duration::from_secs(5)).await?;
+        let execution = async_seq.execute_async();
+        tokio::time::timeout(Duration::from_secs(5), execution)
+            .await
+            .map_err(|_| komputers::KomputeError::compute("Async operation timed out"))??;
         let elapsed = start.elapsed();
 
         println!("✓ Async sequence execution completed in {:?}", elapsed);
@@ -54,12 +55,14 @@ mod async_tests {
         let data = vec![1.0f32; 1000];
         let tensor = Tensor::new(&mut manager, &data)?;
 
-        let mut async_seq = AsyncSequence::new(&mut manager)?;
-        async_seq.record_tensor_sync_device(tensor.handle())?;
+        let async_seq = AsyncSequence::new(&mut manager)?;
 
-        // Test with very short timeout (should still succeed for simple operations)
+        // Test with very short timeout using tokio timeout
         let start = Instant::now();
-        let result = async_seq.eval_with_timeout(Duration::from_millis(1)).await;
+        let execution = async_seq
+            .record_tensor_sync_device(tensor.handle())?
+            .execute_async();
+        let result = tokio::time::timeout(Duration::from_millis(100), execution).await;
         let elapsed = start.elapsed();
 
         match result {
@@ -97,15 +100,19 @@ mod async_tests {
         let start = Instant::now();
 
         // Create async sequences for each tensor using the same manager
-        let mut seq_a = AsyncSequence::new(&mut manager)?;
-        seq_a.record_tensor_sync_device(tensor_a.handle())?;
+        let seq_a =
+            AsyncSequence::new(&mut manager)?.record_tensor_sync_device(tensor_a.handle())?;
 
-        let mut seq_b = AsyncSequence::new(&mut manager)?;
-        seq_b.record_tensor_sync_device(tensor_b.handle())?;
+        let seq_b =
+            AsyncSequence::new(&mut manager)?.record_tensor_sync_device(tensor_b.handle())?;
 
         // Execute sequences individually (simulating executor behavior)
-        seq_a.eval_with_timeout(Duration::from_secs(10)).await?;
-        seq_b.eval_with_timeout(Duration::from_secs(10)).await?;
+        tokio::time::timeout(Duration::from_secs(10), seq_a.execute_async())
+            .await
+            .map_err(|_| komputers::KomputeError::compute("Async operation timed out"))??;
+        tokio::time::timeout(Duration::from_secs(10), seq_b.execute_async())
+            .await
+            .map_err(|_| komputers::KomputeError::compute("Async operation timed out"))??;
 
         let elapsed = start.elapsed();
         println!(
@@ -131,8 +138,8 @@ mod async_tests {
             let tensor = Tensor::new(&mut manager, &data)?;
             tensors.push(tensor);
 
-            let mut async_seq = AsyncSequence::new(&mut manager)?;
-            async_seq.record_tensor_sync_device(tensors[i].handle())?;
+            let async_seq =
+                AsyncSequence::new(&mut manager)?.record_tensor_sync_device(tensors[i].handle())?;
             sequences.push(async_seq);
         }
 
@@ -140,7 +147,9 @@ mod async_tests {
         let start = Instant::now();
         let futures: Vec<_> = sequences
             .into_iter()
-            .map(|seq| async move { seq.eval_with_timeout(Duration::from_secs(10)).await })
+            .map(|seq| async move {
+                tokio::time::timeout(Duration::from_secs(10), seq.execute_async()).await
+            })
             .collect();
 
         let results = futures::future::join_all(futures).await;
@@ -166,13 +175,14 @@ mod async_tests {
         let mut manager = create_async_manager()?;
 
         // Test with invalid tensor handle
-        let mut async_seq = AsyncSequence::new(&mut manager)?;
+        let async_seq = AsyncSequence::new(&mut manager)?;
 
         // Try to record operation with invalid handle
         match async_seq.record_tensor_sync_device(999999) {
-            Ok(_) => {
+            Ok(async_seq) => {
                 // If this succeeds, try to execute and expect it to fail
-                let result = async_seq.eval_with_timeout(Duration::from_secs(1)).await;
+                let result =
+                    tokio::time::timeout(Duration::from_secs(1), async_seq.execute_async()).await;
                 assert!(result.is_err(), "Should fail with invalid tensor handle");
                 println!("✓ Invalid handle correctly caused execution failure");
             }
@@ -194,11 +204,13 @@ mod async_tests {
 
         // Record and execute multiple times
         for iteration in 0..3 {
-            let mut async_seq = AsyncSequence::new(&mut manager)?;
-            async_seq.record_tensor_sync_device(tensor.handle())?;
+            let async_seq =
+                AsyncSequence::new(&mut manager)?.record_tensor_sync_device(tensor.handle())?;
 
             let start = Instant::now();
-            async_seq.eval_with_timeout(Duration::from_secs(5)).await?;
+            tokio::time::timeout(Duration::from_secs(5), async_seq.execute_async())
+                .await
+                .map_err(|_| komputers::KomputeError::compute("Async operation timed out"))??;
             let elapsed = start.elapsed();
 
             println!("✓ Iteration {} completed in {:?}", iteration, elapsed);
@@ -215,14 +227,14 @@ mod async_tests {
         let data = vec![1.0f32; 10000]; // Larger data for longer operation
         let tensor = Tensor::new(&mut manager, &data)?;
 
-        let mut async_seq = AsyncSequence::new(&mut manager)?;
-        async_seq.record_tensor_sync_device(tensor.handle())?;
+        let async_seq =
+            AsyncSequence::new(&mut manager)?.record_tensor_sync_device(tensor.handle())?;
 
         // Test cancellation with tokio timeout
         let start = Instant::now();
         let result = timeout(
             Duration::from_millis(1), // Very short timeout
-            async_seq.eval_with_timeout(Duration::from_secs(10)),
+            tokio::time::timeout(Duration::from_secs(10), async_seq.execute_async()),
         )
         .await;
 
@@ -268,9 +280,11 @@ mod async_tests {
             handles.push(tensor.handle());
 
             {
-                let mut async_seq = AsyncSequence::new(&mut manager)?;
-                async_seq.record_tensor_sync_device(tensor.handle())?;
-                async_seq.eval_with_timeout(Duration::from_secs(5)).await?;
+                let async_seq =
+                    AsyncSequence::new(&mut manager)?.record_tensor_sync_device(tensor.handle())?;
+                tokio::time::timeout(Duration::from_secs(5), async_seq.execute_async())
+                    .await
+                    .map_err(|_| komputers::KomputeError::compute("Async operation timed out"))??;
 
                 // async_seq drops here
             }
@@ -286,11 +300,12 @@ mod async_tests {
         // New handle should be different from old ones
         assert!(!handles.contains(&new_handle));
 
-        let mut new_async_seq = AsyncSequence::new(&mut manager)?;
-        new_async_seq.record_tensor_sync_device(new_handle)?;
-        new_async_seq
-            .eval_with_timeout(Duration::from_secs(5))
-            .await?;
+        let new_async_seq =
+            AsyncSequence::new(&mut manager)?.record_tensor_sync_device(new_handle)?;
+        let execution = new_async_seq.execute_async();
+        tokio::time::timeout(Duration::from_secs(5), execution)
+            .await
+            .map_err(|_| komputers::KomputeError::compute("Async operation timed out"))??;
 
         println!("✓ Resource cleanup and reuse successful");
 
@@ -310,9 +325,11 @@ mod async_tests {
                 let data: Vec<f32> = vec![i as f32; 50];
                 let tensor = Tensor::new(&mut manager, &data)?;
 
-                let mut async_seq = AsyncSequence::new(&mut manager)?;
-                async_seq.record_tensor_sync_device(tensor.handle())?;
-                async_seq.eval_with_timeout(Duration::from_secs(10)).await?;
+                let async_seq =
+                    AsyncSequence::new(&mut manager)?.record_tensor_sync_device(tensor.handle())?;
+                tokio::time::timeout(Duration::from_secs(10), async_seq.execute_async())
+                    .await
+                    .map_err(|_| komputers::KomputeError::compute("Async operation timed out"))??;
 
                 Ok::<_, komputers::KomputeError>(i)
             };

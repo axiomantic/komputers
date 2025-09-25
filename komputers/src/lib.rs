@@ -331,15 +331,8 @@ pub use dispatch_safety::{
     ShaderParameter, TypeIndexedAlgorithm,
 };
 
-// Feature-gated async support (temporarily disabled - needs update for consuming builder)
-// #[cfg(feature = "async")]
-// pub use async_executor::{AsyncGpuExecutor, AsyncSequence, AsyncSequenceExecution};
-
-// #[cfg(feature = "async")]
-// pub use async_gpu::{
-//     AsyncComputeKernel, AsyncGpuContext, AsyncSequence as AsyncGpuSequence, AsyncTensor,
-//     AsyncWorkflowBuilder,
-// };
+// Legacy async modules were removed due to deprecated APIs
+// Modern async support is provided through async_sequence module
 
 #[cfg(feature = "async")]
 pub use async_sequence::{

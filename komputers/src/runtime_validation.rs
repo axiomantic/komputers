@@ -32,8 +32,13 @@
 use crate::error::{KomputeError, Result};
 use crate::types::{HasManagerId, TypeSafetyError};
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, Weak};
 use std::time::Instant;
+
+/// Global flag to control validation on/off
+/// Defaults to enabled in debug builds, disabled in release builds
+static VALIDATION_ENABLED: AtomicBool = AtomicBool::new(cfg!(debug_assertions));
 
 /// Global registry for tracking manager instances and their handles
 static HANDLE_REGISTRY: std::sync::LazyLock<Mutex<HandleRegistry>> =
@@ -265,6 +270,11 @@ impl Drop for ManagerInstance {
 /// This function is optimized to have <5% overhead. It uses efficient caching
 /// and lazy cleanup to minimize performance impact.
 pub fn validate_handle_with_manager<T: HasManagerId>(handle: u64, manager: &T) -> Result<()> {
+    // Fast path: if validation is disabled, return immediately
+    if !VALIDATION_ENABLED.load(Ordering::Relaxed) {
+        return Ok(());
+    }
+
     let manager_id = manager.manager_id();
 
     if let Ok(mut registry) = HANDLE_REGISTRY.lock() {
@@ -286,6 +296,11 @@ pub fn validate_handle_with_manager<T: HasManagerId>(handle: u64, manager: &T) -
 /// * `handle` - The newly created handle
 /// * `manager` - Manager that created the handle
 pub fn register_handle_with_manager<T: HasManagerId>(handle: u64, manager: &T) {
+    // Fast path: if validation is disabled, skip registration
+    if !VALIDATION_ENABLED.load(Ordering::Relaxed) {
+        return;
+    }
+
     let manager_id = manager.manager_id();
 
     if let Ok(mut registry) = HANDLE_REGISTRY.lock() {
@@ -335,16 +350,13 @@ pub fn is_validation_overhead_acceptable(total_operation_time: std::time::Durati
 /// When disabled, all validation functions return Ok(()) immediately.
 /// This allows for maximum performance in production when validation
 /// overhead is not acceptable.
-pub fn set_validation_enabled(_enabled: bool) {
-    // TODO: Implement validation enable/disable toggle
-    // For now, validation is always enabled in debug builds,
-    // disabled in release builds
+pub fn set_validation_enabled(enabled: bool) {
+    VALIDATION_ENABLED.store(enabled, Ordering::Relaxed);
 }
 
 /// Check if runtime validation is currently enabled
 pub fn is_validation_enabled() -> bool {
-    // Enable validation in debug builds, disable in release builds by default
-    cfg!(debug_assertions)
+    VALIDATION_ENABLED.load(Ordering::Relaxed)
 }
 
 // =============================================================================
@@ -356,6 +368,11 @@ pub fn is_validation_enabled() -> bool {
 /// This is useful for operations that use multiple handles (like sequences
 /// that record operations on multiple tensors).
 pub fn validate_handles_same_manager(handles: &[u64]) -> Result<()> {
+    // Fast path: if validation is disabled, return immediately
+    if !VALIDATION_ENABLED.load(Ordering::Relaxed) {
+        return Ok(());
+    }
+
     if handles.is_empty() {
         return Ok(());
     }
@@ -383,6 +400,11 @@ pub fn validate_handles_same_manager(handles: &[u64]) -> Result<()> {
 ///
 /// More efficient than calling register_handle_with_manager multiple times.
 pub fn register_handles_batch<T: HasManagerId>(handles: &[u64], manager: &T) {
+    // Fast path: if validation is disabled, skip registration
+    if !VALIDATION_ENABLED.load(Ordering::Relaxed) {
+        return;
+    }
+
     if handles.is_empty() {
         return;
     }

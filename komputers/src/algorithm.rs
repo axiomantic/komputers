@@ -1113,11 +1113,6 @@ mod tests {
         // MANDATORY: Vulkan MUST be available for all tests
         crate::test_utils::require_vulkan().unwrap();
 
-        // TEMPORARY: Skip manager creation due to kp::Manager segfault
-        println!("Algorithm creation test - manager creation temporarily bypassed");
-
-        // TODO: Re-enable once segfault is resolved
-        /*
         if let Ok(mut manager) = Manager::new() {
             // Simple SPIR-V shader (this would normally be compiled from GLSL)
             let spirv_data = vec![
@@ -1131,10 +1126,12 @@ mod tests {
             match Algorithm::new(&mut manager, &spirv_data) {
                 Ok(_algorithm) => {
                     // Algorithm creation succeeded
+                    println!("✅ Algorithm creation succeeded");
                     assert!(true, "Algorithm creation succeeded");
                 }
                 Err(_e) => {
                     // Algorithm creation failed - expected with invalid SPIR-V
+                    println!("✅ Algorithm creation failed as expected with test SPIR-V");
                     assert!(
                         true,
                         "Algorithm creation failed as expected with test SPIR-V"
@@ -1142,7 +1139,6 @@ mod tests {
                 }
             }
         }
-        */
     }
 
     #[test]
@@ -1150,11 +1146,6 @@ mod tests {
         // MANDATORY: Vulkan MUST be available for all tests
         crate::test_utils::require_vulkan().unwrap();
 
-        // TEMPORARY: Skip manager creation due to kp::Manager segfault
-        println!("Algorithm tensor binding test - manager creation temporarily bypassed");
-
-        // TODO: Re-enable once segfault is resolved
-        /*
         if let Ok(mut manager) = Manager::new() {
             // Simple SPIR-V shader for testing
             let spirv_data = vec![
@@ -1177,17 +1168,16 @@ mod tests {
                         assert_eq!(algorithm.bound_tensor_count(), 1);
                         assert!(algorithm.is_tensor_bound("input"));
                         assert_eq!(algorithm.get_bound_tensor("input"), Some(123));
-                        println!("✓ Algorithm tensor binding test passed");
+                        println!("✅ Algorithm tensor binding test passed");
                     }
                     Err(_) => {
                         println!(
-                            "⚠️ Algorithm tensor binding failed (expected in some environments)"
+                            "⚠️  Algorithm tensor binding failed (expected in some environments)"
                         );
                     }
                 }
             }
         }
-        */
     }
 
     #[test]
@@ -1195,11 +1185,6 @@ mod tests {
         // MANDATORY: Vulkan MUST be available for all tests
         crate::test_utils::require_vulkan().unwrap();
 
-        // TEMPORARY: Skip manager creation due to kp::Manager segfault
-        println!("Algorithm with tensors test - manager creation temporarily bypassed");
-
-        // TODO: Re-enable once segfault is resolved
-        /*
         if let Ok(mut manager) = Manager::new() {
             // Create test tensors
             let tensor_data = vec![1.0f32, 2.0, 3.0];
@@ -1219,17 +1204,16 @@ mod tests {
                         assert_eq!(algorithm.bound_tensor_count(), 1);
                         assert!(algorithm.is_tensor_bound("param_0"));
                         assert_eq!(algorithm.get_bound_tensor("param_0"), Some(tensor.handle()));
-                        println!("✓ Algorithm with_tensors test passed");
+                        println!("✅ Algorithm with_tensors test passed");
                     }
                     Err(_) => {
                         println!(
-                            "⚠️ Algorithm with_tensors failed (expected in some environments)"
+                            "⚠️  Algorithm with_tensors failed (expected in some environments)"
                         );
                     }
                 }
             }
         }
-        */
     }
 
     #[test]

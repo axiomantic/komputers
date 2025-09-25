@@ -102,11 +102,14 @@ fn test_multiqueue_parallel_execution() -> Result<()> {
     let tensor3 = Tensor::new(multi_manager.manager(), &data3)?;
 
     // Create sequences on different queues with consuming builder pattern
-    let seq1 = multi_manager.create_sequence_on_queue("compute")?
+    let seq1 = multi_manager
+        .create_sequence_on_queue("compute")?
         .record_tensor_sync_device(tensor1.handle())?;
-    let seq2 = multi_manager.create_sequence_on_queue("transfer")?
+    let seq2 = multi_manager
+        .create_sequence_on_queue("transfer")?
         .record_tensor_sync_device(tensor2.handle())?;
-    let seq3 = multi_manager.create_sequence_on_queue("postprocess")?
+    let seq3 = multi_manager
+        .create_sequence_on_queue("postprocess")?
         .record_tensor_sync_device(tensor3.handle())?;
 
     // Execute all sequences in parallel across multiple queues

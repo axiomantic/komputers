@@ -1151,23 +1151,20 @@ mod tests {
         // MANDATORY: Vulkan MUST be available for all tests
         crate::test_utils::require_vulkan().unwrap();
 
-        // TEMPORARY DEBUG: Skip actual manager creation until segfault resolved
-        println!("Vulkan verification passed - manager creation test temporarily bypassed");
-
-        // TODO: Re-enable once kp::Manager constructor segfault is fixed
-        // The segfault occurs in the Kompute C++ Manager constructor
-        // likely due to MoltenVK compatibility issues
-
         // Now test manager creation - this MUST work
-        // match Manager::new() {
-        //     Ok(_manager) => {
-        //         // Manager created successfully - test passed
-        //         assert!(true, "Manager creation succeeded");
-        //     }
-        //     Err(_e) => {
-        //         // This should NOT happen since Vulkan was verified
-        //         panic!("Manager creation failed even though Vulkan is available");
-        //     }
-        // }
+        match Manager::new() {
+            Ok(_manager) => {
+                // Manager created successfully - test passed
+                println!("✅ Manager creation succeeded");
+                assert!(true, "Manager creation succeeded");
+            }
+            Err(e) => {
+                // This should NOT happen since Vulkan was verified
+                panic!(
+                    "Manager creation failed even though Vulkan is available: {}",
+                    e
+                );
+            }
+        }
     }
 }

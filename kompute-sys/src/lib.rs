@@ -64,10 +64,9 @@ mod tests {
             device_count
         );
 
-        // TEMPORARY: Skip manager creation due to kp::Manager segfault
-        // TODO: Re-enable once segfault is resolved
-        // let manager = ffi::create_manager(0);
-        // assert!(!manager.is_null(), "Manager creation should succeed");
+        let manager = ffi::create_manager(0);
+        assert!(!manager.is_null(), "Manager creation should succeed");
+        println!("✅ Manager creation succeeded in FFI layer");
         // UniquePtr handles destruction automatically
 
         println!(
@@ -92,11 +91,11 @@ mod tests {
             device_count
         );
 
-        // TEMPORARY: Skip manager creation due to kp::Manager segfault
-        // TODO: Re-enable once segfault is resolved
-        /*
         let mut manager = ffi::create_manager(0);
-        assert!(!manager.is_null(), "Manager creation failed - this should not happen");
+        assert!(
+            !manager.is_null(),
+            "Manager creation failed - this should not happen"
+        );
 
         // Create tensor
         let data = [1.0f32, 2.0, 3.0, 4.0];
@@ -109,8 +108,7 @@ mod tests {
 
         // SharedPtr handles destruction automatically
         // UniquePtr handles manager destruction automatically
-        */
 
-        println!("Complete workflow test passed (manager creation temporarily bypassed)");
+        println!("✅ Complete workflow test passed");
     }
 }

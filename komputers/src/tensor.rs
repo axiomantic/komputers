@@ -1320,11 +1320,6 @@ mod tests {
         // MANDATORY: Vulkan MUST be available for all tests
         crate::test_utils::require_vulkan().unwrap();
 
-        // TEMPORARY: Skip manager creation due to kp::Manager segfault
-        println!("Tensor data consistency test - manager creation temporarily bypassed");
-
-        // TODO: Re-enable once segfault is resolved
-        /*
         if let Ok(mut manager) = Manager::new() {
             let original_data = vec![3.14159f32, 2.71828, 1.41421, 1.61803];
             match Tensor::new(&mut manager, &original_data) {
@@ -1334,14 +1329,17 @@ mod tests {
                         assert_eq!(data1, data2);
                         assert_eq!(original_data, data1);
                         assert_eq!(original_data, data2);
+                        println!("✅ Tensor data consistency test passed");
                     }
                 }
                 Err(_e) => {
                     // Creation failed - expected in headless environments
+                    println!(
+                        "⚠️  Tensor creation failed - may be expected in headless environments"
+                    );
                 }
             }
         }
-        */
     }
 
     #[test]
