@@ -118,7 +118,11 @@
 //! |---------|-----------|------|--------|------|----------|
 //! | **Maturity** | ❌ New | ✅ Mature | ✅ Active | ✅ Active | ✅ Stable |
 //! | **Graphics Support** | ❌ Compute only | ✅ Full graphics | ❌ ML only | ❌ ML only | ❌ Compute only |
-//! | **Platform Support** | ❌ Vulkan only | ✅ Cross-platform | ✅ Cross-platform | ✅ Cross-platform | ❌ CUDA only |
+//! | **Windows** | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | ❌ No |
+//! | **Linux** | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes |
+//! | **macOS** | ✅ Yes (MoltenVK) | ✅ Yes | ✅ Yes | ✅ Yes | ❌ No |
+//! | **Android** | ✅ Yes | ✅ Yes | ✅ Limited | ✅ Limited | ❌ No |
+//! | **iOS** | ✅ Yes (MoltenVK) | ✅ Yes | ❅ Possible | ❅ Possible | ❌ No |
 //! | **Backend** | Vulkan via Kompute | Vulkan/Metal/DX12 | Multiple | Multiple | NVIDIA CUDA |
 //! | **Built-in Tensors** | ✅ Yes | ❌ Manual buffers | ✅ Yes | ✅ Yes | ❌ Manual |
 //! | **ML Focus** | ❌ General compute | ❌ General purpose | ✅ Inference | ✅ Training | ❌ General compute |
