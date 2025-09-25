@@ -112,23 +112,28 @@
 //!     LazyLock::new(|| Mutex::new(HandleRegistry::new()));
 //! ```
 //!
-//! ## Comparison with Other Rust GPU Libraries
+//! ## Rust GPU Libraries Comparison
 //!
-//! | Feature | Komputers | wgpu | candle | burn | RustCUDA |
-//! |---------|-----------|------|--------|------|----------|
-//! | **Maturity** | ❌ New | ✅ Mature | ✅ Active | ✅ Active | ✅ Stable |
-//! | **Graphics Rendering** | ❌ No | ✅ Yes | ❌ No | ❌ No | ❌ No |
-//! | **Vulkan** | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | ❌ No |
-//! | **Metal** | ✅ Via MoltenVK | ✅ Yes | ✅ Yes | ✅ Yes | ❌ No |
-//! | **DirectX** | ❌ No | ✅ Yes | ❌ No | ❌ No | ❌ No |
-//! | **CUDA** | ❌ No | ❌ No | ✅ Yes | ✅ Yes | ✅ Yes |
-//! | **WebGPU** | ❌ No | ✅ Yes | ❌ No | ❌ No | ❌ No |
-//! | **Built-in Tensors** | ✅ Yes | ❌ Manual buffers | ✅ Yes | ✅ Yes | ❌ Manual |
-//! | **ML Focus** | ❌ General compute | ❌ General purpose | ✅ Inference | ✅ Training | ❌ General compute |
-//! | **Memory Safety** | ✅ Enhanced | ✅ Standard Rust | ✅ Standard Rust | ✅ Standard Rust | ❌ Unsafe required |
-//! | **Learning Curve** | ❓ Moderate | ❓ Steep | ✅ Easy for ML | ✅ Easy for ML | ❓ Steep |
-//! | **Documentation** | ❌ Limited | ✅ Extensive | ✅ Good | ✅ Good | ✅ Good |
-//! | **Ecosystem** | ❌ Small | ✅ Large | ✅ Growing | ✅ Growing | ✅ Established |
+//! | Feature              | Komputers         | wgpu              | candle            | burn                 | RustCUDA          |
+//! |----------------------|-------------------|-------------------|-------------------|----------------------|-------------------|
+//! | **GPU Backends**     |                   |                   |                   |                      |                   |
+//! | Vulkan               | ✅ Yes            | ✅ Yes            | ❌ No             | ✅ Via wgpu          | ❌ No             |
+//! | Metal                | ✅ Via MoltenVK   | ✅ Native         | ✅ Native         | ✅ Native + wgpu     | ❌ No             |
+//! | DirectX 12           | ✅ Via DXVK       | ✅ Native         | ❌ No             | ✅ Via wgpu          | ❌ No             |
+//! | DirectX 11           | ❌ No             | ❌ Via ANGLE only | ❌ No             | ❌ Via ANGLE only    | ❌ No             |
+//! | CUDA                 | ❌ No             | ❌ No             | ✅ Primary        | ✅ Native            | ✅ Exclusive      |
+//! | OpenGL/GLES          | ❌ No             | ✅ Yes            | ❌ No             | ✅ Via wgpu          | ❌ No             |
+//! | WebGPU               | ❌ No             | ✅ Yes            | ❌ No             | ✅ Via wgpu          | ❌ No             |
+//! | **Library Features** |                   |                   |                   |                      |                   |
+//! | Maturity             | ⚠️ New            | ✅ Mature         | ✅ Active         | ✅ Active            | ✅ Stable         |
+//! | Graphics Rendering   | ❌ No             | ✅ Primary focus  | ❌ No             | ❌ No                | ❌ No             |
+//! | Built-in Tensors     | ✅ Yes            | 🔧 Manual buffers | ✅ Yes            | ✅ Yes               | 🔧 Manual         |
+//! | ML/AI Focus          | 🔧 General compute| 🔧 General graphics| ✅ Inference     | ✅ Training          | 🔧 General compute|
+//! | Memory Safety        | ✅ Enhanced       | ✅ Standard Rust  | ✅ Standard Rust  | ✅ Standard Rust     | ⚠️ Unsafe required|
+//! | Cross-Platform       | ✅ Excellent      | ✅ Excellent      | 🔧 CUDA + Metal only| ✅ Excellent       | ❌ NVIDIA only    |
+//! | Learning Curve       | 🔶 Moderate       | 🔶 Steep          | ✅ Easy for ML    | ✅ Easy for ML       | 🔶 Steep          |
+//! | Documentation        | 📝 Limited        | ✅ Extensive      | ✅ Good           | ✅ Good              | ✅ Good           |
+//! | Ecosystem            | 📦 Small          | ✅ Large          | ✅ Growing        | ✅ Growing           | ✅ Established    |
 //!
 //! **Library Selection Guide:**
 //!
