@@ -86,9 +86,10 @@ fn example_neural_layer(manager: &mut Manager, profiler: &mut PerformanceProfile
     )?;
 
     // Execute the computation
-    let mut sequence = manager.sequence()?;
-    sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.execute()?;
+    manager
+        .sequence()?
+        .record_algorithm_dispatch(algorithm.handle())?
+        .execute()?;
 
     profiler.end_operation("neural_layer_compute")?;
 
@@ -176,12 +177,13 @@ fn example_convolution(manager: &mut Manager, profiler: &mut PerformanceProfiler
         &[&image_tensor, &kernel_tensor, &output_tensor],
     )?;
 
-    let mut sequence = manager.sequence()?;
     // Dispatch with 2D workgroups for image processing
     let _workgroup_x = (output_width + 15) / 16; // 16x16 workgroup size
     let _workgroup_y = (output_height + 15) / 16;
-    sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.execute()?;
+    manager
+        .sequence()?
+        .record_algorithm_dispatch(algorithm.handle())?
+        .execute()?;
 
     profiler.end_operation("convolution_compute")?;
 
@@ -251,10 +253,11 @@ fn example_gradient_descent(
         ],
     )?;
 
-    let mut sequence = manager.sequence()?;
     let _workgroups = (param_count + 255) / 256; // 256 threads per workgroup
-    sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.execute()?;
+    manager
+        .sequence()?
+        .record_algorithm_dispatch(algorithm.handle())?
+        .execute()?;
 
     profiler.end_operation("gradient_descent_compute")?;
 

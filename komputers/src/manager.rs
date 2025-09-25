@@ -184,7 +184,7 @@ impl Manager {
     /// - Platform Vulkan detection fails
     /// - GPU memory allocation fails during initialization
     ///
-    /// Returns [`KomputeError::VulkanInitialization`] if:
+    /// Returns [`KomputeError::VulkanError`] if:
     /// - Vulkan instance creation fails
     /// - Device enumeration fails
     /// - Required Vulkan extensions unavailable
@@ -1109,7 +1109,7 @@ mod tests {
             }
             Err(_e) => {
                 // Device enumeration failed - expected in CI/headless environments
-                assert!(true, "Device enumeration failed as expected");
+                // No assertion needed - failure is expected in this case
             }
         }
     }

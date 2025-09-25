@@ -162,7 +162,7 @@ fn test_tensor_data_trait_consistency() {
     println!("  ✓ TensorData trait data type IDs are consistent");
 
     // Test that data type IDs are unique
-    let type_ids = vec![
+    let type_ids = [
         f32::data_type_id(),
         f64::data_type_id(),
         i32::data_type_id(),

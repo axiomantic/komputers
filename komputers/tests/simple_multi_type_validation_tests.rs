@@ -13,14 +13,14 @@ fn test_all_types_basic_operations() {
         let test_size = 100;
 
         // Test f32
-        match manager.tensor_filled(test_size, 3.14f32) {
+        match manager.tensor_filled(test_size, std::f32::consts::PI) {
             Ok(tensor) => {
                 assert_eq!(tensor.size(), test_size);
                 assert_eq!(tensor.data_type().unwrap(), DataType::Float32);
                 assert!(tensor.validate_type().is_ok());
                 if let Ok(data) = tensor.to_vec() {
                     assert_eq!(data.len(), test_size);
-                    assert!((data[0] - 3.14f32).abs() < f32::EPSILON);
+                    assert!((data[0] - std::f32::consts::PI).abs() < f32::EPSILON);
                 }
                 println!("  ✓ f32 tensor operations successful");
             }
@@ -28,14 +28,14 @@ fn test_all_types_basic_operations() {
         }
 
         // Test f64
-        match manager.tensor_filled(test_size, 2.718f64) {
+        match manager.tensor_filled(test_size, std::f64::consts::E) {
             Ok(tensor) => {
                 assert_eq!(tensor.size(), test_size);
                 assert_eq!(tensor.data_type().unwrap(), DataType::Float64);
                 assert!(tensor.validate_type().is_ok());
                 if let Ok(data) = tensor.to_vec() {
                     assert_eq!(data.len(), test_size);
-                    assert!((data[0] - 2.718f64).abs() < f64::EPSILON);
+                    assert!((data[0] - std::f64::consts::E).abs() < f64::EPSILON);
                 }
                 println!("  ✓ f64 tensor operations successful");
             }
@@ -263,7 +263,7 @@ fn test_error_handling() {
 
     if let Ok(mut manager) = Manager::new() {
         // Test zero size error propagation
-        let zero_size_errors = vec![
+        let zero_size_errors = [
             manager.tensor_filled(0, 1.0f32).is_err(),
             manager.tensor_filled(0, 1.0f64).is_err(),
             manager.tensor_filled(0, 1i32).is_err(),

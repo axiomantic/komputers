@@ -100,26 +100,46 @@ path = "examples/multi_type_tensors.rs"
 name = "scientific_computing"
 path = "examples/scientific_computing.rs"
 
-# Revolutionary safety examples showcasing the hybrid validation system
 [[example]]
-name = "basic_gpu_safety"
-path = "docs/examples/basic_gpu_safety.rs"
+name = "dimension_safe_tensors"
+path = "examples/dimension_safe_tensors.rs"
 
 [[example]]
-name = "cross_manager_safety"
-path = "docs/examples/cross_manager_safety.rs"
+name = "type_safe_shaders"
+path = "examples/type_safe_shaders.rs"
 
 [[example]]
-name = "consuming_builder_safety"
-path = "docs/examples/consuming_builder_safety.rs"
+name = "memory_aligned_tensors"
+path = "examples/memory_aligned_tensors.rs"
 
 [[example]]
-name = "spirv_algorithm_safety"
-path = "docs/examples/spirv_algorithm_safety.rs"
+name = "lifetime_bound_resources"
+path = "examples/lifetime_bound_resources.rs"
 
 [[example]]
-name = "performance_safety_overhead"
-path = "docs/examples/performance_safety_overhead.rs"
+name = "type_indexed_dispatch"
+path = "examples/type_indexed_dispatch.rs"
+
+# Revolutionary safety examples (to be implemented when validation system is ready)
+# [[example]]
+# name = "basic_gpu_safety"
+# path = "docs/examples/basic_gpu_safety.rs"
+#
+# [[example]]
+# name = "cross_manager_safety"
+# path = "docs/examples/cross_manager_safety.rs"
+#
+# [[example]]
+# name = "consuming_builder_safety"
+# path = "docs/examples/consuming_builder_safety.rs"
+#
+# [[example]]
+# name = "spirv_algorithm_safety"
+# path = "docs/examples/spirv_algorithm_safety.rs"
+#
+# [[example]]
+# name = "performance_safety_overhead"
+# path = "docs/examples/performance_safety_overhead.rs"
 
 # Benchmarks will be added later
 # [[bench]]

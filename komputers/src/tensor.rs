@@ -352,12 +352,52 @@ impl DataType {
 /// compile-time + runtime validation, making GPU crashes impossible to write!
 ///
 /// **Ready to experience crash-free GPU computing? Create your first type-safe tensor! 🚀**
-pub struct Tensor<T> {
+pub struct DimensionTensor<T, const N: usize> {
     handle: u64,
     _phantom: PhantomData<T>,
 }
 
-impl<T: TensorData> Tensor<T> {
+/// Compile-time dimension-safe tensor operations.
+///
+/// This trait provides dimension validation at compile time using const generics,
+/// preventing dimension mismatch errors before your code even runs!
+pub trait DimensionSafety<T: TensorData, const N: usize> {
+    /// Validate tensor dimensions at compile time.
+    ///
+    /// This method is automatically implemented and provides zero-cost
+    /// dimension validation through const generics.
+    fn validate_dimensions() -> bool {
+        N > 0 // Static dimensions must be positive
+    }
+
+    /// Get the compile-time known size of this tensor.
+    ///
+    /// For static tensors, this returns the const generic `N`.
+    /// For dynamic tensors (`N = 0`), this returns 0 to indicate dynamic sizing.
+    fn compile_time_size() -> usize {
+        N
+    }
+
+    /// Check if this tensor has compile-time known dimensions.
+    ///
+    /// Returns `true` for `DimensionTensor<T, N>` where `N > 0`.
+    /// Returns `false` for dynamic tensors (`N = 0`).
+    fn is_dimension_safe() -> bool {
+        N > 0
+    }
+}
+
+impl<T: TensorData, const N: usize> DimensionSafety<T, N> for DimensionTensor<T, N> {}
+
+/// Type alias for backward compatibility with existing code.
+///
+/// `Tensor<T>` is now an alias for `DimensionTensor<T, 0>`, representing
+/// dynamically-sized tensors that use runtime dimension checking.
+///
+/// For compile-time dimension safety, use `DimensionTensor<T, N>` directly.
+pub type Tensor<T> = DimensionTensor<T, 0>;
+
+impl<T: TensorData, const N: usize> DimensionTensor<T, N> {
     /// Create a new type-safe tensor with host data copied to GPU memory.
     ///
     /// This is the primary constructor for GPU tensors, providing automatic memory allocation,
@@ -413,6 +453,17 @@ impl<T: TensorData> Tensor<T> {
     /// - GPU allocation uses efficient Vulkan memory pools when available
     /// - Consider [`Tensor::uninit()`] for performance-critical uninitialized allocations
     pub fn new(manager: &mut Manager, data: &[T]) -> Result<Self> {
+        // Compile-time dimension validation for static tensors
+        if N > 0 && data.len() != N {
+            return Err(KomputeError::tensor(format!(
+                "Dimension mismatch: tensor expects {} elements but got {}. \
+                Use DimensionTensor<T, {}> for compile-time safety!",
+                N,
+                data.len(),
+                data.len()
+            )));
+        }
+
         // Validate input data
         if data.is_empty() {
             return Err(KomputeError::tensor("Cannot create tensor with empty data"));
@@ -776,7 +827,17 @@ impl<T: TensorData> Tensor<T> {
     where
         T: Default + Clone,
     {
-        manager.tensor_zeros(size)
+        // For static tensors, validate size matches N
+        if N > 0 && size != N {
+            return Err(KomputeError::tensor(format!(
+                "Size mismatch: static tensor expects {} elements but got {}",
+                N, size
+            )));
+        }
+
+        // Create with zeros directly for all tensor types
+        let data = vec![T::default(); size];
+        Self::new(manager, &data)
     }
 
     /// Create a tensor filled with ones.
@@ -813,7 +874,17 @@ impl<T: TensorData> Tensor<T> {
     where
         T: Clone + From<u8>,
     {
-        manager.tensor_ones(size)
+        // For static tensors, validate size matches N
+        if N > 0 && size != N {
+            return Err(KomputeError::tensor(format!(
+                "Size mismatch: static tensor expects {} elements but got {}",
+                N, size
+            )));
+        }
+
+        // Create with ones directly for all tensor types
+        let data = vec![T::from(1u8); size];
+        Self::new(manager, &data)
     }
 
     /// Create a tensor filled with a specific value.
@@ -850,7 +921,17 @@ impl<T: TensorData> Tensor<T> {
     where
         T: Clone,
     {
-        manager.tensor_filled(size, fill_value)
+        // For static tensors, validate size matches N
+        if N > 0 && size != N {
+            return Err(KomputeError::tensor(format!(
+                "Size mismatch: static tensor expects {} elements but got {}",
+                N, size
+            )));
+        }
+
+        // Create with fill value directly for all tensor types
+        let data = vec![fill_value; size];
+        Self::new(manager, &data)
     }
 
     /// Get the runtime data type of this tensor.
@@ -964,7 +1045,7 @@ impl<T: TensorData> Tensor<T> {
     ///
     /// # Usage in Operations
     ///
-    /// This handle is primarily used with [`Sequence`] operations:
+    /// This handle is primarily used with [`crate::Sequence`] operations:
     ///
     /// ```rust,no_run
     /// use komputers::{Manager, Tensor, Result};
@@ -988,19 +1069,108 @@ impl<T: TensorData> Tensor<T> {
     pub fn handle(&self) -> u64 {
         self.handle
     }
+
+    /// Get the compile-time known size of this tensor.
+    ///
+    /// For static tensors, this returns the const generic `N`.
+    /// For dynamic tensors (`N = 0`), this returns 0 to indicate dynamic sizing.
+    pub const fn compile_time_size(&self) -> usize {
+        N
+    }
+
+    /// Check if this tensor has compile-time known dimensions.
+    ///
+    /// Returns `true` for `DimensionTensor<T, N>` where `N > 0`.
+    /// Returns `false` for dynamic tensors (`N = 0`).
+    pub const fn is_dimension_safe(&self) -> bool {
+        N > 0
+    }
 }
 
-impl<T> Drop for Tensor<T> {
+impl<T: TensorData, const N: usize> DimensionTensor<T, N>
+where
+    [T; N]: Sized,
+{
+    /// Create a dimension-safe tensor with compile-time size validation.
+    ///
+    /// This constructor provides revolutionary compile-time dimension safety by
+    /// using const generics to validate tensor size at compile time. Dimension
+    /// mismatches are caught before your code even runs!
+    ///
+    /// # Compile-Time Safety Features
+    ///
+    /// - **Dimension Validation**: `N` must match `data.len()` or compilation fails
+    /// - **Zero Runtime Cost**: All validation happens at compile time
+    /// - **Type-Safe Operations**: Only compatible tensors can be used together
+    /// - **Clear Error Messages**: Mismatches show expected vs actual dimensions
+    ///
+    /// # Arguments
+    ///
+    /// * `manager` - GPU manager for memory allocation
+    /// * `data` - Fixed-size array of exactly `N` elements
+    ///
+    /// # Returns
+    ///
+    /// A compile-time dimension-safe `DimensionTensor<T, N>`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use komputers::{Manager, DimensionTensor};
+    ///
+    /// fn dimension_safe_example() -> komputers::Result<()> {
+    ///     let mut manager = Manager::new()?;
+    ///
+    ///     // ✅ Compile-time dimension safety!
+    ///     let tensor: DimensionTensor<f32, 4> = DimensionTensor::new_safe(&mut manager, &[1.0, 2.0, 3.0, 4.0])?;
+    ///
+    ///     // ❌ This would NOT compile - wrong dimension!
+    ///     // let bad_tensor: DimensionTensor<f32, 4> = DimensionTensor::new_safe(&mut manager, &[1.0, 2.0])?;
+    ///
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn new_safe(manager: &mut Manager, data: &[T; N]) -> Result<Self> {
+        Self::new(manager, data.as_slice())
+    }
+
+    /// Create a dimension-safe uninitialized tensor for maximum performance.
+    ///
+    /// This allocates GPU memory for exactly `N` elements without host data copying.
+    /// The size is validated at compile time, making dimension errors impossible!
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use komputers::{Manager, DimensionTensor};
+    ///
+    /// fn performance_safe_example() -> komputers::Result<()> {
+    ///     let mut manager = Manager::new()?;
+    ///
+    ///     // ✅ Compile-time size validation + maximum performance
+    ///     let tensor: DimensionTensor<f32, 1000000> = DimensionTensor::uninit_safe(&mut manager)?;
+    ///
+    ///     assert_eq!(tensor.compile_time_size(), 1000000);
+    ///     assert!(tensor.is_dimension_safe());
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn uninit_safe(manager: &mut Manager) -> Result<Self> {
+        Self::uninit(manager, N)
+    }
+}
+
+impl<T, const N: usize> Drop for DimensionTensor<T, N> {
     fn drop(&mut self) {
         ffi::tensor_destroy_handle(self.handle);
     }
 }
 
 // Tensors are safe to send between threads
-unsafe impl<T: TensorData> Send for Tensor<T> {}
+unsafe impl<T: TensorData, const N: usize> Send for DimensionTensor<T, N> {}
 
 // Tensors can be shared between threads with proper synchronization
-unsafe impl<T: TensorData> Sync for Tensor<T> {}
+unsafe impl<T: TensorData, const N: usize> Sync for DimensionTensor<T, N> {}
 
 #[cfg(test)]
 mod tests {

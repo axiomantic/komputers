@@ -3,7 +3,7 @@
 //! This example shows that our defensive programming changes prevent segfaults
 //! and provide clear error messages when operations fail.
 
-use komputers::{Algorithm, Manager, Result, Sequence, Tensor};
+use komputers::{Algorithm, Manager, Result, Tensor};
 
 fn main() -> Result<()> {
     println!("🛡️  Testing Defensive Guards and Error Handling");

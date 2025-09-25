@@ -667,8 +667,6 @@ pub fn create_async_manager_with_config(
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[cfg(test)]
-    use crate::VulkanConfig;
 
     #[test]
     fn test_sync_manager_creation() {

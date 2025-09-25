@@ -5,7 +5,7 @@
 
 #[cfg(feature = "async")]
 mod async_tests {
-    use komputers::{AsyncSequence, Manager, Result, Tensor, VulkanConfig};
+    use komputers::{async_sequence::AsyncSequence, Manager, Result, Tensor, VulkanConfig};
     use std::time::{Duration, Instant};
     use tokio::time::timeout;
 

@@ -246,6 +246,9 @@ fn test_error_message_quality() {
             KomputeError::PlatformError(_) => assert!(message.contains("Platform")),
             KomputeError::EnvironmentError(_) => assert!(message.contains("Environment")),
             KomputeError::InternalError(_) => assert!(message.contains("Internal")),
+            KomputeError::TypeSafety(_) => {
+                assert!(message.contains("Type") || message.contains("safety"))
+            }
         }
     }
 

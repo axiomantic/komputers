@@ -222,6 +222,7 @@ pub mod error_recovery;
 pub mod glsl_compiler;
 pub mod handle_tracker;
 pub mod manager;
+pub mod memory_layout;
 pub mod memory_optimizer;
 pub mod multi_queue;
 pub mod operations;
@@ -248,6 +249,12 @@ pub mod runtime_validation;
 // Workgroup validation system for GPU compute operations
 pub mod workgroup_validation;
 
+// Resource lifecycle and borrowing safety system
+pub mod lifetime_safety;
+
+// Compute shader dispatch safety system
+pub mod dispatch_safety;
+
 // Feature-gated async support - async_executor and async_gpu removed due to deprecated APIs
 
 #[cfg(feature = "async")]
@@ -257,7 +264,9 @@ pub mod async_sequence;
 pub mod performance_metrics;
 
 // Re-export main types
-pub use algorithm::{Algorithm, AlgorithmPerformanceHints};
+pub use algorithm::{
+    Algorithm, AlgorithmPerformanceHints, ShaderDataType, ShaderInterface, TypeSafeAlgorithm,
+};
 pub use algorithm_binding::{
     AccessPattern, AlgorithmBinding, BindingTemplate, BindingValidationReport,
     CommonBindingTemplates, ParameterSpec, TensorBinding, TensorDataType, ValidationRule,
@@ -284,6 +293,7 @@ pub use glsl_compiler::{
 };
 pub use handle_tracker::{HandleStatistics, HandleTracker, TrackedHandle};
 pub use manager::Manager;
+pub use memory_layout::{alignment, AlignedData, AlignedTensor, GpuAligned, MemoryLayoutInfo};
 pub use memory_optimizer::{
     AllocationStrategy, MemoryOptimizer, MemoryPool, PerformanceMetric, PerformanceMetrics,
 };
@@ -301,7 +311,7 @@ pub use platform::{
 pub use queue::Queue;
 pub use sequence::Sequence;
 pub use spirv_utils::{CommonKernels, ShaderCompilationGuide, SpirvUtils};
-pub use tensor::{DataType, Tensor, TensorData};
+pub use tensor::{DataType, DimensionSafety, DimensionTensor, Tensor, TensorData};
 pub use vulkan_config::VulkanConfig;
 pub use vulkan_setup::{
     configure_vulkan_environment, configure_vulkan_environment_intelligent,
@@ -332,6 +342,19 @@ pub use types::{
 pub use workgroup_validation::{
     common_1d, common_2d, common_3d, DynamicWorkgroupConfig, GpuLimits, VendorInfo,
     WorkgroupConfig as TypedWorkgroupConfig, WorkgroupPerformanceHints, WorkgroupValidation,
+};
+
+// Lifetime safety exports
+pub use lifetime_safety::{
+    LifetimeBound, LifetimeBoundAlgorithm, LifetimeBoundResource, LifetimeBoundResourcePool,
+    LifetimeBoundSequence, LifetimeBoundTensor, LifetimeValidator, ScopedResourceHelper,
+};
+
+// Dispatch safety exports
+pub use dispatch_safety::{
+    BatchDispatchManager, BatchDispatchResult, DispatchAnalysis, DispatchOptimizer, Param1, Param2,
+    Param3, Param4, ParamCons, ParamNil, ParameterList, SafeDispatchBuilder, SafeDispatchResult,
+    ShaderParameter, TypeIndexedAlgorithm,
 };
 
 // Feature-gated async support (temporarily disabled - needs update for consuming builder)
