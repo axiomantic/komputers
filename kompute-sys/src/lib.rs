@@ -1,7 +1,27 @@
 //! Low-level Rust bindings for the Kompute GPU compute framework.
 //!
-//! This crate provides safe Rust bindings to the Kompute C++ library using cxx,
-//! enabling GPU compute operations through Vulkan with zero-cost abstractions.
+//! **⚠️ Most users want the [`komputers`] crate instead!**
+//!
+//! This crate provides unsafe, low-level FFI bindings to the Kompute C++ library.
+//! For safe, idiomatic Rust GPU computing, use the [`komputers`] crate which provides:
+//!
+//! - Type-safe tensor operations
+//! - Memory safety and automatic resource cleanup
+//! - Cross-manager validation
+//! - Consuming builder APIs
+//! - Comprehensive error handling
+//!
+//! [`komputers`]: https://docs.rs/komputers
+//!
+//! ## When to use kompute-sys directly
+//!
+//! Only use this crate if you need:
+//! - Direct access to Kompute C++ APIs
+//! - Custom memory management strategies
+//! - Integration with existing C++ codebases
+//! - Performance-critical paths that avoid Rust abstractions
+//!
+//! For most GPU compute applications, [`komputers`] is the better choice.
 //!
 //! # Examples
 //!
