@@ -117,13 +117,12 @@
 //! | Feature | Komputers | wgpu | candle | burn | RustCUDA |
 //! |---------|-----------|------|--------|------|----------|
 //! | **Maturity** | ❌ New | ✅ Mature | ✅ Active | ✅ Active | ✅ Stable |
-//! | **Graphics Support** | ❌ Compute only | ✅ Full graphics | ❌ ML only | ❌ ML only | ❌ Compute only |
-//! | **Windows** | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | ❌ No |
-//! | **Linux** | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes |
-//! | **macOS** | ✅ Yes (MoltenVK) | ✅ Yes | ✅ Yes | ✅ Yes | ❌ No |
-//! | **Android** | ✅ Yes | ✅ Yes | ✅ Limited | ✅ Limited | ❌ No |
-//! | **iOS** | ✅ Yes (MoltenVK) | ✅ Yes | ❅ Possible | ❅ Possible | ❌ No |
-//! | **Backend** | Vulkan via Kompute | Vulkan/Metal/DX12 | Multiple | Multiple | NVIDIA CUDA |
+//! | **Graphics Rendering** | ❌ No | ✅ Yes | ❌ No | ❌ No | ❌ No |
+//! | **Vulkan** | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | ❌ No |
+//! | **Metal** | ✅ Via MoltenVK | ✅ Yes | ✅ Yes | ✅ Yes | ❌ No |
+//! | **DirectX** | ❌ No | ✅ Yes | ❌ No | ❌ No | ❌ No |
+//! | **CUDA** | ❌ No | ❌ No | ✅ Yes | ✅ Yes | ✅ Yes |
+//! | **WebGPU** | ❌ No | ✅ Yes | ❌ No | ❌ No | ❌ No |
 //! | **Built-in Tensors** | ✅ Yes | ❌ Manual buffers | ✅ Yes | ✅ Yes | ❌ Manual |
 //! | **ML Focus** | ❌ General compute | ❌ General purpose | ✅ Inference | ✅ Training | ❌ General compute |
 //! | **Memory Safety** | ✅ Enhanced | ✅ Standard Rust | ✅ Standard Rust | ✅ Standard Rust | ❌ Unsafe required |
@@ -131,7 +130,7 @@
 //! | **Documentation** | ❌ Limited | ✅ Extensive | ✅ Good | ✅ Good | ✅ Good |
 //! | **Ecosystem** | ❌ Small | ✅ Large | ✅ Growing | ✅ Growing | ✅ Established |
 //!
-//! **Honest Assessment:**
+//! **Library Selection Guide:**
 //!
 //! - **For ML/AI**: Consider [candle](https://github.com/huggingface/candle) or [burn](https://burn.dev/) first - they're purpose-built and more mature
 //! - **For graphics**: Use [wgpu](https://wgpu.rs/) - it's the clear choice with excellent support
