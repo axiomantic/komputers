@@ -1,4 +1,4 @@
-# Komputers: Experimental GPU Computing for Rust
+# Komputers: GPU Computing for Rust
 
 [![Crates.io](https://img.shields.io/crates/v/komputers.svg)](https://crates.io/crates/komputers)
 [![Documentation](https://docs.rs/komputers/badge.svg)](https://docs.rs/komputers)
@@ -6,52 +6,39 @@
 [![Security Audit](https://github.com/axiomantic/komputers/workflows/Security%20Audit/badge.svg)](https://github.com/axiomantic/komputers/actions/workflows/security.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-**Experimental Rust bindings for the [Kompute](https://github.com/KomputeProject/kompute) GPU compute framework.**
+Rust bindings for the [Kompute](https://github.com/KomputeProject/kompute) GPU compute framework.
 
-Komputers provides memory-safe GPU computing with Vulkan. Features multi-type tensors, error recovery, and memory optimization. Currently in active development and used in our own projects.
+Komputers provides GPU computing with Vulkan through a Rust interface. It includes tensor operations, SPIR-V algorithm support, and memory management for GPU workloads.
 
-## ⚠️ Experimental Status
+## Status
 
-**🧪 EXPERIMENTAL - ALPHA QUALITY**
-
-Komputers is an **experimental GPU computing library** that we believe is close to being ready but needs community testing. We are currently using it in our own projects, but it should be considered alpha quality.
-
-**Version Support**: Currently supports Kompute master branch only (unreleased). Official releases v0.8.1 and v0.9.0 are not supported due to compatibility issues.
-
-**Current Features**:
-
-- ✅ **Multi-Type Tensor Support**: f32, f64, i32, u32 with full GPU integration
-- ✅ **Algorithm-Tensor Binding**: Real GPU compute operations with SPIR-V shaders
-- ✅ **Multi-Queue GPU Operations**: Parallel GPU execution across multiple queues
-- ✅ **Advanced Error Recovery**: Production-grade error handling and recovery
-- ✅ **Memory Optimization**: Intelligent GPU memory management and optimization
-- ✅ **Cross-Platform**: Native support for Linux, Windows, macOS (via MoltenVK)
-- ✅ **Async GPU Operations**: Futures-based async API for non-blocking GPU operations
-- ✅ **Comprehensive Testing**: 40+ test suites including performance regression and memory safety
+Komputers is under active development. It supports Kompute's master branch. Official Kompute releases (v0.8.1, v0.9.0) are not currently supported due to compatibility requirements.
 
 ## Features
 
-### Core GPU Computing
+- **Multi-Type Tensors**: Support for f32, f64, i32, u32 data types with GPU operations
+- **SPIR-V Integration**: Load and execute compute shaders with tensor parameter binding
+- **Multi-Queue Support**: Parallel execution across multiple GPU command queues
+- **Error Handling**: Structured error types with recovery strategies
+- **Memory Management**: GPU memory allocation and cleanup through RAII patterns
+- **Cross-Platform**: Linux, Windows, and macOS support (macOS via MoltenVK)
+- **Async Operations**: Optional async/await API for non-blocking GPU work
+- **Testing Suite**: Unit, integration, and GPU hardware tests
 
-- **Memory Safety**: All GPU resource management through RAII patterns with automatic cleanup
-- **Type Safety**: Generic tensor types with compile-time validation and runtime type detection
-- **Zero-Cost Abstractions**: Minimal overhead compared to C++ Kompute
-- **Handle-Based Architecture**: Efficient resource management with automatic lifecycle tracking
+### Implementation Details
 
-### Advanced Capabilities
+- **Memory Safety**: GPU resource management through RAII patterns with automatic cleanup
+- **Type Safety**: Generic tensor types with compile-time and runtime type checking
+- **Handle-Based Architecture**: Resource management with lifecycle tracking
+- **SPIR-V Support**: Compute shader loading and execution with parameter binding
+- **Vulkan Backend**: Uses Vulkan API through the Kompute C++ framework
 
-- **Multi-Type Tensors**: Full support for f32, f64, i32, u32 data types
-- **Algorithm Configuration**: SPIR-V shader binding with tensor parameters and workgroups
-- **Memory Optimization**: Intelligent allocation strategies and fragmentation management
-- **Error Recovery**: Automatic error detection, diagnosis, and recovery strategies
-- **Platform Integration**: Vulkan environment auto-configuration and validation
+### Platform Support
 
-### GPU Vendor Support
-
-- **NVIDIA**: Native Vulkan with optimized performance characteristics
-- **AMD**: Full RDNA architecture support with vendor-specific optimizations
-- **Intel**: Integrated graphics support with shared memory optimization
-- **Apple Silicon**: MoltenVK integration with unified memory architecture
+- **Linux**: Native Vulkan drivers (NVIDIA, AMD, Intel)
+- **Windows**: Native Vulkan drivers
+- **macOS**: MoltenVK translation layer for Metal backend compatibility
+- **GPU Vendors**: NVIDIA, AMD, Intel, and Apple Silicon support
 
 ## Quick Start
 
@@ -199,22 +186,22 @@ fn advanced_features_example() -> komputers::Result<()> {
 
 ## Architecture
 
-Komputers follows a three-layer architecture optimized for safety and performance:
+Komputers provides a layered architecture for GPU computing:
 
 ### Core Components
 
-- **[`Manager`]**: GPU device management, resource allocation, and multi-queue coordination
-- **[`Tensor<T>`]**: Type-safe GPU memory with automatic host-device synchronization
-- **[`Algorithm`]**: SPIR-V compute shaders with parameter binding and workgroup configuration
-- **[`Sequence`]**: Command buffer for batched GPU operations with async execution support
+- **[`Manager`]**: GPU device management and resource allocation
+- **[`Tensor<T>`]**: Type-safe GPU memory with host-device synchronization
+- **[`Algorithm`]**: SPIR-V compute shader loading and execution
+- **[`Sequence`]**: Command buffer for batched GPU operations
 
-### Advanced Components
+### Additional Components
 
-- **[`GpuOperations`]**: High-level GPU computing patterns with automatic optimization
-- **[`MemoryOptimizer`]**: Intelligent GPU memory management with fragmentation reduction
-- **[`ErrorRecoveryManager`]**: Production-grade error handling with automatic recovery
-- **[`MultiQueueManager`]**: Parallel GPU execution across multiple command queues
-- **[`HandleTracker`]**: Resource lifecycle tracking with leak detection
+- **[`GpuOperations`]**: High-level GPU operation patterns
+- **[`MemoryOptimizer`]**: GPU memory management utilities
+- **[`ErrorRecoveryManager`]**: Error handling and recovery
+- **[`MultiQueueManager`]**: Multi-queue execution support
+- **[`HandleTracker`]**: Resource lifecycle tracking
 
 ## Platform Support
 
@@ -226,11 +213,11 @@ Komputers follows a three-layer architecture optimized for safety and performanc
 
 #### MoltenVK Compatibility (macOS)
 
-Komputers includes automatic compatibility fixes for MoltenVK on macOS:
+Komputers includes MoltenVK compatibility for macOS:
 
-- **Auto-Configuration**: Intelligent MoltenVK detection and environment setup
-- **Version Compatibility**: Automatic handling of MoltenVK API version mismatches
-- **Metal GPU Detection**: Automatic detection of Metal-capable GPUs with fallback options
+- **Auto-Configuration**: MoltenVK detection and environment setup
+- **Version Compatibility**: Handling of MoltenVK API version differences
+- **Metal GPU Detection**: Detection of Metal-capable GPUs with fallback
 - **Build Flags**: Pre-configured with `KOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK=ON`
 
 **Compatibility Notes**: This library targets the Kompute master branch due to compatibility issues with official releases. For details, see [MoltenVK Issue #2292](https://github.com/KhronosGroup/MoltenVK/issues/2292) and [Kompute Issue #378](https://github.com/KomputeProject/kompute/issues/378).
@@ -239,17 +226,17 @@ Komputers includes automatic compatibility fixes for MoltenVK on macOS:
 
 ### GPU Vendors
 
-- **NVIDIA**: GeForce, Quadro, Tesla series with CUDA interop
-- **AMD**: RDNA, RDNA2, RDNA3 architectures with ROCm integration
-- **Intel**: UHD, Iris, Arc graphics with oneAPI compatibility
-- **Apple**: M1, M2, M3 with unified memory optimization
+- **NVIDIA**: GeForce, Quadro, Tesla series
+- **AMD**: RDNA, RDNA2, RDNA3 architectures
+- **Intel**: UHD, Iris, Arc graphics
+- **Apple**: M1, M2, M3 processors
 
-### Automatic Environment Setup
+### Environment Setup
 
 ```rust
 use komputers::vulkan_setup::{configure_vulkan_environment, diagnose_vulkan_environment};
 
-// Automatic Vulkan configuration
+// Vulkan configuration
 configure_vulkan_environment()?;
 
 // Environment diagnostics
@@ -259,45 +246,43 @@ println!("Vulkan Status: {}", report.status);
 
 ## Performance
 
-Komputers aims to deliver good performance through:
+Komputers includes performance features:
 
-- **Zero-Cost Abstractions**: Compile-time optimization with minimal runtime overhead
-- **Efficient Memory Management**: GPU memory pooling and automatic defragmentation
-- **Optimized Data Transfer**: Minimized host-GPU memory copies with staging buffers
-- **Workgroup Optimization**: Automatic workgroup sizing based on GPU architecture
-- **Multi-Queue Parallelism**: Concurrent GPU execution across multiple command queues
+- **Rust Zero-Cost Abstractions**: Compile-time optimization with minimal runtime overhead
+- **Memory Management**: GPU memory pooling and defragmentation
+- **Data Transfer**: Staging buffers to minimize host-GPU memory copies
+- **Workgroup Sizing**: Workgroup configuration based on GPU architecture
+- **Multi-Queue Support**: Concurrent GPU execution across multiple command queues
 
-_Performance benchmarks are planned for future releases._
-
-## Safety Guarantees
+## Safety
 
 ### Memory Safety
 
-- **No GPU Memory Leaks**: RAII-based automatic resource cleanup
-- **No Use-After-Free**: Compile-time lifetime checking with borrow checker
-- **No Buffer Overruns**: Bounds checking on all tensor operations
-- **Thread Safety**: Safe concurrent access with automatic synchronization
+- **GPU Memory Management**: RAII-based automatic resource cleanup
+- **Lifetime Checking**: Compile-time lifetime validation with Rust borrow checker
+- **Bounds Checking**: Bounds validation on tensor operations
+- **Thread Safety**: Safe concurrent access patterns
 
 ### Error Handling
 
-- **Comprehensive Error Recovery**: Automatic detection and recovery from GPU errors
-- **Detailed Error Context**: Clear error messages with actionable guidance
-- **Graceful Degradation**: Fallback strategies for hardware compatibility issues
-- **Resource Cleanup**: Guaranteed cleanup even in error conditions
+- **Error Recovery**: Detection and recovery from GPU errors
+- **Error Context**: Error messages with contextual information
+- **Hardware Compatibility**: Fallback strategies for compatibility issues
+- **Resource Cleanup**: Resource cleanup in error conditions
 
-## Testing & Validation
+## Testing
 
-Komputers includes comprehensive testing suites:
+Komputers includes testing suites:
 
 ### Test Coverage
 
-- **40+ Test Suites**: Unit, integration, and end-to-end testing
+- **Test Suites**: Unit, integration, and end-to-end testing
 - **Memory Safety**: AddressSanitizer and LeakSanitizer integration
-- **Performance Regression**: Automated benchmarking with regression detection
-- **Cross-Platform**: Validation across Linux, Windows, macOS
-- **GPU Vendor Matrix**: Testing across NVIDIA, AMD, Intel, Apple GPUs
+- **Performance Testing**: Benchmarking with regression detection
+- **Cross-Platform**: Testing across Linux, Windows, macOS
+- **GPU Hardware**: Testing across NVIDIA, AMD, Intel, Apple GPUs
 
-### Continuous Integration
+### Test Commands
 
 ```bash
 # Run comprehensive test suite (excludes benchmarks for faster builds)

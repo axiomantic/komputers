@@ -26,40 +26,30 @@ use std::collections::HashMap;
 /// ## 🚀 Type-Safe SPIR-V Compute Workflows
 ///
 /// ```rust,no_run
-/// use komputers::{Manager, Algorithm, Tensor, Result};
+/// use komputers::{Manager, Algorithm, Tensor, Result, spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV};
 ///
-/// fn revolutionary_gpu_compute() -> Result<()> {
+/// fn gpu_compute_example() -> Result<()> {
 ///     let mut manager = Manager::new()?;
 ///
-///     // ✅ Create input and output tensors with type safety
+///     // Create input and output tensors with type safety
 ///     let input_a = Tensor::new(&mut manager, &[1.0f32, 2.0, 3.0, 4.0])?;
 ///     let input_b = Tensor::new(&mut manager, &[2.0f32, 3.0, 4.0, 5.0])?;
-///     let output = Tensor::<f32>::uninit(&mut manager, 4)?;
+///     let output: Tensor<f32> = Tensor::uninit(&mut manager, 4)?;
 ///
-///     // ✅ SPIR-V compute shader (e.g., element-wise addition)
-///     let spirv_data: Vec<u32> = include_bytes!("../shaders/add.spv")
-///         .chunks_exact(4)
-///         .map(|chunk| u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
-///         .collect();
+///     // Create algorithm with built-in SPIR-V shader
+///     let algorithm = Algorithm::with_tensors(
+///         &mut manager,
+///         ELEMENTWISE_ADD_F32_SPIRV,
+///         &[&input_a, &input_b, &output]
+///     )?;
 ///
-///     // ✅ Create algorithm with automatic SPIR-V validation
-///     let mut algorithm = Algorithm::new(&mut manager, &spirv_data)?;
-///
-///     // ✅ Type-safe tensor binding
-///     algorithm.bind_tensor("input_a", input_a.handle())?;
-///     algorithm.bind_tensor("input_b", input_b.handle())?;
-///     algorithm.bind_tensor("output", output.handle())?;
-///
-///     // ✅ Execute compute workflow with automatic optimization
-///     let result = manager
+///     // Execute compute workflow with consuming builder pattern
+///     let _result = manager
 ///         .sequence()?
-///         .record_tensor_sync_device(input_a.handle())?
-///         .record_tensor_sync_device(input_b.handle())?
 ///         .record_algorithm_dispatch(algorithm.handle())?
-///         .record_tensor_sync_local(output.handle())?
 ///         .execute()?;
 ///
-///     // ✅ Retrieve type-safe results
+///     // Retrieve type-safe results
 ///     let computed_result = output.to_vec()?;
 ///     println!("GPU compute result: {:?}", computed_result);
 ///
@@ -70,20 +60,19 @@ use std::collections::HashMap;
 /// ## 🔒 Cross-Manager Safety Prevention
 ///
 /// ```rust,no_run
-/// use komputers::{Manager, Algorithm, Tensor, Result};
+/// use komputers::{Manager, Algorithm, Tensor, Result, spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV};
 ///
-/// fn impossible_cross_manager_compute() -> Result<()> {
+/// fn cross_manager_safety_demo() -> Result<()> {
 ///     let mut manager_a = Manager::new()?;
 ///     let mut manager_b = Manager::new()?;
 ///
-///     let spirv_data = vec![0x07230203u32, /* valid SPIR-V */];
-///     let algorithm_a = Algorithm::new(&mut manager_a, &spirv_data)?;
-///     let tensor_b = Tensor::new(&mut manager_b, &[1.0f32, 2.0])?;
+///     let algorithm_a = Algorithm::new(&mut manager_a, ELEMENTWISE_ADD_F32_SPIRV)?;
+///     let _tensor_b = Tensor::new(&mut manager_b, &[1.0f32, 2.0])?;
 ///
-///     // ❌ This will be caught at runtime with clear error message!
+///     // This would be caught at runtime with validation error:
 ///     // let result = manager_b
 ///     //     .sequence()?
-///     //     .record_algorithm_dispatch(algorithm_a.handle())?  // Runtime validation error!
+///     //     .record_algorithm_dispatch(algorithm_a.handle())?  // Cross-manager error!
 ///     //     .execute()?;
 ///
 ///     Ok(())
@@ -441,25 +430,16 @@ impl Algorithm {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use komputers::{Manager, Algorithm, Result};
+    /// use komputers::{Manager, Algorithm, Result, spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV};
     ///
     /// fn create_compute_algorithms() -> Result<()> {
     ///     let mut manager = Manager::new()?;
     ///
-    ///     // ✅ Load SPIR-V from compiled shader file
-    ///     let spirv_bytes = include_bytes!("../shaders/vector_add.spv");
-    ///     let spirv_data: Vec<u32> = spirv_bytes
-    ///         .chunks_exact(4)
-    ///         .map(|chunk| u32::from_le_bytes([
-    ///             chunk[0], chunk[1], chunk[2], chunk[3]
-    ///         ]))
-    ///         .collect();
-    ///
-    ///     // ✅ Create algorithm with automatic validation
-    ///     let algorithm = Algorithm::new(&mut manager, &spirv_data)?;
+    ///     // Create algorithm with built-in SPIR-V shader
+    ///     let algorithm = Algorithm::new(&mut manager, ELEMENTWISE_ADD_F32_SPIRV)?;
     ///     println!("Algorithm created successfully with handle: {}", algorithm.handle());
     ///
-    ///     // ✅ Algorithm ready for tensor binding and execution
+    ///     // Algorithm ready for tensor binding and execution
     ///     Ok(())
     /// }
     ///
@@ -481,9 +461,9 @@ impl Algorithm {
     ///     #[cfg(feature = "glsl")]
     ///     {
     ///         use komputers::GlslCompiler;
-    ///         let compiler = GlslCompiler::new()?;
-    ///         let spirv_data = compiler.compile_compute(glsl_source)?;
-    ///         let algorithm = Algorithm::new(&mut manager, &spirv_data)?;
+    ///         let mut compiler = GlslCompiler::new();
+    ///         let compilation_result = compiler.compile_compute_shader(glsl_source)?;
+    ///         let algorithm = Algorithm::new(&mut manager, &compilation_result.spirv_bytecode)?;
     ///         println!("GLSL algorithm compiled and created successfully!");
     ///     }
     ///
@@ -588,50 +568,32 @@ impl Algorithm {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use komputers::{Manager, Algorithm, Tensor, Result};
+    /// use komputers::{Manager, Algorithm, Tensor, Result, spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV};
     ///
     /// fn simple_vector_addition() -> Result<()> {
     ///     let mut manager = Manager::new()?;
     ///
-    ///     // ✅ Create input and output tensors (same type required)
+    ///     // Create input and output tensors (same type required)
     ///     let input_a = Tensor::new(&mut manager, &[1.0f32, 2.0, 3.0])?;
     ///     let input_b = Tensor::new(&mut manager, &[4.0f32, 5.0, 6.0])?;
-    ///     let output = Tensor::<f32>::uninit(&mut manager, 3)?;
+    ///     let output: Tensor<f32> = Tensor::uninit(&mut manager, 3)?;
     ///
-    ///     // ✅ SPIR-V shader for vector addition
-    ///     let spirv_data = load_vector_add_shader()?;
-    ///
-    ///     // ✅ Create algorithm with automatic tensor binding
-    ///     // input_a -> param_0, input_b -> param_1, output -> param_2
+    ///     // Create algorithm with automatic tensor binding
     ///     let algorithm = Algorithm::with_tensors(
     ///         &mut manager,
-    ///         &spirv_data,
+    ///         ELEMENTWISE_ADD_F32_SPIRV,
     ///         &[&input_a, &input_b, &output]
     ///     )?;
     ///
-    ///     // ✅ Algorithm ready for immediate execution
-    ///     let result = manager
+    ///     // Execute algorithm using consuming builder pattern
+    ///     let _result = manager
     ///         .sequence()?
-    ///         .record_tensor_sync_device(input_a.handle())?
-    ///         .record_tensor_sync_device(input_b.handle())?
     ///         .record_algorithm_dispatch(algorithm.handle())?
-    ///         .record_tensor_sync_local(output.handle())?
     ///         .execute()?;
     ///
     ///     let computed = output.to_vec()?;  // [5.0, 7.0, 9.0]
     ///     println!("Vector addition result: {:?}", computed);
     ///     Ok(())
-    /// }
-    ///
-    /// fn load_vector_add_shader() -> Result<Vec<u32>> {
-    ///     // Load pre-compiled SPIR-V for vector addition
-    ///     let spirv_bytes = include_bytes!("../shaders/vector_add.spv");
-    ///     Ok(spirv_bytes
-    ///         .chunks_exact(4)
-    ///         .map(|chunk| u32::from_le_bytes([
-    ///             chunk[0], chunk[1], chunk[2], chunk[3]
-    ///         ]))
-    ///         .collect())
     /// }
     /// ```
     ///
@@ -694,60 +656,27 @@ impl Algorithm {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use komputers::{Manager, Algorithm, Tensor, Result};
+    /// use komputers::{Manager, Algorithm, Tensor, Result, spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV};
     ///
     /// fn custom_parameter_binding() -> Result<()> {
     ///     let mut manager = Manager::new()?;
     ///
-    ///     // ✅ Create tensors for matrix multiplication
-    ///     let matrix_a = Tensor::new(&mut manager, &[1.0f32, 2.0, 3.0, 4.0])?;
-    ///     let matrix_b = Tensor::new(&mut manager, &[2.0f32, 0.0, 1.0, 3.0])?;
-    ///     let result = Tensor::<f32>::uninit(&mut manager, 4)?;
+    ///     // Create tensors
+    ///     let input_a = Tensor::new(&mut manager, &[1.0f32, 2.0, 3.0, 4.0])?;
+    ///     let input_b = Tensor::new(&mut manager, &[2.0f32, 0.0, 1.0, 3.0])?;
+    ///     let result: Tensor<f32> = Tensor::uninit(&mut manager, 4)?;
     ///
-    ///     // ✅ Create algorithm and bind with meaningful parameter names
-    ///     let spirv_data = load_matrix_multiply_shader()?;
-    ///     let mut algorithm = Algorithm::new(&mut manager, &spirv_data)?;
+    ///     // Create algorithm with manual binding
+    ///     let mut algorithm = Algorithm::new(&mut manager, ELEMENTWISE_ADD_F32_SPIRV)?;
     ///
-    ///     // ✅ Bind tensors with descriptive parameter names
-    ///     algorithm.bind_tensor("input_matrix_a", matrix_a.handle())?;
-    ///     algorithm.bind_tensor("input_matrix_b", matrix_b.handle())?;
-    ///     algorithm.bind_tensor("output_result", result.handle())?;
+    ///     // Bind tensors with parameter names
+    ///     algorithm.bind_tensor("input_a", input_a.handle())?;
+    ///     algorithm.bind_tensor("input_b", input_b.handle())?;
+    ///     algorithm.bind_tensor("output", result.handle())?;
     ///
-    ///     // ✅ Algorithm ready for execution with bound parameters
-    ///     println!("Algorithm configured with {} bound parameters",
-    ///         algorithm.bound_parameter_count());
+    ///     println!("Algorithm configured with tensors");
     ///
     ///     Ok(())
-    /// }
-    ///
-    /// fn dynamic_parameter_binding() -> Result<()> {
-    ///     let mut manager = Manager::new()?;
-    ///     let mut algorithm = Algorithm::new(&mut manager, &load_shader()?)?;
-    ///
-    ///     // ✅ Dynamic binding based on runtime conditions
-    ///     let input_tensors = create_input_tensors(&mut manager)?;
-    ///     for (i, tensor) in input_tensors.iter().enumerate() {
-    ///         let param_name = format!("dynamic_input_{}", i);
-    ///         algorithm.bind_tensor(&param_name, tensor.handle())?;
-    ///     }
-    ///
-    ///     // ✅ Rebinding same parameter (overwrites previous)
-    ///     let updated_tensor = Tensor::new(&mut manager, &[100.0f32])?;
-    ///     algorithm.bind_tensor("dynamic_input_0", updated_tensor.handle())?;
-    ///
-    ///     Ok(())
-    /// }
-    ///
-    /// fn load_matrix_multiply_shader() -> Result<Vec<u32>> {
-    ///     Ok(vec![0x07230203u32]) // Placeholder
-    /// }
-    ///
-    /// fn load_shader() -> Result<Vec<u32>> {
-    ///     Ok(vec![0x07230203u32]) // Placeholder
-    /// }
-    ///
-    /// fn create_input_tensors(manager: &mut Manager) -> Result<Vec<Tensor<f32>>> {
-    ///     Ok(vec![Tensor::new(manager, &[1.0f32])?]) // Placeholder
     /// }
     /// ```
     ///
@@ -850,15 +779,11 @@ impl Algorithm {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use kompute::{Manager, Algorithm};
+    /// use komputers::{Manager, Algorithm, spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV};
     ///
-    /// fn example() -> kompute::Result<()> {
+    /// fn example() -> komputers::Result<()> {
     ///     let mut manager = Manager::new()?;
-    ///     let spirv_bytes = include_bytes!("shader_with_spec_constants.spv");
-    ///     let spirv_data: Vec<u32> = spirv_bytes.chunks_exact(4)
-    ///         .map(|chunk| u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
-    ///         .collect();
-    ///     let mut algorithm = Algorithm::new(&mut manager, &spirv_data)?;
+    ///     let mut algorithm = Algorithm::new(&mut manager, ELEMENTWISE_ADD_F32_SPIRV)?;
     ///
     ///     // Set specialization constants for shader optimization
     ///     let spec_constants = [1.0f32, 256.0, 0.5];
@@ -894,15 +819,11 @@ impl Algorithm {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use kompute::{Manager, Algorithm};
+    /// use komputers::{Manager, Algorithm, spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV};
     ///
-    /// fn example() -> kompute::Result<()> {
+    /// fn example() -> komputers::Result<()> {
     ///     let mut manager = Manager::new()?;
-    ///     let spirv_bytes = include_bytes!("shader_with_push_constants.spv");
-    ///     let spirv_data: Vec<u32> = spirv_bytes.chunks_exact(4)
-    ///         .map(|chunk| u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
-    ///         .collect();
-    ///     let mut algorithm = Algorithm::new(&mut manager, &spirv_data)?;
+    ///     let mut algorithm = Algorithm::new(&mut manager, ELEMENTWISE_ADD_F32_SPIRV)?;
     ///
     ///     // Set push constants for fast parameter passing
     ///     let push_constants = [2.0f32, 0.1];
@@ -946,12 +867,17 @@ impl Algorithm {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use komputers::{Algorithm, DynamicWorkgroupConfig, GpuLimits};
+    /// use komputers::{Manager, Algorithm, spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV};
+    /// use komputers::workgroup_validation::{DynamicWorkgroupConfig, GpuLimits};
     ///
+    /// # fn example() -> komputers::Result<()> {
+    /// let mut manager = Manager::new()?;
+    /// let algorithm = Algorithm::new(&mut manager, ELEMENTWISE_ADD_F32_SPIRV)?;
     /// let workgroup = DynamicWorkgroupConfig::new(256, 1, 1)?;
     /// let gpu_limits = GpuLimits::detect()?;
     /// algorithm.validate_workgroup_dispatch(&workgroup, &gpu_limits)?;
-    /// # Ok::<(), komputers::KomputeError>(())
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn validate_workgroup_dispatch(
         &self,
@@ -987,11 +913,16 @@ impl Algorithm {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use komputers::{Algorithm, GpuLimits};
+    /// use komputers::{Manager, Algorithm, spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV};
+    /// use komputers::workgroup_validation::GpuLimits;
     ///
+    /// # fn example() -> komputers::Result<()> {
+    /// let mut manager = Manager::new()?;
+    /// let algorithm = Algorithm::new(&mut manager, ELEMENTWISE_ADD_F32_SPIRV)?;
     /// let gpu_limits = GpuLimits::detect()?;
     /// let optimal_workgroup = algorithm.recommend_workgroup_config(&gpu_limits);
-    /// # Ok::<(), komputers::KomputeError>(())
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn recommend_workgroup_config(&self, gpu_limits: &GpuLimits) -> DynamicWorkgroupConfig {
         // Analyze bound tensors to determine optimal workgroup size

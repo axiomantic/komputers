@@ -120,6 +120,14 @@ path = "examples/lifetime_bound_resources.rs"
 name = "type_indexed_dispatch"
 path = "examples/type_indexed_dispatch.rs"
 
+[[example]]
+name = "type_safe_gpu_computing"
+path = "examples/type_safe_gpu_computing.rs"
+
+[[example]]
+name = "async_type_safety"
+path = "examples/async_type_safety.rs"
+
 # Revolutionary safety examples (to be implemented when validation system is ready)
 # [[example]]
 # name = "basic_gpu_safety"

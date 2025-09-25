@@ -11,60 +11,54 @@ use kompute_sys::ffi;
 use std::pin::Pin;
 use std::sync::Arc;
 
-/// Revolutionary type-safe GPU device manager with automatic resource tracking.
+/// GPU device manager with resource tracking.
 ///
-/// The Manager is the cornerstone of Komputers' revolutionary safety system. It provides
-/// GPU device initialization, memory allocation, and serves as the factory for creating
-/// type-safe tensors, algorithms, and sequences. Every Manager instance has a unique
-/// runtime ID that enables cross-manager validation to prevent crashes.
+/// The Manager provides GPU device initialization, memory allocation, and creates
+/// tensors, algorithms, and sequences. Each Manager instance has a unique runtime ID
+/// that enables cross-manager validation.
 ///
-/// ## 🛡️ Revolutionary Safety Features
+/// ## Safety Features
 ///
-/// - **Automatic Resource Tracking**: All handles created by this manager are tracked
+/// - **Resource Tracking**: Handles created by this manager are tracked
 /// - **Cross-Manager Validation**: Runtime checks prevent using handles from different managers
-/// - **RAII Resource Management**: Automatic cleanup when manager is dropped
-/// - **Type-Safe Handle Generation**: All created handles encode manager identity
-/// - **Unique Instance IDs**: Each manager has a unique ID for validation
+/// - **RAII Management**: Automatic cleanup when manager is dropped
+/// - **Handle Generation**: Created handles encode manager identity
+/// - **Instance IDs**: Each manager has a unique ID for validation
 ///
-/// ## 🚀 Zero-Cost Abstractions
-///
-/// The safety system adds **<5% overhead** while preventing **85% of GPU errors at compile time**.
-/// Runtime validation catches the remaining 15% with clear error messages.
-///
-/// ## ⚡ Performance Characteristics
+/// ## Performance Characteristics
 ///
 /// - **Initialization**: 10-50ms depending on GPU vendor
 /// - **Tensor Creation**: ~1-5μs + GPU memory allocation
-/// - **Sequence Creation**: ~100ns (extremely fast)
+/// - **Sequence Creation**: ~100ns
 /// - **Validation Overhead**: <5% of total operation time
 ///
 /// # Examples
 ///
-/// ## Basic Manager Creation with Safety
+/// ## Basic Manager Creation
 ///
 /// ```rust,no_run
 /// use komputers::{Manager, Tensor, Result};
 ///
-/// fn revolutionary_safety_example() -> Result<()> {
-///     // Create manager with automatic resource tracking
+/// fn basic_manager_example() -> Result<()> {
+///     // Create manager with resource tracking
 ///     let mut manager = Manager::new()?;
 ///
-///     // All created resources are automatically tracked
+///     // Create resources
 ///     let tensor = Tensor::new(&mut manager, &[1.0f32, 2.0, 3.0])?;
 ///
-///     // Type-safe operations with consuming builder pattern
+///     // Execute operations
 ///     let result = manager
-///         .sequence()?                                    // Creates tracked sequence
-///         .record_tensor_sync_device(tensor.handle())?   // Validates same manager
-///         .execute()?;                                    // Executes safely
+///         .sequence()?
+///         .record_tensor_sync_device(tensor.handle())?
+///         .execute()?;
 ///
-///     println!("✅ Safe execution: {} operations in {:?}",
+///     println!("Execution: {} operations in {:?}",
 ///              result.operation_count, result.execution_time);
 ///     Ok(())
 /// }
 /// ```
 ///
-/// ## Cross-Manager Safety Prevention
+/// ## Cross-Manager Validation
 ///
 /// ```rust,no_run
 /// use komputers::{Manager, Tensor, Result};
