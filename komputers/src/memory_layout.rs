@@ -443,11 +443,11 @@ mod tests {
     #[test]
     fn test_memory_layout_info() {
         let info = MemoryLayoutInfo {
-            element_count: 4,
+            element_count: 16,
             element_size: 4,
             element_alignment: alignment::SCALAR,
-            total_size: 16,
-            padded_size: 16,
+            total_size: 64,
+            padded_size: 64,
             tensor_alignment: alignment::VEC4,
             is_simd_optimized: true,
             cache_line_aligned: false,

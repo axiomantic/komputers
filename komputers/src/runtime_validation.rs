@@ -445,15 +445,21 @@ pub fn register_handles_batch<T: HasManagerId>(handles: &[u64], manager: &T) {
 mod tests {
     use super::*;
     use crate::types::RuntimeManagerId;
+    use std::sync::Arc;
 
     struct MockManager {
         id: RuntimeManagerId,
+        _validation_instance: Arc<ManagerInstance>,
     }
 
     impl MockManager {
         fn new() -> Self {
+            let id = RuntimeManagerId::new();
+            let validation_instance = ManagerInstance::new(id.id());
+
             Self {
-                id: RuntimeManagerId::new(),
+                id,
+                _validation_instance: validation_instance,
             }
         }
     }
@@ -467,7 +473,7 @@ mod tests {
     #[test]
     fn test_handle_registration_and_validation() {
         let manager = MockManager::new();
-        let handle = 42u64;
+        let handle = 1000u64;
 
         // Register handle
         register_handle_with_manager(handle, &manager);
@@ -480,7 +486,7 @@ mod tests {
     fn test_cross_manager_detection() {
         let manager_a = MockManager::new();
         let manager_b = MockManager::new();
-        let handle = 123u64;
+        let handle = 2000u64;
 
         // Register handle with manager A
         register_handle_with_manager(handle, &manager_a);
@@ -507,7 +513,7 @@ mod tests {
     #[test]
     fn test_batch_handle_validation() {
         let manager = MockManager::new();
-        let handles = vec![100u64, 101u64, 102u64];
+        let handles = vec![3000u64, 3001u64, 3002u64];
 
         // Register all handles
         register_handles_batch(&handles, &manager);
@@ -524,7 +530,7 @@ mod tests {
     #[test]
     fn test_invalid_handle_detection() {
         let manager = MockManager::new();
-        let unregistered_handle = 999u64;
+        let unregistered_handle = 4000u64;
 
         // Validating unregistered handle should fail
         let result = validate_handle_with_manager(unregistered_handle, &manager);
@@ -540,7 +546,7 @@ mod tests {
 
     #[test]
     fn test_manager_instance_lifecycle() {
-        let handle = 456u64;
+        let handle = 5000u64;
 
         {
             let manager_instance = ManagerInstance::new(1);
@@ -557,7 +563,7 @@ mod tests {
     #[test]
     fn test_validation_metrics() {
         let manager = MockManager::new();
-        let handle = 789u64;
+        let handle = 6000u64;
 
         register_handle_with_manager(handle, &manager);
 

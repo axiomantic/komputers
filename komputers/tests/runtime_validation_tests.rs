@@ -56,14 +56,14 @@ fn create_test_manager() -> Result<Manager> {
 
 /// Skip test if GPU is not available
 macro_rules! skip_if_no_gpu {
-    ($manager:expr) => {
-        let manager = match $manager {
+    ($manager_result:expr) => {
+        match $manager_result {
             Ok(m) => m,
             Err(_) => {
                 println!("⏭️ Skipping test - GPU not available in CI environment");
                 return Ok(());
             }
-        };
+        }
     };
 }
 
@@ -163,13 +163,9 @@ fn test_same_type_different_instances_runtime_detection() -> Result<()> {
 fn test_gpu_manager_instance_validation() -> Result<()> {
     println!("🧪 Testing GPU manager instance validation...");
 
-    let mut manager_a = create_test_manager();
-    skip_if_no_gpu!(manager_a);
-    let mut manager_a = manager_a;
+    let mut manager_a = skip_if_no_gpu!(create_test_manager());
 
-    let mut manager_b = create_test_manager();
-    skip_if_no_gpu!(manager_b);
-    let mut manager_b = manager_b;
+    let mut manager_b = skip_if_no_gpu!(create_test_manager());
 
     // Create tensor with manager A
     let tensor_a = Tensor::new(&mut manager_a, &[1.0f32, 2.0, 3.0, 4.0])?;
@@ -329,9 +325,7 @@ fn test_unregistered_handle_detection() -> Result<()> {
 fn test_gpu_handle_lifecycle_validation() -> Result<()> {
     println!("🧪 Testing GPU handle lifecycle validation...");
 
-    let mut manager = create_test_manager();
-    skip_if_no_gpu!(manager);
-    let mut manager = manager;
+    let mut manager = skip_if_no_gpu!(create_test_manager());
 
     let handle: u64;
 
@@ -465,13 +459,9 @@ fn test_multi_manager_workflow_validation() -> Result<()> {
 fn test_gpu_complex_workflow_validation() -> Result<()> {
     println!("🧪 Testing GPU complex workflow validation...");
 
-    let mut manager_a = create_test_manager();
-    skip_if_no_gpu!(manager_a);
-    let mut manager_a = manager_a;
+    let mut manager_a = skip_if_no_gpu!(create_test_manager());
 
-    let mut manager_b = create_test_manager();
-    skip_if_no_gpu!(manager_b);
-    let mut manager_b = manager_b;
+    let mut manager_b = skip_if_no_gpu!(create_test_manager());
 
     // Create resources on each manager
     let tensor_a = Tensor::new(&mut manager_a, &[1.0f32, 2.0, 3.0, 4.0])?;
@@ -704,9 +694,7 @@ fn test_high_frequency_validation_performance() -> Result<()> {
 fn test_gpu_validation_performance_overhead() -> Result<()> {
     println!("🧪 Testing GPU validation performance overhead...");
 
-    let mut manager = create_test_manager();
-    skip_if_no_gpu!(manager);
-    let mut manager = manager;
+    let mut manager = skip_if_no_gpu!(create_test_manager());
 
     let tensor = Tensor::new(&mut manager, &vec![1.0f32; 1000])?;
     const GPU_ITERATIONS: usize = 50;
@@ -883,7 +871,7 @@ fn test_concurrent_registration_and_validation() -> Result<()> {
             let mut local_successes = 0;
 
             for i in 0..HANDLES_PER_THREAD {
-                let handle = base_handle + i;
+                let handle = (base_handle + i) as u64;
 
                 // Register handle
                 register_handle_with_manager(handle, manager_clone.as_ref());

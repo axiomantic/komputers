@@ -531,16 +531,17 @@ impl PerformanceProfiler {
     fn categorize_operation(&self, name: &str) -> OperationCategory {
         let name = name.to_lowercase();
 
-        if name.contains("tensor") {
-            OperationCategory::TensorManagement
+        // Check more specific patterns first
+        if name.contains("sync") || name.contains("transfer") {
+            OperationCategory::MemoryTransfer
         } else if name.contains("algorithm") {
             OperationCategory::AlgorithmSetup
         } else if name.contains("sequence") || name.contains("execute") {
             OperationCategory::SequenceExecution
-        } else if name.contains("sync") || name.contains("transfer") {
-            OperationCategory::MemoryTransfer
         } else if name.contains("validation") || name.contains("validate") {
             OperationCategory::ValidationOverhead
+        } else if name.contains("tensor") {
+            OperationCategory::TensorManagement
         } else {
             OperationCategory::ComputeExecution
         }
