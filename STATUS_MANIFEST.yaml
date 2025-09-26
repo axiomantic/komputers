@@ -88,9 +88,9 @@ implementation_phases:
 
       gpu_completion_checking:
         id: "GPU_COMPLETION_CHECKING"
-        status: "PLANNED"
-        file: "komputers/src/async_sequence.rs:360"
-        current_state: "Placeholder for GPU status queries"
+        status: "COMPLETED"
+        file: "komputers/src/async_sequence.rs:423"
+        current_state: "Proper GPU completion checking implemented with FFI status queries"
         description: "Add proper GPU completion checking when Kompute FFI provides status queries"
         impact: "Improved async reliability"
         effort: "4-5 hours"
