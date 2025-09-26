@@ -8,6 +8,7 @@
 //! The goal is to catch platform-specific differences that could affect users migrating
 //! between platforms or deploying across heterogeneous infrastructure.
 
+#[cfg(feature = "async")]
 use komputers::async_sequence::AsyncSequence;
 use komputers::*;
 // use std::collections::HashMap; // Unused import

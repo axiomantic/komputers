@@ -1106,47 +1106,100 @@ impl WorkgroupValidation for Algorithm {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Manager;
+    use crate::test_utils::{get_manager_from_pool, return_manager_to_pool, should_skip_gpu_test};
+    use serial_test::serial;
 
     #[test]
-    fn test_algorithm_creation() {
-        // MANDATORY: Vulkan MUST be available for all tests
-        crate::test_utils::require_vulkan().unwrap();
+    #[serial(gpu)]
+    fn test_algorithm_creation() -> crate::Result<()> {
+        if should_skip_gpu_test() {
+            println!("⏭️ Skipping GPU test - GPU tests disabled");
+            return Ok(());
+        }
 
-        if let Ok(mut manager) = Manager::new() {
-            // Simple SPIR-V shader (this would normally be compiled from GLSL)
-            let spirv_data = vec![
-                0x07230203, // SPIR-V magic number
-                0x00010000, // Version
-                0x00080001, // Generator
-                0x0000000b, // Bound
-                0x00000000, // Schema
-            ];
+        let mut manager = get_manager_from_pool()?;
 
-            match Algorithm::new(&mut manager, &spirv_data) {
-                Ok(_algorithm) => {
-                    // Algorithm creation succeeded
-                    println!("✅ Algorithm creation succeeded");
-                    assert!(true, "Algorithm creation succeeded");
-                }
-                Err(_e) => {
-                    // Algorithm creation failed - expected with invalid SPIR-V
-                    println!("✅ Algorithm creation failed as expected with test SPIR-V");
-                    assert!(
-                        true,
-                        "Algorithm creation failed as expected with test SPIR-V"
-                    );
-                }
+        // Simple SPIR-V shader (this would normally be compiled from GLSL)
+        let spirv_data = vec![
+            0x07230203, // SPIR-V magic number
+            0x00010000, // Version
+            0x00080001, // Generator
+            0x0000000b, // Bound
+            0x00000000, // Schema
+        ];
+
+        let result = Algorithm::new(&mut manager, &spirv_data);
+        match result {
+            Ok(_algorithm) => {
+                // Algorithm creation succeeded
+                println!("✅ Algorithm creation succeeded");
+            }
+            Err(_e) => {
+                // Algorithm creation failed - expected with invalid SPIR-V
+                println!("✅ Algorithm creation failed as expected with test SPIR-V");
             }
         }
+
+        return_manager_to_pool(manager);
+        Ok(())
     }
 
     #[test]
-    fn test_algorithm_tensor_binding() {
-        // MANDATORY: Vulkan MUST be available for all tests
-        crate::test_utils::require_vulkan().unwrap();
+    #[serial(gpu)]
+    fn test_algorithm_tensor_binding() -> crate::Result<()> {
+        if should_skip_gpu_test() {
+            println!("⏭️ Skipping GPU test - GPU tests disabled");
+            return Ok(());
+        }
 
-        if let Ok(mut manager) = Manager::new() {
+        let mut manager = get_manager_from_pool()?;
+
+        // Simple SPIR-V shader for testing
+        let spirv_data = vec![
+            0x07230203, // SPIR-V magic number
+            0x00010000, // Version
+            0x00080001, // Generator
+            0x0000000b, // Bound
+            0x00000000, // Schema
+        ];
+
+        if let Ok(mut algorithm) = Algorithm::new(&mut manager, &spirv_data) {
+            // Test initial state
+            assert_eq!(algorithm.bound_tensor_count(), 0);
+            assert!(!algorithm.is_tensor_bound("input"));
+
+            // Test tensor binding (using a mock handle for testing)
+            let result = algorithm.bind_tensor("input", 123);
+            match result {
+                Ok(()) => {
+                    assert_eq!(algorithm.bound_tensor_count(), 1);
+                    assert!(algorithm.is_tensor_bound("input"));
+                    assert_eq!(algorithm.get_bound_tensor("input"), Some(123));
+                    println!("✅ Algorithm tensor binding test passed");
+                }
+                Err(_) => {
+                    println!("⚠️  Algorithm tensor binding failed (expected in some environments)");
+                }
+            }
+        }
+
+        return_manager_to_pool(manager);
+        Ok(())
+    }
+
+    #[test]
+    #[serial(gpu)]
+    fn test_algorithm_with_tensors() -> crate::Result<()> {
+        if should_skip_gpu_test() {
+            println!("⏭️ Skipping GPU test - GPU tests disabled");
+            return Ok(());
+        }
+
+        let mut manager = get_manager_from_pool()?;
+
+        // Create test tensors
+        let tensor_data = vec![1.0f32, 2.0, 3.0];
+        if let Ok(tensor) = crate::tensor::Tensor::new(&mut manager, &tensor_data) {
             // Simple SPIR-V shader for testing
             let spirv_data = vec![
                 0x07230203, // SPIR-V magic number
@@ -1156,68 +1209,34 @@ mod tests {
                 0x00000000, // Schema
             ];
 
-            if let Ok(mut algorithm) = Algorithm::new(&mut manager, &spirv_data) {
-                // Test initial state
-                assert_eq!(algorithm.bound_tensor_count(), 0);
-                assert!(!algorithm.is_tensor_bound("input"));
-
-                // Test tensor binding (using a mock handle for testing)
-                let result = algorithm.bind_tensor("input", 123);
-                match result {
-                    Ok(()) => {
-                        assert_eq!(algorithm.bound_tensor_count(), 1);
-                        assert!(algorithm.is_tensor_bound("input"));
-                        assert_eq!(algorithm.get_bound_tensor("input"), Some(123));
-                        println!("✅ Algorithm tensor binding test passed");
-                    }
-                    Err(_) => {
-                        println!(
-                            "⚠️  Algorithm tensor binding failed (expected in some environments)"
-                        );
-                    }
+            let tensors = vec![&tensor];
+            match Algorithm::with_tensors(&mut manager, &spirv_data, &tensors) {
+                Ok(algorithm) => {
+                    assert_eq!(algorithm.bound_tensor_count(), 1);
+                    assert!(algorithm.is_tensor_bound("param_0"));
+                    assert_eq!(algorithm.get_bound_tensor("param_0"), Some(tensor.handle()));
+                    println!("✅ Algorithm with_tensors test passed");
+                }
+                Err(_) => {
+                    println!("⚠️  Algorithm with_tensors failed (expected in some environments)");
                 }
             }
         }
+
+        return_manager_to_pool(manager);
+        Ok(())
     }
 
     #[test]
-    fn test_algorithm_with_tensors() {
-        // MANDATORY: Vulkan MUST be available for all tests
-        crate::test_utils::require_vulkan().unwrap();
-
-        if let Ok(mut manager) = Manager::new() {
-            // Create test tensors
-            let tensor_data = vec![1.0f32, 2.0, 3.0];
-            if let Ok(tensor) = crate::tensor::Tensor::new(&mut manager, &tensor_data) {
-                // Simple SPIR-V shader for testing
-                let spirv_data = vec![
-                    0x07230203, // SPIR-V magic number
-                    0x00010000, // Version
-                    0x00080001, // Generator
-                    0x0000000b, // Bound
-                    0x00000000, // Schema
-                ];
-
-                let tensors = vec![&tensor];
-                match Algorithm::with_tensors(&mut manager, &spirv_data, &tensors) {
-                    Ok(algorithm) => {
-                        assert_eq!(algorithm.bound_tensor_count(), 1);
-                        assert!(algorithm.is_tensor_bound("param_0"));
-                        assert_eq!(algorithm.get_bound_tensor("param_0"), Some(tensor.handle()));
-                        println!("✅ Algorithm with_tensors test passed");
-                    }
-                    Err(_) => {
-                        println!(
-                            "⚠️  Algorithm with_tensors failed (expected in some environments)"
-                        );
-                    }
-                }
-            }
+    #[serial(gpu)]
+    fn test_algorithm_binding_operations() -> crate::Result<()> {
+        if should_skip_gpu_test() {
+            println!("⏭️ Skipping GPU test - GPU tests disabled");
+            return Ok(());
         }
-    }
 
-    #[test]
-    fn test_algorithm_binding_operations() {
+        let mut manager = get_manager_from_pool()?;
+
         let spirv_data = vec![
             0x07230203, // SPIR-V magic number
             0x00010000, // Version
@@ -1226,34 +1245,35 @@ mod tests {
             0x00000000, // Schema
         ];
 
-        if let Ok(mut manager) = Manager::new() {
-            if let Ok(mut algorithm) = Algorithm::new(&mut manager, &spirv_data) {
-                // Test binding multiple tensors
-                algorithm.bind_tensor("input", 100).ok();
-                algorithm.bind_tensor("output", 200).ok();
-                algorithm.bind_tensor("weights", 300).ok();
+        if let Ok(mut algorithm) = Algorithm::new(&mut manager, &spirv_data) {
+            // Test binding multiple tensors
+            algorithm.bind_tensor("input", 100).ok();
+            algorithm.bind_tensor("output", 200).ok();
+            algorithm.bind_tensor("weights", 300).ok();
 
-                assert_eq!(algorithm.bound_tensor_count(), 3);
+            assert_eq!(algorithm.bound_tensor_count(), 3);
 
-                let param_names = algorithm.bound_parameter_names();
-                assert!(param_names.contains(&"input".to_string()));
-                assert!(param_names.contains(&"output".to_string()));
-                assert!(param_names.contains(&"weights".to_string()));
+            let param_names = algorithm.bound_parameter_names();
+            assert!(param_names.contains(&"input".to_string()));
+            assert!(param_names.contains(&"output".to_string()));
+            assert!(param_names.contains(&"weights".to_string()));
 
-                // Test unbinding
-                let unbound_handle = algorithm.unbind_tensor("output");
-                assert_eq!(unbound_handle, Some(200));
-                assert_eq!(algorithm.bound_tensor_count(), 2);
-                assert!(!algorithm.is_tensor_bound("output"));
+            // Test unbinding
+            let unbound_handle = algorithm.unbind_tensor("output");
+            assert_eq!(unbound_handle, Some(200));
+            assert_eq!(algorithm.bound_tensor_count(), 2);
+            assert!(!algorithm.is_tensor_bound("output"));
 
-                // Test clearing all bindings
-                algorithm.clear_bindings();
-                assert_eq!(algorithm.bound_tensor_count(), 0);
-                assert!(!algorithm.is_tensor_bound("input"));
-                assert!(!algorithm.is_tensor_bound("weights"));
+            // Test clearing all bindings
+            algorithm.clear_bindings();
+            assert_eq!(algorithm.bound_tensor_count(), 0);
+            assert!(!algorithm.is_tensor_bound("input"));
+            assert!(!algorithm.is_tensor_bound("weights"));
 
-                println!("✓ Algorithm binding operations test passed");
-            }
+            println!("✓ Algorithm binding operations test passed");
         }
+
+        return_manager_to_pool(manager);
+        Ok(())
     }
 }

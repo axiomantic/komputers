@@ -4,7 +4,7 @@
 // using Komputers with compile-time and runtime safety checks.
 
 #[cfg(feature = "async")]
-use komputers::{async_sequence::AsyncSequence, DataType, Manager, Result, Tensor};
+use komputers::{async_sequence::AsyncSequence, DataType, Manager, Tensor, VulkanConfig};
 use std::time::Duration;
 
 #[cfg(feature = "async")]
@@ -34,8 +34,9 @@ fn main() {
 async fn basic_async_operations() -> komputers::Result<()> {
     println!("\n--- Basic Async Operations ---");
 
-    // Create manager and tensors
-    let mut manager = Manager::new()?;
+    // Create manager with auto-detected Vulkan configuration
+    let config = VulkanConfig::auto_detect().map_err(|e| komputers::KomputeError::vulkan(&e))?;
+    let mut manager = Manager::with_config(config)?;
     let input = Tensor::new(&mut manager, &[1.0f32, 2.0, 3.0, 4.0])?;
     let output: Tensor<f32> = Tensor::uninit(&mut manager, 4)?;
 
@@ -59,7 +60,8 @@ async fn basic_async_operations() -> komputers::Result<()> {
 async fn async_error_handling() -> komputers::Result<()> {
     println!("\n--- Async Error Handling ---");
 
-    let mut manager = Manager::new()?;
+    let config = VulkanConfig::auto_detect().map_err(|e| komputers::KomputeError::vulkan(&e))?;
+    let mut manager = Manager::with_config(config)?;
 
     // Demonstrate different error scenarios in async context
 
@@ -136,7 +138,8 @@ async fn async_operation_with_timeout(manager: &mut Manager) -> komputers::Resul
 async fn async_multi_type_operations() -> komputers::Result<()> {
     println!("\n--- Async Multi-Type Operations ---");
 
-    let mut manager = Manager::new()?;
+    let config = VulkanConfig::auto_detect().map_err(|e| komputers::KomputeError::vulkan(&e))?;
+    let mut manager = Manager::with_config(config)?;
 
     // Create tensors of different types
     let f32_tensor = Tensor::new(&mut manager, &[1.0f32, 2.0, 3.0])?;

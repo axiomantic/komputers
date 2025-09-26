@@ -3,11 +3,12 @@
 // This example demonstrates type-safe GPU computing patterns
 // using the Komputers library with compile-time safety features.
 
-use komputers::{Algorithm, DataType, Manager, Result, Tensor};
+use komputers::{Algorithm, DataType, Manager, Result, Tensor, VulkanConfig};
 
 fn main() -> Result<()> {
     // Create GPU manager
-    let mut manager = Manager::new()?;
+    let config = VulkanConfig::auto_detect().map_err(|e| komputers::KomputeError::vulkan(&e))?;
+    let mut manager = Manager::with_config(config)?;
 
     // Type-safe tensor creation
     basic_tensor_operations(&mut manager)?;

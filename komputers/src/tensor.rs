@@ -1175,7 +1175,8 @@ unsafe impl<T: TensorData, const N: usize> Sync for DimensionTensor<T, N> {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Manager;
+    use crate::test_utils::{get_manager_from_pool, return_manager_to_pool, should_skip_gpu_test};
+    use serial_test::serial;
     use std::any::TypeId;
 
     #[test]
@@ -1316,48 +1317,53 @@ mod tests {
     }
 
     #[test]
-    fn test_tensor_data_consistency() {
-        // MANDATORY: Vulkan MUST be available for all tests
-        crate::test_utils::require_vulkan().unwrap();
-
-        if let Ok(mut manager) = Manager::new() {
-            let original_data = vec![3.14159f32, 2.71828, 1.41421, 1.61803];
-            match Tensor::new(&mut manager, &original_data) {
-                Ok(tensor) => {
-                    // Test multiple retrievals return consistent data
-                    if let (Ok(data1), Ok(data2)) = (tensor.to_vec(), tensor.to_vec()) {
-                        assert_eq!(data1, data2);
-                        assert_eq!(original_data, data1);
-                        assert_eq!(original_data, data2);
-                        println!("✅ Tensor data consistency test passed");
-                    }
-                }
-                Err(_e) => {
-                    // Creation failed - expected in headless environments
-                    println!(
-                        "⚠️  Tensor creation failed - may be expected in headless environments"
-                    );
-                }
-            }
+    #[serial(gpu)]
+    fn test_tensor_data_consistency() -> crate::Result<()> {
+        if should_skip_gpu_test() {
+            println!("⏭️ Skipping GPU test - GPU tests disabled");
+            return Ok(());
         }
+
+        let mut manager = get_manager_from_pool()?;
+
+        let original_data = vec![3.14159f32, 2.71828, 1.41421, 1.61803];
+        let tensor = Tensor::new(&mut manager, &original_data)?;
+
+        // Test multiple retrievals return consistent data
+        let data1 = tensor.to_vec()?;
+        let data2 = tensor.to_vec()?;
+
+        assert_eq!(data1, data2);
+        assert_eq!(original_data, data1);
+        assert_eq!(original_data, data2);
+        println!("✅ Tensor data consistency test passed");
+
+        return_manager_to_pool(manager);
+        Ok(())
     }
 
     #[test]
-    fn test_tensor_handle_uniqueness() {
-        // Test that different tensors get different handles
-        if let Ok(mut manager) = Manager::new() {
-            let data1 = vec![1.0f32, 2.0];
-            let data2 = vec![3.0f32, 4.0];
-
-            if let (Ok(tensor1), Ok(tensor2)) = (
-                Tensor::new(&mut manager, &data1),
-                Tensor::new(&mut manager, &data2),
-            ) {
-                assert_ne!(tensor1.handle(), tensor2.handle());
-                assert_ne!(tensor1.handle(), 0);
-                assert_ne!(tensor2.handle(), 0);
-            }
+    #[serial(gpu)]
+    fn test_tensor_handle_uniqueness() -> crate::Result<()> {
+        if should_skip_gpu_test() {
+            println!("⏭️ Skipping GPU test - GPU tests disabled");
+            return Ok(());
         }
+
+        let mut manager = get_manager_from_pool()?;
+
+        let data1 = vec![1.0f32, 2.0];
+        let data2 = vec![3.0f32, 4.0];
+
+        let tensor1 = Tensor::new(&mut manager, &data1)?;
+        let tensor2 = Tensor::new(&mut manager, &data2)?;
+
+        assert_ne!(tensor1.handle(), tensor2.handle());
+        assert_ne!(tensor1.handle(), 0);
+        assert_ne!(tensor2.handle(), 0);
+
+        return_manager_to_pool(manager);
+        Ok(())
     }
 
     #[test]

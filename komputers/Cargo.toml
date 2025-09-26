@@ -48,6 +48,7 @@ proptest = { workspace = true, optional = true }
 
 [dev-dependencies]
 anyhow.workspace = true
+serial_test = "3.0"
 
 [features]
 default = ["kompute-master"]
@@ -66,7 +67,7 @@ validation = ["kompute-sys/validation"]
 test-utils = []
 
 # Development-only features (not included in production release)
-# asan = ["kompute-sys/asan"]  # Commented out due to linker issues on macOS
+asan = ["kompute-sys/asan"]  # AddressSanitizer support for debugging
 # crash-debug = ["backtrace", "signal-hook", "libc"]
 benchmarks = ["criterion"]
 property-testing = ["proptest"]

@@ -32,7 +32,7 @@ use komputers::{
         validate_handle_with_manager, validate_handles_same_manager, ManagerInstance,
     },
     types::{HasManagerId, RuntimeManagerId, TypeSafetyError},
-    Algorithm, KomputeError, Manager, Result, Sequence, Tensor, VulkanConfig,
+    KomputeError, Manager, Result, Tensor, VulkanConfig,
 };
 use std::sync::{Arc, Mutex};
 use std::thread;

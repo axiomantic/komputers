@@ -71,6 +71,7 @@ use tokio::time::sleep;
 pub struct AsyncSequence<State = Recording> {
     handle: u64,
     operation_count: usize,
+    /// Manager ID for cross-manager validation enhancement
     manager_id: u64,
     execution_start: Option<Instant>,
     _state: PhantomData<State>,
@@ -162,6 +163,52 @@ impl AsyncSequence<Recording> {
         })
     }
 
+    /// Validate that operations use the same manager instance
+    ///
+    /// This method implements cross-manager validation to ensure that all operations
+    /// on this async sequence use handles from the same manager instance that
+    /// created the sequence. This prevents cross-manager resource usage that
+    /// could lead to crashes or undefined behavior.
+    ///
+    /// # Arguments
+    ///
+    /// * `other_manager_id` - The manager ID to validate against this sequence's manager
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TypeSafetyError::ManagerInstanceMismatch`] if the manager IDs don't match
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use komputers::{Manager, AsyncSequence};
+    ///
+    /// async fn validate_manager_compatibility() -> komputers::Result<()> {
+    ///     let mut manager1 = Manager::new()?;
+    ///     let mut manager2 = Manager::new()?;
+    ///
+    ///     let sequence = AsyncSequence::new(&mut manager1)?;
+    ///
+    ///     // This validation will fail and return an error
+    ///     match sequence.validate_manager_compatibility(manager2.manager_id()) {
+    ///         Ok(()) => unreachable!("Should fail for different managers"),
+    ///         Err(e) => println!("Validation correctly caught cross-manager usage: {}", e),
+    ///     }
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn validate_manager_compatibility(&self, other_manager_id: u64) -> Result<()> {
+        if self.manager_id != other_manager_id {
+            return Err(crate::error::KomputeError::TypeSafety(
+                crate::types::TypeSafetyError::ManagerInstanceMismatch {
+                    source_id: other_manager_id,
+                    target_id: self.manager_id,
+                },
+            ));
+        }
+        Ok(())
+    }
+
     /// Record a tensor synchronization operation from host to device
     ///
     /// Records the operation using the consuming builder pattern. The sequence
@@ -181,7 +228,12 @@ impl AsyncSequence<Recording> {
             ));
         }
 
-        // Runtime validation: Check if tensor and sequence belong to the same manager
+        // Enhanced cross-manager validation using manager_id field
+        if let Some(tensor_manager_id) = runtime_validation::get_handle_manager_id(tensor_handle) {
+            self.validate_manager_compatibility(tensor_manager_id)?;
+        }
+
+        // Fallback to runtime validation system for additional safety
         if runtime_validation::is_validation_enabled() {
             if let Err(e) =
                 runtime_validation::validate_handles_same_manager(&[self.handle, tensor_handle])
@@ -214,7 +266,12 @@ impl AsyncSequence<Recording> {
             ));
         }
 
-        // Runtime validation: Check if tensor and sequence belong to the same manager
+        // Enhanced cross-manager validation using manager_id field
+        if let Some(tensor_manager_id) = runtime_validation::get_handle_manager_id(tensor_handle) {
+            self.validate_manager_compatibility(tensor_manager_id)?;
+        }
+
+        // Fallback to runtime validation system for additional safety
         if runtime_validation::is_validation_enabled() {
             if let Err(e) =
                 runtime_validation::validate_handles_same_manager(&[self.handle, tensor_handle])
@@ -247,7 +304,14 @@ impl AsyncSequence<Recording> {
             ));
         }
 
-        // Runtime validation: Check if algorithm and sequence belong to the same manager
+        // Enhanced cross-manager validation using manager_id field
+        if let Some(algorithm_manager_id) =
+            runtime_validation::get_handle_manager_id(algorithm_handle)
+        {
+            self.validate_manager_compatibility(algorithm_manager_id)?;
+        }
+
+        // Fallback to runtime validation system for additional safety
         if runtime_validation::is_validation_enabled() {
             if let Err(e) =
                 runtime_validation::validate_handles_same_manager(&[self.handle, algorithm_handle])
@@ -355,12 +419,23 @@ impl AsyncSequenceExecution {
 
     /// Check if GPU operations are complete
     fn check_completion(&self, _handle: u64) -> bool {
-        // For now, use timing-based completion check
+        // For now, use timing-based completion check based on sequence execution start
         // TODO: Add proper GPU completion checking when Kompute FFI provides status queries
 
-        // Use a simple timing heuristic - GPU operations typically complete within 100ms for small operations
-        let elapsed = self.last_poll.elapsed();
-        elapsed > Duration::from_millis(50) // Conservative completion time
+        // Get execution start time from the sequence
+        if let Some(sequence) = &self.sequence {
+            if let Some(start_time) = sequence.execution_start {
+                // Use a simple timing heuristic - GPU operations typically complete within 100ms for small operations
+                let elapsed = start_time.elapsed();
+                elapsed > Duration::from_millis(50) // Conservative completion time
+            } else {
+                // No execution start time recorded - assume not started yet
+                false
+            }
+        } else {
+            // No sequence available - assume complete to avoid hanging
+            true
+        }
     }
 
     /// Execute the GPU sequence asynchronously (called by the future)
@@ -565,5 +640,42 @@ mod tests {
         let metrics = AsyncPerformanceMetrics::default();
         assert_eq!(metrics.poll_count, 0);
         assert_eq!(metrics.async_overhead, Duration::from_nanos(0));
+    }
+
+    #[test]
+    fn test_cross_manager_validation_enhancement() {
+        // Test the new cross-manager validation functionality
+        // This tests the manager_id field that was previously unused
+
+        use crate::types::TypeSafetyError;
+
+        // Create a mock AsyncSequence with a specific manager ID
+        let sequence = AsyncSequence::<Recording> {
+            handle: 12345,
+            operation_count: 0,
+            manager_id: 100, // Manager A
+            execution_start: None,
+            _state: PhantomData,
+        };
+
+        // Test successful validation with same manager ID
+        assert!(sequence.validate_manager_compatibility(100).is_ok());
+
+        // Test failed validation with different manager ID
+        match sequence.validate_manager_compatibility(200) {
+            Err(crate::error::KomputeError::TypeSafety(
+                TypeSafetyError::ManagerInstanceMismatch {
+                    source_id,
+                    target_id,
+                },
+            )) => {
+                assert_eq!(source_id, 200); // The other manager ID
+                assert_eq!(target_id, 100); // This sequence's manager ID
+            }
+            _ => panic!("Expected ManagerInstanceMismatch error"),
+        }
+
+        // Test edge case: validation with same manager ID should always succeed
+        assert!(sequence.validate_manager_compatibility(100).is_ok());
     }
 }

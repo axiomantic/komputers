@@ -365,7 +365,7 @@ fn test_memory_layout_consistency() {
 fn test_concurrent_operations() {
     println!("Testing concurrent tensor operations...");
 
-    if let Ok(mut manager) = Manager::new() {
+    if let Ok(manager) = Manager::new() {
         use std::sync::{Arc, Mutex};
         use std::thread;
 

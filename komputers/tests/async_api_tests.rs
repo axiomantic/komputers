@@ -5,25 +5,24 @@
 
 #[cfg(feature = "async")]
 mod async_tests {
-    use komputers::{async_sequence::AsyncSequence, Manager, Result, Tensor, VulkanConfig};
+    use komputers::test_utils::{
+        get_manager_from_pool, return_manager_to_pool, should_skip_gpu_test,
+    };
+    use komputers::{async_sequence::AsyncSequence, Result, Tensor, VulkanConfig};
+    use serial_test::serial;
     use std::time::{Duration, Instant};
     use tokio::time::timeout;
 
-    /// Create a Manager with explicit configuration optimized for async/testing contexts.
-    ///
-    /// This eliminates environment variable synchronization issues by using
-    /// explicit configuration instead of relying on environment variables.
-    fn create_async_manager() -> Result<Manager> {
-        // Use testing configuration that's conservative and reliable
-        let config = VulkanConfig::for_testing();
-        Manager::with_config(config)
-    }
-
     #[tokio::test]
     async fn test_async_sequence_basic() -> Result<()> {
+        if should_skip_gpu_test() {
+            println!("⏭️ Skipping GPU test - GPU tests disabled");
+            return Ok(());
+        }
+
         println!("Starting basic async sequence test...");
 
-        let mut manager = create_async_manager()?;
+        let mut manager = get_manager_from_pool()?;
 
         // Create test data
         let data = vec![1.0f32, 2.0, 3.0, 4.0];
@@ -44,14 +43,20 @@ mod async_tests {
         println!("✓ Async sequence execution completed in {:?}", elapsed);
         assert!(elapsed < Duration::from_secs(5));
 
+        return_manager_to_pool(manager);
         Ok(())
     }
 
     #[tokio::test]
     async fn test_async_sequence_timeout() -> Result<()> {
+        if should_skip_gpu_test() {
+            println!("⏭️ Skipping GPU test - GPU tests disabled");
+            return Ok(());
+        }
+
         println!("Starting async sequence timeout test...");
 
-        let mut manager = create_async_manager()?;
+        let mut manager = get_manager_from_pool()?;
         let data = vec![1.0f32; 1000];
         let tensor = Tensor::new(&mut manager, &data)?;
 
@@ -79,15 +84,21 @@ mod async_tests {
             }
         }
 
+        return_manager_to_pool(manager);
         Ok(())
     }
 
     #[tokio::test]
     async fn test_async_gpu_executor() -> Result<()> {
+        if should_skip_gpu_test() {
+            println!("⏭️ Skipping GPU test - GPU tests disabled");
+            return Ok(());
+        }
+
         println!("Starting async GPU executor test...");
 
         // Use consistent configuration by creating manager first
-        let mut manager = create_async_manager()?;
+        let mut manager = get_manager_from_pool()?;
 
         // Create test tensors using the same manager
         let data_a = vec![1.0f32, 2.0, 3.0, 4.0];
@@ -120,14 +131,20 @@ mod async_tests {
             elapsed
         );
 
+        return_manager_to_pool(manager);
         Ok(())
     }
 
     #[tokio::test]
     async fn test_concurrent_async_operations() -> Result<()> {
+        if should_skip_gpu_test() {
+            println!("⏭️ Skipping GPU test - GPU tests disabled");
+            return Ok(());
+        }
+
         println!("Starting concurrent async operations test...");
 
-        let mut manager = create_async_manager()?;
+        let mut manager = get_manager_from_pool()?;
 
         // Create multiple async sequences
         let mut sequences = Vec::new();
@@ -165,14 +182,20 @@ mod async_tests {
 
         println!("✓ All concurrent operations completed in {:?}", elapsed);
 
+        return_manager_to_pool(manager);
         Ok(())
     }
 
     #[tokio::test]
     async fn test_async_error_handling() -> Result<()> {
+        if should_skip_gpu_test() {
+            println!("⏭️ Skipping GPU test - GPU tests disabled");
+            return Ok(());
+        }
+
         println!("Starting async error handling test...");
 
-        let mut manager = create_async_manager()?;
+        let mut manager = get_manager_from_pool()?;
 
         // Test with invalid tensor handle
         let async_seq = AsyncSequence::new(&mut manager)?;
@@ -191,14 +214,20 @@ mod async_tests {
             }
         }
 
+        return_manager_to_pool(manager);
         Ok(())
     }
 
     #[tokio::test]
     async fn test_async_sequence_reuse() -> Result<()> {
+        if should_skip_gpu_test() {
+            println!("⏭️ Skipping GPU test - GPU tests disabled");
+            return Ok(());
+        }
+
         println!("Starting async sequence reuse test...");
 
-        let mut manager = create_async_manager()?;
+        let mut manager = get_manager_from_pool()?;
         let data = vec![1.0f32, 2.0, 3.0, 4.0];
         let tensor = Tensor::new(&mut manager, &data)?;
 
@@ -216,14 +245,20 @@ mod async_tests {
             println!("✓ Iteration {} completed in {:?}", iteration, elapsed);
         }
 
+        return_manager_to_pool(manager);
         Ok(())
     }
 
     #[tokio::test]
     async fn test_async_cancellation() -> Result<()> {
+        if should_skip_gpu_test() {
+            println!("⏭️ Skipping GPU test - GPU tests disabled");
+            return Ok(());
+        }
+
         println!("Starting async cancellation test...");
 
-        let mut manager = create_async_manager()?;
+        let mut manager = get_manager_from_pool()?;
         let data = vec![1.0f32; 10000]; // Larger data for longer operation
         let tensor = Tensor::new(&mut manager, &data)?;
 
@@ -263,14 +298,20 @@ mod async_tests {
             }
         }
 
+        return_manager_to_pool(manager);
         Ok(())
     }
 
     #[tokio::test]
     async fn test_async_resource_cleanup() -> Result<()> {
+        if should_skip_gpu_test() {
+            println!("⏭️ Skipping GPU test - GPU tests disabled");
+            return Ok(());
+        }
+
         println!("Starting async resource cleanup test...");
 
-        let mut manager = create_async_manager()?;
+        let mut manager = get_manager_from_pool()?;
         let mut handles = Vec::new();
 
         // Create and drop async sequences in different scopes
@@ -309,11 +350,17 @@ mod async_tests {
 
         println!("✓ Resource cleanup and reuse successful");
 
+        return_manager_to_pool(manager);
         Ok(())
     }
 
     #[tokio::test]
     async fn test_async_stress() -> Result<()> {
+        if should_skip_gpu_test() {
+            println!("⏭️ Skipping GPU test - GPU tests disabled");
+            return Ok(());
+        }
+
         println!("Starting async stress test...");
 
         let mut futures = Vec::new();
@@ -321,7 +368,7 @@ mod async_tests {
         // Create many concurrent async operations
         for i in 0..20 {
             let future = async move {
-                let mut manager = create_async_manager()?;
+                let mut manager = get_manager_from_pool()?;
                 let data: Vec<f32> = vec![i as f32; 50];
                 let tensor = Tensor::new(&mut manager, &data)?;
 

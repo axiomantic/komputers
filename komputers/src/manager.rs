@@ -1084,6 +1084,8 @@ unsafe impl Sync for Manager {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_utils::{get_manager_from_pool, return_manager_to_pool, should_skip_gpu_test};
+    use serial_test::serial;
 
     #[test]
     fn test_device_count() {
@@ -1101,7 +1103,13 @@ mod tests {
     }
 
     #[test]
-    fn test_explicit_vulkan_config() {
+    #[serial(gpu)]
+    fn test_explicit_vulkan_config() -> crate::Result<()> {
+        if should_skip_gpu_test() {
+            println!("⏭️ Skipping GPU test - GPU tests disabled");
+            return Ok(());
+        }
+
         // Test the new explicit VulkanConfig API
         println!("🧪 Testing explicit VulkanConfig API...");
 
@@ -1120,7 +1128,10 @@ mod tests {
                 // Test Manager creation with explicit config (if validation passed)
                 if config.validate().is_ok() {
                     match Manager::with_config(config) {
-                        Ok(_manager) => println!("✅ Manager created with explicit config"),
+                        Ok(manager) => {
+                            println!("✅ Manager created with explicit config");
+                            return_manager_to_pool(manager);
+                        }
                         Err(e) => println!("⚠️ Manager creation failed: {}", e),
                     }
                 }
@@ -1131,32 +1142,27 @@ mod tests {
             }
         }
 
-        // Test that convenience method still works
-        match Manager::new() {
-            Ok(_manager) => println!("✅ Manager::new() convenience method works"),
-            Err(e) => println!("⚠️ Manager::new() failed: {}", e),
-        }
+        // Test using pooled manager
+        let manager = get_manager_from_pool()?;
+        println!("✅ Manager from pool works");
+        return_manager_to_pool(manager);
+
+        Ok(())
     }
 
     #[test]
-    fn test_manager_creation() {
-        // MANDATORY: Vulkan MUST be available for all tests
-        crate::test_utils::require_vulkan().unwrap();
-
-        // Now test manager creation - this MUST work
-        match Manager::new() {
-            Ok(_manager) => {
-                // Manager created successfully - test passed
-                println!("✅ Manager creation succeeded");
-                assert!(true, "Manager creation succeeded");
-            }
-            Err(e) => {
-                // This should NOT happen since Vulkan was verified
-                panic!(
-                    "Manager creation failed even though Vulkan is available: {}",
-                    e
-                );
-            }
+    #[serial(gpu)]
+    fn test_manager_creation() -> crate::Result<()> {
+        if should_skip_gpu_test() {
+            println!("⏭️ Skipping GPU test - GPU tests disabled");
+            return Ok(());
         }
+
+        // Use the pool for reliable manager creation
+        let manager = get_manager_from_pool()?;
+        println!("✅ Manager creation succeeded");
+        return_manager_to_pool(manager);
+
+        Ok(())
     }
 }

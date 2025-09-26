@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
+  schedule:
+    # Run cache warming daily at 2 AM UTC to pre-build kompute-master
+    - cron: "0 2 * * *"
 
 env:
   CARGO_TERM_COLOR: always
@@ -280,11 +283,90 @@ jobs:
   #  #     - name: Generate documentation
   #  #       run: cargo doc --all-features --no-deps --workspace
   #
+  # Cache warming job - runs daily to pre-build kompute-master and populate caches
+  cache-warming:
+    name: Cache Warming (Kompute Master)
+    runs-on: self-hosted
+    timeout-minutes: 60 # Extra time for clean build
+    if: ${{ github.repository_owner == 'axiomantic' && github.event_name == 'schedule' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure Development Environment
+        run: |
+          echo "🔥 Cache warming: Building kompute-master from scratch"
+          export PATH="/opt/homebrew/bin:$HOME/.cargo/bin:$PATH"
+          echo "/opt/homebrew/bin" >> $GITHUB_PATH
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+          # Configure sccache
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+          echo "SCCACHE_CACHE_SIZE=2G" >> $GITHUB_ENV
+          echo "SCCACHE_DIR=$HOME/.cache/sccache" >> $GITHUB_ENV
+
+          # Configure parallel compilation
+          CPU_COUNT=$(sysctl -n hw.ncpu)
+          echo "CMAKE_BUILD_PARALLEL_LEVEL=${CPU_COUNT}" >> $GITHUB_ENV
+          echo "MAKEFLAGS=-j${CPU_COUNT}" >> $GITHUB_ENV
+
+          rustup component add rustfmt clippy 2>/dev/null || echo "Components already installed"
+          echo "RUSTC_VERSION=$(rustc --version | cut -d' ' -f2)" >> $GITHUB_ENV
+
+      - name: Cache sccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/sccache
+          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}-${{ env.RUSTC_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-sccache-
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache Cargo Target Directory
+        uses: actions/cache@v4
+        with:
+          path: target/
+          key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('**/*.rs') }}-${{ env.RUSTC_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-cargo-target-
+
+      - name: Cache CMake Build Output
+        uses: actions/cache@v4
+        with:
+          path: |
+            target/release/build/kompute-sys-*/out/
+            target/debug/build/kompute-sys-*/out/
+            ~/.cache/kompute-build/
+          key: ${{ runner.os }}-cmake-kompute-${{ hashFiles('kompute-sys/build.rs', 'kompute-sys/Cargo.toml') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-cmake-kompute-${{ hashFiles('kompute-sys/build.rs', 'kompute-sys/Cargo.toml') }}-
+            ${{ runner.os }}-cmake-kompute-
+
+      - name: Warm build cache
+        run: |
+          echo "🔥 Building kompute-master to warm caches"
+          cargo build --features "async,glsl,debug,validation,test-utils" --release
+          echo "✅ Cache warming completed"
+
   gpu-tests-self-hosted:
     name: GPU Tests (Self-Hosted macOS)
     runs-on: self-hosted
     timeout-minutes: 45 # Extended time for C++ compilation and GPU tests
-    if: ${{ github.repository_owner == 'axiomantic' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request') }}
+    # Optimized triggers: Skip draft PRs, focus on main branch + releases + manual dispatch
+    if: ${{ github.repository_owner == 'axiomantic' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)) }}
     steps:
       - uses: actions/checkout@v4
         with:

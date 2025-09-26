@@ -22,14 +22,11 @@
 //! - End-to-end validation of complete hybrid validation system
 //! - 100% backwards compatibility with existing code working unchanged
 
-use komputers::{
-    GpuOperations, KomputeError, Manager, Result, Sequence, Tensor, VulkanConfig, WorkgroupConfig,
-};
+use komputers::{GpuOperations, Manager, Result, Tensor, VulkanConfig, WorkgroupConfig};
 
 #[cfg(feature = "async")]
 use komputers::async_sequence::AsyncSequence;
 
-use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -307,7 +304,7 @@ fn test_migration_single_to_multi_manager() -> Result<()> {
 
     // Stage 2: Migration to multiple managers with validation
     {
-        let mut manager_a = create_test_manager();
+        let manager_a = create_test_manager();
         let mut manager_a = match manager_a {
             Ok(m) => m,
             Err(_) => {
@@ -316,7 +313,7 @@ fn test_migration_single_to_multi_manager() -> Result<()> {
             }
         };
 
-        let mut manager_b = create_test_manager();
+        let manager_b = create_test_manager();
         let mut manager_b = match manager_b {
             Ok(m) => m,
             Err(_) => {
@@ -452,7 +449,7 @@ fn test_migration_error_handling_patterns() -> Result<()> {
 
     // Stage 2: Advanced error handling with validation errors
     {
-        let mut manager_a = create_test_manager();
+        let manager_a = create_test_manager();
         let mut manager_a = match manager_a {
             Ok(m) => m,
             Err(_) => {
@@ -461,7 +458,7 @@ fn test_migration_error_handling_patterns() -> Result<()> {
             }
         };
 
-        let mut manager_b = create_test_manager();
+        let manager_b = create_test_manager();
         let mut manager_b = match manager_b {
             Ok(m) => m,
             Err(_) => {
@@ -793,7 +790,7 @@ fn test_real_world_scientific_computing_workflow() -> Result<()> {
 
     // Verification phase
     let verification_start = Instant::now();
-    let verification_result = manager
+    let _verification_result = manager
         .sequence()?
         .record_tensor_sync_local(velocity_tensor.handle())?
         .record_tensor_sync_local(pressure_tensor.handle())?
@@ -1414,7 +1411,7 @@ fn test_comprehensive_end_to_end_integration() -> Result<()> {
     println!("  📋 Testing migration scenarios...");
     {
         // Stage 1: Single manager (legacy)
-        let mut manager1 = create_test_manager();
+        let manager1 = create_test_manager();
         let mut manager1 = match manager1 {
             Ok(m) => m,
             Err(_) => {
@@ -1436,7 +1433,7 @@ fn test_comprehensive_end_to_end_integration() -> Result<()> {
         );
 
         // Stage 2: Multi-manager with validation
-        let mut manager2 = create_test_manager();
+        let manager2 = create_test_manager();
         let mut manager2 = match manager2 {
             Ok(m) => m,
             Err(_) => {
@@ -1553,7 +1550,7 @@ fn test_comprehensive_end_to_end_integration() -> Result<()> {
             Ok(mut mgr) => {
                 let data = vec![1.0f32, 2.0, 3.0, 4.0, 5.0];
                 let tensor = Tensor::new(&mut mgr, &data)?;
-                let tensor_handle = tensor.handle();
+                let _tensor_handle = tensor.handle();
 
                 // Simple concurrent validation test (simulated for compilation)
                 for i in 0..3 {

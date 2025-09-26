@@ -346,6 +346,46 @@ pub fn is_validation_overhead_acceptable(total_operation_time: std::time::Durati
     }
 }
 
+/// Get the manager ID associated with a handle
+///
+/// This function looks up which manager instance created the specified handle.
+/// This enables direct manager ID comparison for enhanced validation.
+///
+/// # Arguments
+///
+/// * `handle` - The handle to look up
+///
+/// # Returns
+///
+/// * `Some(manager_id)` if the handle is found and valid
+/// * `None` if the handle is not found or invalid
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use komputers::{Manager, Tensor, runtime_validation::get_handle_manager_id};
+///
+/// let mut manager = Manager::new()?;
+/// let tensor = Tensor::new(&mut manager, &[1.0f32])?;
+///
+/// if let Some(handle_manager_id) = get_handle_manager_id(tensor.handle()) {
+///     assert_eq!(handle_manager_id, manager.manager_id());
+/// }
+/// # Ok::<(), komputers::KomputeError>(())
+/// ```
+pub fn get_handle_manager_id(handle: u64) -> Option<u64> {
+    // Fast path: if validation is disabled, we can't look up handles
+    if !VALIDATION_ENABLED.load(Ordering::Relaxed) {
+        return None;
+    }
+
+    if let Ok(registry) = HANDLE_REGISTRY.lock() {
+        registry.handle_to_manager.get(&handle).copied()
+    } else {
+        None
+    }
+}
+
 /// Enable or disable runtime validation (for performance tuning)
 ///
 /// **SAFETY WARNING**: Disabling validation reduces safety guarantees!

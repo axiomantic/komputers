@@ -8,7 +8,7 @@
 
 use komputers::{
     ErrorRecoveryManager, GpuOperations, Manager, MemoryOptimizer, MultiQueueManager, Result,
-    Tensor, WorkgroupConfig,
+    Tensor, VulkanConfig, WorkgroupConfig,
 };
 use std::time::{Duration, Instant};
 
@@ -18,7 +18,8 @@ fn main() -> Result<()> {
 
     // 1. Initialize advanced GPU setup
     println!("\n1. Setting up advanced GPU environment...");
-    let mut manager = Manager::new()?;
+    let config = VulkanConfig::auto_detect().map_err(|e| komputers::KomputeError::vulkan(&e))?;
+    let mut manager = Manager::with_config(config)?;
     let device_count = Manager::device_count()?;
     println!("   Available GPU devices: {}", device_count);
 

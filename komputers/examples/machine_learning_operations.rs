@@ -4,14 +4,15 @@
 //! using Komputers, including matrix operations, activation functions,
 //! and gradient computations commonly used in neural networks.
 
-use komputers::{Algorithm, Manager, PerformanceProfiler, Result, Tensor};
+use komputers::{Algorithm, Manager, PerformanceProfiler, Result, Tensor, VulkanConfig};
 
 fn main() -> Result<()> {
     println!("🧠 Machine Learning Operations with GPU");
     println!("=====================================");
 
     // Initialize GPU manager and profiler
-    let mut manager = Manager::new()?;
+    let config = VulkanConfig::auto_detect().map_err(|e| komputers::KomputeError::vulkan(&e))?;
+    let mut manager = Manager::with_config(config)?;
     let mut profiler = PerformanceProfiler::new();
     profiler.begin_session("ml_operations")?;
 

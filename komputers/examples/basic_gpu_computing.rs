@@ -7,13 +7,14 @@
 //!
 //! This serves as an introduction to GPU computing with Kompute.
 
-use komputers::{Manager, Result, Tensor};
+use komputers::{Manager, Result, Tensor, VulkanConfig};
 
 fn main() -> Result<()> {
     println!("🚀 Kompute Basic GPU Computing Example");
 
-    // Initialize the GPU manager
-    let mut manager = Manager::new()?;
+    // Initialize the GPU manager with auto-detected Vulkan configuration
+    let config = VulkanConfig::auto_detect().map_err(|e| komputers::KomputeError::vulkan(&e))?;
+    let mut manager = Manager::with_config(config)?;
     println!("✅ GPU Manager initialized successfully");
 
     // Create input tensors

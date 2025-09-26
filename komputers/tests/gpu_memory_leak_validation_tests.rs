@@ -13,7 +13,6 @@
 //! is robust enough for production deployment with zero tolerance for leaks.
 
 use komputers::*;
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};

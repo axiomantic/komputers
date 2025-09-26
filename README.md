@@ -55,11 +55,13 @@ komputers = "0.1"
 ### Basic GPU Computing
 
 ```rust
-use komputers::{Manager, Tensor, Algorithm};
+use komputers::{KomputeError, Manager, Tensor, Algorithm, VulkanConfig};
 
 fn main() -> komputers::Result<()> {
-    // Create GPU manager (automatically selects best available device)
-    let mut manager = Manager::new()?;
+    // Create GPU manager with auto-detected Vulkan configuration
+    let config = VulkanConfig::auto_detect()
+        .map_err(|e| KomputeError::vulkan(&e))?;
+    let mut manager = Manager::with_config(config)?;
 
     // Create multi-type tensors
     let input_a = Tensor::new(&mut manager, &[1.0f32, 2.0, 3.0, 4.0])?;
@@ -90,10 +92,12 @@ fn main() -> komputers::Result<()> {
 ### Multi-Type Tensor Operations
 
 ```rust
-use komputers::{Manager, Tensor, DataType};
+use komputers::{KomputeError, Manager, Tensor, DataType, VulkanConfig};
 
 fn multi_type_example() -> komputers::Result<()> {
-    let mut manager = Manager::new()?;
+    let config = VulkanConfig::auto_detect()
+        .map_err(|e| KomputeError::vulkan(&e))?;
+    let mut manager = Manager::with_config(config)?;
 
     // Create different data type tensors
     let f64_tensor = Tensor::new(&mut manager, &[1.0f64, 2.0, 3.0])?;

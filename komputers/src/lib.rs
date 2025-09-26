@@ -16,10 +16,12 @@
 //! ### Basic GPU Operations
 //!
 //! ```rust,no_run
-//! use komputers::{Manager, Tensor, Result};
+//! use komputers::{KomputeError, Manager, Tensor, Result, VulkanConfig};
 //!
 //! fn main() -> Result<()> {
-//!     let mut manager = Manager::new()?;
+//!     let config = VulkanConfig::auto_detect()
+//!         .map_err(|e| KomputeError::vulkan(&e))?;
+//!     let mut manager = Manager::with_config(config)?;
 //!     let tensor = Tensor::new(&mut manager, &[1.0f32, 2.0, 3.0, 4.0])?;
 //!
 //!     // Consuming builder pattern ensures sequences are used exactly once
@@ -38,11 +40,15 @@
 //! ### Cross-Manager Safety
 //!
 //! ```rust,compile_fail
-//! use komputers::{Manager, Tensor};
+//! use komputers::{KomputeError, Manager, Tensor, VulkanConfig};
 //!
 //! fn cross_manager_example() -> komputers::Result<()> {
-//!     let mut manager1 = Manager::new()?;
-//!     let mut manager2 = Manager::new()?;
+//!     let config1 = VulkanConfig::auto_detect()
+//!         .map_err(|e| KomputeError::vulkan(&e))?;
+//!     let mut manager1 = Manager::with_config(config1)?;
+//!     let config2 = VulkanConfig::auto_detect()
+//!         .map_err(|e| KomputeError::vulkan(&e))?;
+//!     let mut manager2 = Manager::with_config(config2)?;
 //!
 //!     let tensor = Tensor::new(&mut manager1, &[1.0f32])?;
 //!
@@ -63,7 +69,9 @@
 //!
 //! # #[cfg(feature = "async")]
 //! async fn async_example() -> Result<()> {
-//!     let mut manager = Manager::new()?;
+//!     let config = VulkanConfig::auto_detect()
+//!         .map_err(|e| KomputeError::vulkan(&e))?;
+//!     let mut manager = Manager::with_config(config)?;
 //!     let tensor = Tensor::new(&mut manager, &[1.0f32, 2.0, 3.0])?;
 //!
 //!     let result = manager
@@ -207,7 +215,7 @@ pub mod sequence;
 pub mod spirv_shaders;
 pub mod spirv_utils;
 pub mod tensor;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-utils"))]
 pub mod test_utils;
 pub mod vulkan_config;
 pub mod vulkan_setup;
