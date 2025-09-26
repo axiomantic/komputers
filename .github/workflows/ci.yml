@@ -304,6 +304,12 @@ jobs:
           echo "SCCACHE_CACHE_SIZE=2G" >> $GITHUB_ENV
           echo "SCCACHE_DIR=$HOME/.cache/sccache" >> $GITHUB_ENV
 
+          # Configure parallel C++ compilation for faster builds
+          CPU_COUNT=$(sysctl -n hw.ncpu)
+          echo "CMAKE_BUILD_PARALLEL_LEVEL=${CPU_COUNT}" >> $GITHUB_ENV
+          echo "MAKEFLAGS=-j${CPU_COUNT}" >> $GITHUB_ENV
+          echo "🚀 Configured parallel compilation with ${CPU_COUNT} cores"
+
           # Initialize sccache
           mkdir -p $HOME/.cache/sccache
           sccache --show-stats
@@ -351,16 +357,25 @@ jobs:
             ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}-
             ${{ runner.os }}-cargo-target-
 
+      - name: Get Kompute commit hash for cache key
+        id: kompute-version
+        run: |
+          # Get the actual commit hash of Kompute master for stable caching
+          KOMPUTE_COMMIT=$(curl -s https://api.github.com/repos/KomputeProject/kompute/commits/master | jq -r '.sha[:12]')
+          echo "commit=${KOMPUTE_COMMIT}" >> $GITHUB_OUTPUT
+          echo "🔍 Using Kompute commit hash for cache: ${KOMPUTE_COMMIT}"
+
       - name: Cache CMake Build Output
         uses: actions/cache@v4
         with:
           path: |
             target/release/build/kompute-sys-*/out/
             target/debug/build/kompute-sys-*/out/
-          key: ${{ runner.os }}-cmake-build-${{ hashFiles('kompute-sys/build.rs') }}-${{ hashFiles('kompute-sys/Cargo.toml') }}-kompute-master
+            ~/.cache/kompute-build/
+          key: ${{ runner.os }}-cmake-kompute-${{ steps.kompute-version.outputs.commit }}-${{ hashFiles('kompute-sys/build.rs') }}-${{ hashFiles('kompute-sys/Cargo.toml') }}
           restore-keys: |
-            ${{ runner.os }}-cmake-build-${{ hashFiles('kompute-sys/build.rs') }}-
-            ${{ runner.os }}-cmake-build-
+            ${{ runner.os }}-cmake-kompute-${{ steps.kompute-version.outputs.commit }}-
+            ${{ runner.os }}-cmake-kompute-
 
       - name: Cache Downloaded Sources
         uses: actions/cache@v4
@@ -370,9 +385,9 @@ jobs:
             /tmp/kompute-*
             /tmp/fmt-*
             /tmp/spdlog-*
-          key: ${{ runner.os }}-sources-kompute-master-${{ hashFiles('kompute-sys/build.rs') }}
+          key: ${{ runner.os }}-sources-${{ steps.kompute-version.outputs.commit }}-${{ hashFiles('kompute-sys/build.rs') }}
           restore-keys: |
-            ${{ runner.os }}-sources-kompute-master-
+            ${{ runner.os }}-sources-${{ steps.kompute-version.outputs.commit }}-
             ${{ runner.os }}-sources-
 
       - name: Setup Local Cache Directories
