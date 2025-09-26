@@ -86,189 +86,190 @@ jobs:
           cargo test --doc algorithm::Algorithm --features "async,glsl,debug,validation,test-utils"
           echo "✅ All algorithm.rs rustdoc examples pass"
 
+  # TODO: Enable when GitHub hosted runners are desired
   # Phase 2: Memory Safety & Sanitization (Production Readiness)
-  memory-safety-sanitizers:
-    name: Memory Safety (Address & Thread Sanitizers)
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        sanitizer: [address, thread]
-        include:
-          - sanitizer: address
-            features: "async,glsl,debug,validation,test-utils"
-            rustflags: "-Z sanitizer=address"
-            toolchain: "nightly"
-          - sanitizer: thread
-            features: "async,glsl,debug,validation,test-utils"
-            rustflags: "-Z sanitizer=thread"
-            toolchain: "nightly"
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install Rust nightly (required for sanitizers)
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: rust-src
-
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-sanitizer-${{ matrix.sanitizer }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-sanitizer-${{ matrix.sanitizer }}-
-            ${{ runner.os }}-sanitizer-
-
-      - name: Install Vulkan SDK and validation layers
-        run: |
-          sudo apt update
-          sudo apt install -y vulkan-tools libvulkan-dev vulkan-validationlayers-dev cmake build-essential
-
-      - name: Enable Vulkan validation layers for memory debugging
-        run: |
-          echo "VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation" >> $GITHUB_ENV
-          echo "VK_LOADER_DEBUG=error,warn,info" >> $GITHUB_ENV
-          echo "KOMPUTE_DISABLE_VULKAN_CHECK=1" >> $GITHUB_ENV
-
-      - name: Run ${{ matrix.sanitizer }} sanitizer tests
-        env:
-          RUSTFLAGS: ${{ matrix.rustflags }}
-          ASAN_OPTIONS: "detect_leaks=1:abort_on_error=1:halt_on_error=1:check_initialization_order=1"
-          TSAN_OPTIONS: "halt_on_error=1:abort_on_error=1:report_signal_unsafe=1"
-        run: |
-          echo "🧪 Running ${{ matrix.sanitizer }} sanitizer tests"
-
-          # Run Phase 2 memory safety specific tests
-          cargo test --target x86_64-unknown-linux-gnu \
-                     --features="${{ matrix.features }}" \
-                     --test memory_safety_asan_tests \
-                     --test memory_safety_tsan_tests \
-                     --verbose -- --nocapture
-
-          # Run broader test suite with sanitizer (library tests only to avoid GPU requirements)
-          cargo test --target x86_64-unknown-linux-gnu \
-                     --features="${{ matrix.features }}" \
-                     --lib \
-                     --verbose -- --nocapture
-
-      - name: Run GPU resource leak detection
-        env:
-          RUSTFLAGS: ${{ matrix.rustflags }}
-          ASAN_OPTIONS: "detect_leaks=1:abort_on_error=1:halt_on_error=1"
-          KOMPUTE_DISABLE_VULKAN_CHECK: 1
-        run: |
-          echo "💾 Running GPU memory leak detection with ${{ matrix.sanitizer }} sanitizer"
-          cargo test --target x86_64-unknown-linux-gnu \
-                     --features="${{ matrix.features }}" \
-                     --test gpu_memory_leak_validation_tests \
-                     --test resource_exhaustion_recovery_tests \
-                     --verbose -- --nocapture
-
-  # GPU tests moved to self-hosted runners
-  # test:
-  #   name: Test Suite
-  #   runs-on: ${{ matrix.os }}
-  #   strategy:
-  #     matrix:
-  #       os: [ubuntu-latest, windows-latest, macos-latest]
-  #       rust: [stable, beta]
-  #       exclude:
-  #         # Reduce matrix size for faster CI
-  #         - os: windows-latest
-  #           rust: beta
-  #         - os: macos-latest
-  #           rust: beta
-  #   env:
-  #     KOMPUTE_DISABLE_VULKAN_CHECK: 1 # Disable Vulkan version check for non-GPU runners
-
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         submodules: recursive
+  # memory-safety-sanitizers:
+  #   name: Memory Safety (Address & Thread Sanitizers)
+  #   runs-on: ubuntu-latest
+  #    strategy:
+  #      matrix:
+  #        sanitizer: [address, thread]
+  #        include:
+  #          - sanitizer: address
+  #            features: "async,glsl,debug,validation,test-utils"
+  #            rustflags: "-Z sanitizer=address"
+  #            toolchain: "nightly"
+  #          - sanitizer: thread
+  #            features: "async,glsl,debug,validation,test-utils"
+  #            rustflags: "-Z sanitizer=thread"
+  #            toolchain: "nightly"
   #
-  #     - name: Install Rust
-  #       uses: dtolnay/rust-toolchain@master
-  #       with:
-  #         toolchain: ${{ matrix.rust }}
-  #         components: rustfmt, clippy
+  #    steps:
+  #      - uses: actions/checkout@v4
+  #        with:
+  #          submodules: recursive
   #
-  #     - name: Cache cargo registry
-  #       uses: actions/cache@v4
-  #       with:
-  #         path: |
-  #           ~/.cargo/registry
-  #           ~/.cargo/git
-  #           target
-  #         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-  #         restore-keys: |
-  #           ${{ runner.os }}-cargo-
+  #      - name: Install Rust nightly (required for sanitizers)
+  #        uses: dtolnay/rust-toolchain@nightly
+  #        with:
+  #          components: rust-src
   #
-  #     # Platform-specific dependencies
-  #     - name: Install Vulkan SDK (Ubuntu)
-  #       if: matrix.os == 'ubuntu-latest'
-  #       run: |
-  #         sudo apt update
-  #         sudo apt install -y vulkan-tools libvulkan-dev vulkan-utility-libraries-dev cmake build-essential
+  #      - name: Cache cargo registry
+  #        uses: actions/cache@v4
+  #        with:
+  #          path: |
+  #            ~/.cargo/registry
+  #            ~/.cargo/git
+  #            target
+  #          key: ${{ runner.os }}-sanitizer-${{ matrix.sanitizer }}-${{ hashFiles('**/Cargo.lock') }}
+  #          restore-keys: |
+  #            ${{ runner.os }}-sanitizer-${{ matrix.sanitizer }}-
+  #            ${{ runner.os }}-sanitizer-
   #
-  #     - name: Install Vulkan SDK (macOS)
-  #       if: matrix.os == 'macos-latest'
-  #       run: |
-  #         brew install vulkan-headers vulkan-loader molten-vk cmake
+  #      - name: Install Vulkan SDK and validation layers
+  #        run: |
+  #          sudo apt update
+  #          sudo apt install -y vulkan-tools libvulkan-dev vulkan-validationlayers-dev cmake build-essential
   #
-  #     - name: Install Vulkan SDK (Windows)
-  #       if: matrix.os == 'windows-latest'
-  #       run: |
-  #         # Download and install Vulkan SDK
-  #         Invoke-WebRequest -Uri "https://vulkan.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe" -OutFile "vulkan-sdk.exe"
-  #         Start-Process -FilePath "vulkan-sdk.exe" -ArgumentList "/S" -Wait
-  #         echo "C:\VulkanSDK\$(Get-ChildItem C:\VulkanSDK | Sort-Object Name -Descending | Select-Object -First 1 Name)\Bin" >> $env:GITHUB_PATH
+  #      - name: Enable Vulkan validation layers for memory debugging
+  #        run: |
+  #          echo "VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation" >> $GITHUB_ENV
+  #          echo "VK_LOADER_DEBUG=error,warn,info" >> $GITHUB_ENV
+  #          echo "KOMPUTE_DISABLE_VULKAN_CHECK=1" >> $GITHUB_ENV
   #
-  #     # Build and test
-  #     - name: Check formatting
-  #       run: cargo fmt --all -- --check
+  #      - name: Run ${{ matrix.sanitizer }} sanitizer tests
+  #        env:
+  #          RUSTFLAGS: ${{ matrix.rustflags }}
+  #          ASAN_OPTIONS: "detect_leaks=1:abort_on_error=1:halt_on_error=1:check_initialization_order=1"
+  #          TSAN_OPTIONS: "halt_on_error=1:abort_on_error=1:report_signal_unsafe=1"
+  #        run: |
+  #          echo "🧪 Running ${{ matrix.sanitizer }} sanitizer tests"
   #
-  #     - name: Run clippy
-  #       run: cargo clippy --all-features --workspace -- -D warnings
+  #          # Run Phase 2 memory safety specific tests
+  #          cargo test --target x86_64-unknown-linux-gnu \
+  #                     --features="${{ matrix.features }}" \
+  #                     --test memory_safety_asan_tests \
+  #                     --test memory_safety_tsan_tests \
+  #                     --verbose -- --nocapture
   #
-  #     - name: Build (default features)
-  #       run: cargo build --verbose
+  #          # Run broader test suite with sanitizer (library tests only to avoid GPU requirements)
+  #          cargo test --target x86_64-unknown-linux-gnu \
+  #                     --features="${{ matrix.features }}" \
+  #                     --lib \
+  #                     --verbose -- --nocapture
   #
-  #     - name: Build (all features)
-  #       run: cargo build --all-features --verbose
+  #      - name: Run GPU resource leak detection
+  #        env:
+  #          RUSTFLAGS: ${{ matrix.rustflags }}
+  #          ASAN_OPTIONS: "detect_leaks=1:abort_on_error=1:halt_on_error=1"
+  #          KOMPUTE_DISABLE_VULKAN_CHECK: 1
+  #        run: |
+  #          echo "💾 Running GPU memory leak detection with ${{ matrix.sanitizer }} sanitizer"
+  #          cargo test --target x86_64-unknown-linux-gnu \
+  #                     --features="${{ matrix.features }}" \
+  #                     --test gpu_memory_leak_validation_tests \
+  #                     --test resource_exhaustion_recovery_tests \
+  #                     --verbose -- --nocapture
   #
-  #     - name: Run unit tests
-  #       run: cargo test --lib --all-features --verbose
+  #  # GPU tests moved to self-hosted runners
+  #  # test:
+  #  #   name: Test Suite
+  #  #   runs-on: ${{ matrix.os }}
+  #  #   strategy:
+  #  #     matrix:
+  #  #       os: [ubuntu-latest, windows-latest, macos-latest]
+  #  #       rust: [stable, beta]
+  #  #       exclude:
+  #  #         # Reduce matrix size for faster CI
+  #  #         - os: windows-latest
+  #  #           rust: beta
+  #  #         - os: macos-latest
+  #  #           rust: beta
+  #  #   env:
+  #  #     KOMPUTE_DISABLE_VULKAN_CHECK: 1 # Disable Vulkan version check for non-GPU runners
   #
-  #     - name: Run documentation tests
-  #       run: cargo test --doc --all-features
+  #  #   steps:
+  #  #     - uses: actions/checkout@v4
+  #  #       with:
+  #  #         submodules: recursive
+  #  #
+  #  #     - name: Install Rust
+  #  #       uses: dtolnay/rust-toolchain@master
+  #  #       with:
+  #  #         toolchain: ${{ matrix.rust }}
+  #  #         components: rustfmt, clippy
+  #  #
+  #  #     - name: Cache cargo registry
+  #  #       uses: actions/cache@v4
+  #  #       with:
+  #  #         path: |
+  #  #           ~/.cargo/registry
+  #  #           ~/.cargo/git
+  #  #           target
+  #  #         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+  #  #         restore-keys: |
+  #  #           ${{ runner.os }}-cargo-
+  #  #
+  #  #     # Platform-specific dependencies
+  #  #     - name: Install Vulkan SDK (Ubuntu)
+  #  #       if: matrix.os == 'ubuntu-latest'
+  #  #       run: |
+  #  #         sudo apt update
+  #  #         sudo apt install -y vulkan-tools libvulkan-dev vulkan-utility-libraries-dev cmake build-essential
+  #  #
+  #  #     - name: Install Vulkan SDK (macOS)
+  #  #       if: matrix.os == 'macos-latest'
+  #  #       run: |
+  #  #         brew install vulkan-headers vulkan-loader molten-vk cmake
+  #  #
+  #  #     - name: Install Vulkan SDK (Windows)
+  #  #       if: matrix.os == 'windows-latest'
+  #  #       run: |
+  #  #         # Download and install Vulkan SDK
+  #  #         Invoke-WebRequest -Uri "https://vulkan.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe" -OutFile "vulkan-sdk.exe"
+  #  #         Start-Process -FilePath "vulkan-sdk.exe" -ArgumentList "/S" -Wait
+  #  #         echo "C:\VulkanSDK\$(Get-ChildItem C:\VulkanSDK | Sort-Object Name -Descending | Select-Object -First 1 Name)\Bin" >> $env:GITHUB_PATH
+  #  #
+  #  #     # Build and test
+  #  #     - name: Check formatting
+  #  #       run: cargo fmt --all -- --check
+  #  #
+  #  #     - name: Run clippy
+  #  #       run: cargo clippy --all-features --workspace -- -D warnings
+  #  #
+  #  #     - name: Build (default features)
+  #  #       run: cargo build --verbose
+  #  #
+  #  #     - name: Build (all features)
+  #  #       run: cargo build --all-features --verbose
+  #  #
+  #  #     - name: Run unit tests
+  #  #       run: cargo test --lib --all-features --verbose
+  #  #
+  #  #     - name: Run documentation tests
+  #  #       run: cargo test --doc --all-features
+  #  #
+  #  #     - name: Build examples
+  #  #       run: cargo build --examples --all-features
+  #  #
+  #  #     # GPU tests only on platforms where they're likely to work
+  #  #     - name: Run GPU integration tests (macOS)
+  #  #       if: matrix.os == 'macos-latest'
+  #  #       run: |
+  #  #         # Only run if Vulkan/MoltenVK is available
+  #  #         if vulkaninfo --summary >/dev/null 2>&1; then
+  #  #           echo "Vulkan detected, running GPU tests"
+  #  #           cargo test --test gpu_compute_integration --features kompute-master -- --nocapture || echo "GPU tests failed (expected on CI)"
+  #  #         else
+  #  #           echo "No Vulkan support detected, skipping GPU tests"
+  #  #         fi
+  #  #
+  #  #     - name: Run memory safety tests
+  #  #       run: cargo test memory_safety --all-features -- --nocapture
+  #  #
+  #  #     - name: Generate documentation
+  #  #       run: cargo doc --all-features --no-deps --workspace
   #
-  #     - name: Build examples
-  #       run: cargo build --examples --all-features
-  #
-  #     # GPU tests only on platforms where they're likely to work
-  #     - name: Run GPU integration tests (macOS)
-  #       if: matrix.os == 'macos-latest'
-  #       run: |
-  #         # Only run if Vulkan/MoltenVK is available
-  #         if vulkaninfo --summary >/dev/null 2>&1; then
-  #           echo "Vulkan detected, running GPU tests"
-  #           cargo test --test gpu_compute_integration --features kompute-master -- --nocapture || echo "GPU tests failed (expected on CI)"
-  #         else
-  #           echo "No Vulkan support detected, skipping GPU tests"
-  #         fi
-  #
-  #     - name: Run memory safety tests
-  #       run: cargo test memory_safety --all-features -- --nocapture
-  #
-  #     - name: Generate documentation
-  #       run: cargo doc --all-features --no-deps --workspace
-
   gpu-tests-self-hosted:
     name: GPU Tests (Self-Hosted macOS)
     runs-on: self-hosted
