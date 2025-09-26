@@ -17,7 +17,6 @@ use komputers::*;
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use std::time::{Duration, Instant};
-use tokio::runtime::Runtime;
 
 /// Concurrent manager access thread safety test with TSan
 ///
@@ -102,7 +101,10 @@ fn test_concurrent_manager_access_tsan() -> Result<()> {
 fn test_async_sequence_thread_safety_tsan() -> Result<()> {
     println!("⚡ TSan Test: Async sequence thread safety");
 
-    let rt = Runtime::new().unwrap();
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
 
     rt.block_on(async {
         println!("   🔧 Testing async operations with concurrent access");
@@ -210,7 +212,7 @@ fn test_cross_manager_validation_thread_safety_tsan() -> Result<()> {
                     // Try to use tensor handle with manager B (should be caught)
                     {
                         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                            let manager_b = mgr_b.lock().unwrap();
+                            let mut manager_b = mgr_b.lock().unwrap();
                             let sequence = manager_b.sequence().unwrap();
                             sequence.record_tensor_sync_device(tensor_handle)
                         }));
@@ -320,9 +322,11 @@ fn test_concurrent_tensor_operations_tsan() -> Result<()> {
 
                     // Perform operations with read lock
                     {
-                        let manager = mgr
-                            .read()
-                            .map_err(|_| KomputeError::internal("Manager read lock poisoned"))?;
+                        let mut manager = mgr.write().map_err(|_| {
+                            KomputeError::internal(
+                                "Manager write lock needed for sequence operations",
+                            )
+                        })?;
 
                         let sequence = manager
                             .sequence()?
@@ -366,8 +370,8 @@ fn test_concurrent_tensor_operations_tsan() -> Result<()> {
     let expected_count = worker_threads * tensors_per_thread;
 
     println!(
-        "   📊 Total tensors created: {} (expected: {})",
-        final_count, expected_count
+        "   📊 Total tensors created: {} (expected: {}), successful workers: {}",
+        final_count, expected_count, successful_workers
     );
     assert_eq!(
         final_count, expected_count,
@@ -449,7 +453,7 @@ fn test_gpu_resource_sharing_safety_tsan() -> Result<()> {
 
                     if let Some(tensor) = tensor_opt {
                         // Perform operation on consumed resource
-                        let manager = mgr.lock().map_err(|_| {
+                        let mut manager = mgr.lock().map_err(|_| {
                             KomputeError::internal("Consumer manager lock poisoned")
                         })?;
 
