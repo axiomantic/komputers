@@ -205,7 +205,7 @@ fn validate_memory_safety() -> CategoryResult {
     let mut checks_passed = 0;
     let mut checks_total = 0;
     let mut critical_failures = Vec::new();
-    let mut warnings = Vec::new();
+    let warnings = Vec::new();
     let mut metrics = HashMap::new();
 
     // Check 1: ASAN Integration
@@ -641,7 +641,7 @@ fn validate_cross_manager_safety() -> bool {
     let manager_a_result = Manager::new();
     let manager_b_result = Manager::new();
 
-    if let (Ok(mut manager_a), Ok(manager_b)) = (manager_a_result, manager_b_result) {
+    if let (Ok(mut manager_a), Ok(mut manager_b)) = (manager_a_result, manager_b_result) {
         let data = vec![1.0f32; 10];
         if let Ok(tensor) = Tensor::new(&mut manager_a, &data) {
             let sequence_result = manager_b.sequence();
@@ -676,9 +676,10 @@ fn validate_basic_gpu_operations() -> bool {
     if let Ok(mut manager) = Manager::new() {
         let data = vec![1.0f32; 10];
         if let Ok(tensor) = Tensor::new(&mut manager, &data) {
-            if let Ok(mut sequence) = manager.sequence() {
-                sequence.record_tensor_sync_device(tensor.handle()).ok();
-                return sequence.execute().is_ok();
+            if let Ok(sequence) = manager.sequence() {
+                if let Ok(recorded_sequence) = sequence.record_tensor_sync_device(tensor.handle()) {
+                    return recorded_sequence.execute().is_ok();
+                }
             }
         }
     }
@@ -761,8 +762,8 @@ fn validate_resource_limits_enforced() -> bool {
     if let Ok(mut manager) = Manager::new() {
         // Try to create a very large tensor that should fail
         let large_data = vec![1.0f32; 100_000_000]; // 400MB
-        match Tensor::new(&manager, &large_data) {
-            Err(KomputeError::OutOfMemory(_)) => true, // Properly rejected
+        match Tensor::new(&mut manager, &large_data) {
+            Err(KomputeError::MemoryError(_)) => true, // Properly rejected
             Ok(_) => false,                            // Should have been rejected
             Err(_) => true, // Any other error is also acceptable rejection
         }
