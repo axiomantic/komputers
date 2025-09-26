@@ -83,7 +83,7 @@ fn test_backwards_compatible_manager_basic_operations() -> Result<()> {
 
     let mut manager = create_test_manager();
     skip_if_no_gpu!(manager);
-    let mut manager = manager;
+    let mut manager = manager?;
 
     // Test that the old pattern of Manager::new() still works
     // This simulates legacy code that should work unchanged
@@ -117,7 +117,7 @@ fn test_backwards_compatible_tensor_operations() -> Result<()> {
 
     let mut manager = create_test_manager();
     skip_if_no_gpu!(manager);
-    let mut manager = manager;
+    let mut manager = manager?;
 
     // Test all the existing tensor creation patterns
     let f32_data = vec![1.0f32, 2.0, 3.0, 4.0, 5.0];
@@ -141,7 +141,7 @@ fn test_backwards_compatible_tensor_operations() -> Result<()> {
     );
 
     // Test reading tensor data (legacy pattern)
-    let f32_result = tensor_f32.data()?;
+    let f32_result = tensor_f32.to_vec()?;
     assert_eq!(f32_result.len(), f32_data.len(), "Data should be preserved");
 
     println!("✅ Legacy Tensor operations work unchanged with validation system");
@@ -155,7 +155,7 @@ fn test_backwards_compatible_sequence_patterns() -> Result<()> {
 
     let mut manager = create_test_manager();
     skip_if_no_gpu!(manager);
-    let mut manager = manager;
+    let mut manager = manager?;
 
     let data1 = create_test_data_f32(100);
     let data2 = create_test_data_f32(200);
@@ -201,7 +201,7 @@ fn test_backwards_compatible_algorithm_patterns() -> Result<()> {
 
     let mut manager = create_test_manager();
     skip_if_no_gpu!(manager);
-    let mut manager = manager;
+    let mut manager = manager?;
 
     let input_data = vec![1.0f32, 2.0, 3.0, 4.0];
     let tensor = Tensor::new(&mut manager, &input_data)?;
@@ -219,7 +219,7 @@ fn test_backwards_compatible_algorithm_patterns() -> Result<()> {
     );
 
     // Verify data integrity
-    let output_data = tensor.data()?;
+    let output_data = tensor.to_vec()?;
     assert_eq!(
         output_data.len(),
         input_data.len(),
@@ -244,7 +244,7 @@ fn test_backwards_compatible_gpu_operations() -> Result<()> {
             // Test legacy high-level operations
             ops.copy(&source, &mut dest)?;
 
-            let dest_data = dest.data()?;
+            let dest_data = dest.to_vec()?;
             assert_eq!(dest_data.len(), source_data.len());
             println!("✅ Legacy GpuOperations work unchanged");
         }
@@ -264,7 +264,7 @@ async fn test_backwards_compatible_async_operations() -> Result<()> {
 
     let mut manager = create_test_manager();
     skip_if_no_gpu!(manager);
-    let mut manager = manager;
+    let mut manager = manager?;
 
     let data = vec![1.0f32, 2.0, 3.0, 4.0];
     let tensor = Tensor::new(&mut manager, &data)?;
@@ -301,7 +301,7 @@ fn test_migration_single_to_multi_manager() -> Result<()> {
     {
         let mut manager = create_test_manager();
         skip_if_no_gpu!(manager);
-        let mut manager = manager;
+        let mut manager = manager?;
 
         let data = vec![1.0f32, 2.0, 3.0];
         let tensor = Tensor::new(&mut manager, &data)?;
@@ -379,7 +379,7 @@ async fn test_migration_sync_to_async_patterns() -> Result<()> {
 
     let mut manager = create_test_manager();
     skip_if_no_gpu!(manager);
-    let mut manager = manager;
+    let mut manager = manager?;
 
     let data = vec![1.0f32, 2.0, 3.0, 4.0];
     let tensor = Tensor::new(&mut manager, &data)?;
@@ -516,7 +516,7 @@ fn test_migration_workgroup_configuration_patterns() -> Result<()> {
 
     let mut manager = create_test_manager();
     skip_if_no_gpu!(manager);
-    let mut manager = manager;
+    let mut manager = manager?;
 
     // Stage 1: Legacy simple operations (no explicit workgroup config)
     let data = vec![1.0f32, 2.0, 3.0, 4.0];
@@ -590,7 +590,7 @@ fn test_real_world_machine_learning_workflow() -> Result<()> {
 
     let mut manager = create_test_manager();
     skip_if_no_gpu!(manager);
-    let mut manager = manager;
+    let mut manager = manager?;
 
     // Simulate ML training data (batch of features)
     let batch_size = 128;
@@ -694,14 +694,14 @@ fn test_real_world_machine_learning_workflow() -> Result<()> {
     );
 
     // Verify data integrity throughout workflow
-    let final_input = input_tensor.data()?;
+    let final_input = input_tensor.to_vec()?;
     assert_eq!(
         final_input.len(),
         training_data.len(),
         "Input data should be preserved"
     );
 
-    let final_output = output_tensor.data()?;
+    let final_output = output_tensor.to_vec()?;
     assert_eq!(
         final_output.len(),
         output_data.len(),
@@ -728,7 +728,7 @@ fn test_real_world_scientific_computing_workflow() -> Result<()> {
 
     let mut manager = create_test_manager();
     skip_if_no_gpu!(manager);
-    let mut manager = manager;
+    let mut manager = manager?;
 
     // Simulate scientific computing datasets (fluid dynamics simulation)
     let grid_size = 64; // 64x64 grid
@@ -813,9 +813,9 @@ fn test_real_world_scientific_computing_workflow() -> Result<()> {
     let verification_time = verification_start.elapsed();
 
     // Verify final data integrity
-    let final_velocity = velocity_tensor.data()?;
-    let final_pressure = pressure_tensor.data()?;
-    let final_density = density_tensor.data()?;
+    let final_velocity = velocity_tensor.to_vec()?;
+    let final_pressure = pressure_tensor.to_vec()?;
+    let final_density = density_tensor.to_vec()?;
 
     assert_eq!(
         final_velocity.len(),
@@ -857,7 +857,7 @@ fn test_real_world_image_processing_workflow() -> Result<()> {
 
     let mut manager = create_test_manager();
     skip_if_no_gpu!(manager);
-    let mut manager = manager;
+    let mut manager = manager?;
 
     // Simulate image processing pipeline (4K image processing)
     let width = 256; // Scaled down for testing, but represents 4K workflow
@@ -996,8 +996,8 @@ fn test_real_world_image_processing_workflow() -> Result<()> {
     let batch_time = batch_start.elapsed();
 
     // Verify final results
-    let final_original = original_tensor.data()?;
-    let final_processed = processed_tensor.data()?;
+    let final_original = original_tensor.to_vec()?;
+    let final_processed = processed_tensor.to_vec()?;
 
     assert_eq!(
         final_original.len(),
@@ -1155,7 +1155,7 @@ fn test_real_world_concurrent_multi_manager_workflow() -> Result<()> {
     // Verify data integrity for each tensor
     let mut total_operations = 0;
     for (i, tensor) in tensors.iter().enumerate() {
-        let result_data = tensor.data()?;
+        let result_data = tensor.to_vec()?;
         assert_eq!(
             result_data.len(),
             datasets[i].len(),
@@ -1233,7 +1233,7 @@ fn test_real_world_memory_intensive_workflow() -> Result<()> {
 
     let mut manager = create_test_manager();
     skip_if_no_gpu!(manager);
-    let mut manager = manager;
+    let mut manager = manager?;
 
     // Simulate memory-intensive operations (e.g., large-scale data analysis)
     let dataset_sizes = vec![10_000, 50_000, 100_000]; // Progressive size increases
@@ -1349,7 +1349,7 @@ fn test_real_world_memory_intensive_workflow() -> Result<()> {
 
     let mut total_elements = 0;
     for (i, tensor) in tensors.iter().enumerate() {
-        let data = tensor.data()?;
+        let data = tensor.to_vec()?;
         assert_eq!(
             data.len(),
             datasets[i].len(),
@@ -1411,7 +1411,7 @@ fn test_comprehensive_end_to_end_integration() -> Result<()> {
     {
         let mut manager = create_test_manager();
         skip_if_no_gpu!(manager);
-        let mut manager = manager;
+        let mut manager = manager?;
 
         let data = vec![1.0f32, 2.0, 3.0, 4.0];
         let tensor = Tensor::new(&mut manager, &data)?;
@@ -1482,7 +1482,7 @@ fn test_comprehensive_end_to_end_integration() -> Result<()> {
     {
         let mut manager = create_test_manager();
         skip_if_no_gpu!(manager);
-        let mut manager = manager;
+        let mut manager = manager?;
 
         // Multi-tensor workflow
         let data_a = create_test_data_f32(500);
@@ -1510,9 +1510,9 @@ fn test_comprehensive_end_to_end_integration() -> Result<()> {
         );
 
         // Verify data integrity
-        let result_a = tensor_a.data()?;
-        let result_b = tensor_b.data()?;
-        let result_c = tensor_c.data()?;
+        let result_a = tensor_a.to_vec()?;
+        let result_b = tensor_b.to_vec()?;
+        let result_c = tensor_c.to_vec()?;
 
         assert_eq!(result_a.len(), data_a.len(), "Data A should be preserved");
         assert_eq!(result_b.len(), data_b.len(), "Data B should be preserved");
@@ -1526,7 +1526,7 @@ fn test_comprehensive_end_to_end_integration() -> Result<()> {
     {
         let mut manager = create_test_manager();
         skip_if_no_gpu!(manager);
-        let mut manager = manager;
+        let mut manager = manager?;
 
         let data = create_test_data_f32(1000);
         let tensor = Tensor::new(&mut manager, &data)?;
