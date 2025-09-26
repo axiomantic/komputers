@@ -17,6 +17,7 @@ jobs:
   documentation-and-examples:
     name: Documentation & Examples Verification
     runs-on: ubuntu-latest
+    timeout-minutes: 20 # Give enough time for documentation and examples
     env:
       KOMPUTE_DISABLE_VULKAN_CHECK: 1 # Disable Vulkan check for non-GPU runners
     steps:
@@ -28,6 +29,15 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+
+      - name: Verify Rust components
+        run: |
+          echo "🔧 Verifying Rust toolchain components are installed"
+          rustc --version
+          cargo --version
+          rustfmt --version
+          cargo clippy --version
+          echo "✅ All Rust components verified"
 
       - name: Cache cargo registry
         uses: actions/cache@v4
@@ -273,6 +283,7 @@ jobs:
   gpu-tests-self-hosted:
     name: GPU Tests (Self-Hosted macOS)
     runs-on: self-hosted
+    timeout-minutes: 45 # Extended time for C++ compilation and GPU tests
     if: ${{ github.repository_owner == 'axiomantic' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request') }}
     steps:
       - uses: actions/checkout@v4
