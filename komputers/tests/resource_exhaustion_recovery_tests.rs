@@ -352,7 +352,7 @@ fn test_gpu_queue_exhaustion_recovery() -> Result<()> {
     for i in 0..sequences_to_execute {
         if let Some((tensor, sequence)) = active_sequences.pop() {
             match sequence.execute() {
-                Ok(()) => {
+                Ok(_) => {
                     // Verify the operation completed successfully
                     let result = tensor.to_vec()?;
                     assert_eq!(result.len(), 100);
@@ -374,7 +374,7 @@ fn test_gpu_queue_exhaustion_recovery() -> Result<()> {
         Ok(recovery_tensor) => match manager.sequence() {
             Ok(sequence) => match sequence.record_tensor_sync_device(recovery_tensor.handle()) {
                 Ok(recorded_sequence) => match recorded_sequence.execute() {
-                    Ok(()) => {
+                    Ok(_) => {
                         tracker.record_recovery_attempt(true);
                         println!("     ✅ Queue recovery successful");
 
@@ -457,7 +457,7 @@ fn test_concurrent_resource_pressure() -> Result<()> {
                                     match sequence.record_tensor_sync_device(tensor.handle()) {
                                         Ok(recorded_sequence) => {
                                             match recorded_sequence.execute() {
-                                                Ok(()) => {
+                                                Ok(_) => {
                                                     thread_tensors.push(tensor);
                                                 }
                                                 Err(e) => {
@@ -554,7 +554,7 @@ fn test_concurrent_resource_pressure() -> Result<()> {
         Ok(recovery_tensor) => match recovery_manager.sequence() {
             Ok(sequence) => match sequence.record_tensor_sync_device(recovery_tensor.handle()) {
                 Ok(recorded_sequence) => match recorded_sequence.execute() {
-                    Ok(()) => {
+                    Ok(_) => {
                         let mut t = shared_tracker.lock().unwrap();
                         t.record_recovery_attempt(true);
                         println!("     ✅ System recovery after pressure: SUCCESS");
@@ -628,7 +628,7 @@ fn test_resource_exhaustion_error_quality() -> Result<()> {
                 match manager.sequence() {
                     Ok(sequence) => match sequence.record_tensor_sync_device(tensor.handle()) {
                         Ok(recorded_sequence) => match recorded_sequence.execute() {
-                            Ok(()) => {
+                            Ok(_) => {
                                 println!(
                                     "     ✅ Successfully allocated and processed {} elements",
                                     size
