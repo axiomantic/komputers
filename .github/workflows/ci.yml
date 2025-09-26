@@ -357,14 +357,6 @@ jobs:
             ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}-
             ${{ runner.os }}-cargo-target-
 
-      - name: Get Kompute commit hash for cache key
-        id: kompute-version
-        run: |
-          # Get the actual commit hash of Kompute master for stable caching
-          KOMPUTE_COMMIT=$(curl -s https://api.github.com/repos/KomputeProject/kompute/commits/master | jq -r '.sha[:12]')
-          echo "commit=${KOMPUTE_COMMIT}" >> $GITHUB_OUTPUT
-          echo "🔍 Using Kompute commit hash for cache: ${KOMPUTE_COMMIT}"
-
       - name: Cache CMake Build Output
         uses: actions/cache@v4
         with:
@@ -372,9 +364,9 @@ jobs:
             target/release/build/kompute-sys-*/out/
             target/debug/build/kompute-sys-*/out/
             ~/.cache/kompute-build/
-          key: ${{ runner.os }}-cmake-kompute-${{ steps.kompute-version.outputs.commit }}-${{ hashFiles('kompute-sys/build.rs') }}-${{ hashFiles('kompute-sys/Cargo.toml') }}
+          key: ${{ runner.os }}-cmake-kompute-${{ hashFiles('kompute-sys/build.rs', 'kompute-sys/Cargo.toml') }}-${{ github.run_id }}
           restore-keys: |
-            ${{ runner.os }}-cmake-kompute-${{ steps.kompute-version.outputs.commit }}-
+            ${{ runner.os }}-cmake-kompute-${{ hashFiles('kompute-sys/build.rs', 'kompute-sys/Cargo.toml') }}-
             ${{ runner.os }}-cmake-kompute-
 
       - name: Cache Downloaded Sources
@@ -385,9 +377,9 @@ jobs:
             /tmp/kompute-*
             /tmp/fmt-*
             /tmp/spdlog-*
-          key: ${{ runner.os }}-sources-${{ steps.kompute-version.outputs.commit }}-${{ hashFiles('kompute-sys/build.rs') }}
+          key: ${{ runner.os }}-sources-${{ hashFiles('kompute-sys/build.rs', 'kompute-sys/Cargo.toml') }}-${{ github.run_id }}
           restore-keys: |
-            ${{ runner.os }}-sources-${{ steps.kompute-version.outputs.commit }}-
+            ${{ runner.os }}-sources-${{ hashFiles('kompute-sys/build.rs', 'kompute-sys/Cargo.toml') }}-
             ${{ runner.os }}-sources-
 
       - name: Setup Local Cache Directories
