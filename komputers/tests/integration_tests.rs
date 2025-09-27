@@ -256,7 +256,8 @@ async fn test_backwards_compatible_async_operations() -> Result<()> {
     let tensor = Tensor::new(&mut manager, &data)?;
 
     // Test legacy async pattern
-    let async_seq = AsyncSequence::new(&mut manager)?;
+    let async_seq =
+        AsyncSequence::<_, komputers::async_runtime::DefaultRuntime>::new(&mut manager)?;
     let async_seq = async_seq.record_tensor_sync_device(tensor.handle())?;
 
     let start = Instant::now();
@@ -387,7 +388,8 @@ async fn test_migration_sync_to_async_patterns() -> Result<()> {
     println!("  ✅ Stage 1: Legacy synchronous pattern works");
 
     // Stage 2: Migration to async pattern using same resources
-    let async_seq = AsyncSequence::new(&mut manager)?;
+    let async_seq =
+        AsyncSequence::<_, komputers::async_runtime::DefaultRuntime>::new(&mut manager)?;
     let async_result = async_seq
         .record_tensor_sync_device(tensor.handle())?
         .execute_async()

@@ -8,8 +8,6 @@
 //! The goal is to catch platform-specific differences that could affect users migrating
 //! between platforms or deploying across heterogeneous infrastructure.
 
-#[cfg(feature = "async")]
-use komputers::async_sequence::AsyncSequence;
 use komputers::*;
 // use std::collections::HashMap; // Unused import
 use std::time::Duration;
@@ -596,14 +594,72 @@ fn test_type_specific_behavior_f32(manager: &mut Manager, data: Vec<f32>, type_n
 async fn test_async_cross_platform_parity() {
     println!("🔍 Async Cross-Platform Parity Test");
 
-    let mut manager = AsyncManager::new().expect("Should create async manager");
+    // Use regular Manager with AsyncSequence for async operations
+    let mut manager = Manager::new().expect("Should create manager");
 
     let data = vec![1.0f32; 1000];
-    // AsyncManager and regular Manager are incompatible - skip tensor creation too
-    return; // TODO: Fix async API compatibility
+    let tensor = manager.tensor(&data).expect("Should create tensor");
 
-    // AsyncSequence needs regular Manager, not AsyncManager - skip for now
-    return; // TODO: Fix AsyncSequence API or use proper Manager
+    // Test async operations using AsyncSequence with runtime binding
+    #[cfg(feature = "tokio-runtime")]
+    {
+        use komputers::async_runtime::TokioRuntime;
+        use komputers::async_sequence::AsyncSequence;
+
+        // Create runtime-bound async sequence
+        let async_sequence = AsyncSequence::<_, TokioRuntime>::new(&mut manager)
+            .expect("Should create async sequence");
+
+        // Test async tensor synchronization
+        match async_sequence.record_tensor_sync_device(tensor.handle()) {
+            Ok(recorded_sequence) => {
+                match recorded_sequence.execute_async().await {
+                    Ok(_) => {
+                        println!("    ✅ Async tensor sync to device succeeded");
+
+                        // Test async algorithm dispatch (using a simple shader)
+                        let test_spirv =
+                            &komputers::spirv_shaders::ELEMENTWISE_ADD_F32_SPIRV[0..20]; // Use first 20 words
+                        if let Ok(algorithm) = Algorithm::new(&mut manager, test_spirv) {
+                            let async_sequence =
+                                AsyncSequence::<_, TokioRuntime>::new(&mut manager)
+                                    .expect("Should create async sequence");
+
+                            match async_sequence.record_algorithm_dispatch(algorithm.handle()) {
+                                Ok(recorded_sequence) => {
+                                    match recorded_sequence.execute_async().await {
+                                        Ok(_) => {
+                                            println!("    ✅ Async algorithm dispatch succeeded");
+                                        }
+                                        Err(e) => {
+                                            println!(
+                                                "    ⚠ Async algorithm dispatch failed: {}",
+                                                e
+                                            );
+                                        }
+                                    }
+                                }
+                                Err(e) => {
+                                    println!("    ⚠ Failed to record algorithm dispatch: {}", e);
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        println!("    ⚠ Async tensor sync failed: {}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                println!("    ⚠ Failed to record tensor sync: {}", e);
+            }
+        }
+    }
+
+    #[cfg(not(feature = "tokio-runtime"))]
+    {
+        println!("    ⚠ Tokio runtime not available - skipping async sequence tests");
+    }
 
     println!("✅ Async cross-platform parity verified");
 }

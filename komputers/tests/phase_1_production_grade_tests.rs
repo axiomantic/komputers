@@ -507,25 +507,432 @@ fn test_large_tensor_scenarios(framework: &mut Phase1ProductionFramework) {
 }
 
 #[test]
-fn test_async_operations_placeholder() {
-    println!("Testing async operations (currently placeholder)...");
+fn test_async_operations_comprehensive() {
+    println!("Testing comprehensive async GPU operations...");
     let mut framework = Phase1ProductionFramework::new();
 
-    // CRITICAL: This is identified as the #1 missing component in Phase 1
-    // TODO: Implement comprehensive async GPU operations testing when async features are enabled
+    // Test async tensor operations
+    test_async_tensor_operations(&mut framework);
 
-    framework.record_error_scenario("async_operations_not_implemented", true);
-    framework.record_test("async_feature_awareness", true);
+    // Test concurrent async GPU operations
+    test_concurrent_async_operations(&mut framework);
 
-    println!("  ⚠️ CRITICAL: Async GPU operations testing not implemented");
-    println!("  📋 TODO: Add comprehensive async operation tests including:");
-    println!("    - Async tensor operations");
-    println!("    - Concurrent async GPU operations");
-    println!("    - Async operation cancellation");
-    println!("    - Future/Promise-based GPU operations");
-    println!("    - Async error handling and recovery");
+    // Test async operation cancellation
+    test_async_operation_cancellation(&mut framework);
+
+    // Test async error handling and recovery
+    test_async_error_handling_recovery(&mut framework);
+
+    // Test high-load async scenarios
+    test_high_load_async_scenarios(&mut framework);
 
     framework.print_summary();
+}
+
+#[cfg(feature = "async")]
+fn test_async_tensor_operations(framework: &mut Phase1ProductionFramework) {
+    println!("  🔄 Testing async tensor operations...");
+
+    use komputers::async_runtime::DefaultRuntime;
+    use komputers::{async_sequence::AsyncSequence, Manager};
+
+    match Manager::new() {
+        Ok(mut manager) => {
+            let test_data = vec![1.0f32, 2.0, 3.0, 4.0, 5.0];
+
+            match manager.tensor(&test_data) {
+                Ok(tensor) => {
+                    // Test async tensor sync operations
+                    tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .unwrap()
+                        .block_on(async {
+                            let async_sequence =
+                                AsyncSequence::<_, DefaultRuntime>::new(&mut manager)
+                                    .expect("Should create async sequence");
+
+                            // Test async sync to device
+                            match async_sequence.record_tensor_sync_device(tensor.handle()) {
+                                Ok(sequence) => match sequence.execute_async().await {
+                                    Ok(_) => {
+                                        println!("    ✅ Async tensor sync to device succeeded");
+                                        framework.record_test("async_tensor_sync_device", true);
+                                    }
+                                    Err(e) => {
+                                        println!(
+                                            "    ❌ Async tensor sync to device failed: {}",
+                                            e
+                                        );
+                                        framework.record_test("async_tensor_sync_device", false);
+                                    }
+                                },
+                                Err(e) => {
+                                    println!("    ❌ Failed to record async tensor sync: {}", e);
+                                    framework.record_test("async_tensor_sync_device", false);
+                                }
+                            }
+
+                            // Test async sync to local
+                            let async_sequence =
+                                AsyncSequence::<_, DefaultRuntime>::new(&mut manager)
+                                    .expect("Should create async sequence");
+
+                            match async_sequence.record_tensor_sync_local(tensor.handle()) {
+                                Ok(sequence) => match sequence.execute_async().await {
+                                    Ok(_) => {
+                                        println!("    ✅ Async tensor sync to local succeeded");
+                                        framework.record_test("async_tensor_sync_local", true);
+                                    }
+                                    Err(e) => {
+                                        println!("    ❌ Async tensor sync to local failed: {}", e);
+                                        framework.record_test("async_tensor_sync_local", false);
+                                    }
+                                },
+                                Err(e) => {
+                                    println!("    ❌ Failed to record async local sync: {}", e);
+                                    framework.record_test("async_tensor_sync_local", false);
+                                }
+                            }
+                        });
+                }
+                Err(e) => {
+                    println!("    ❌ Failed to create tensor: {}", e);
+                    framework.record_test("async_tensor_operations", false);
+                }
+            }
+        }
+        Err(e) => {
+            println!("    ❌ Failed to create manager: {}", e);
+            framework.record_test("async_tensor_operations", false);
+        }
+    }
+}
+
+#[cfg(not(feature = "async"))]
+fn test_async_tensor_operations(framework: &mut Phase1ProductionFramework) {
+    println!("    ⚠️ Async features not enabled - skipping async tensor operations");
+    framework.record_test("async_features_available", false);
+}
+
+#[cfg(feature = "async")]
+fn test_concurrent_async_operations(framework: &mut Phase1ProductionFramework) {
+    println!("  🔄 Testing concurrent async GPU operations...");
+
+    use komputers::async_runtime::DefaultRuntime;
+    use komputers::{async_sequence::AsyncSequence, Manager};
+    use std::time::Instant;
+
+    match Manager::new() {
+        Ok(mut manager) => {
+            // Create multiple tensors for concurrent operations
+            let tensor_data = (0..5).map(|i| vec![i as f32; 100]).collect::<Vec<_>>();
+            let tensors = tensor_data
+                .iter()
+                .map(|data| manager.tensor(data))
+                .collect::<Result<Vec<_>, _>>();
+
+            match tensors {
+                Ok(tensors) => {
+                    tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .unwrap()
+                        .block_on(async {
+                            let start = Instant::now();
+                            let mut successful_operations = 0;
+
+                            // Test multiple sequential async operations (simulating concurrent behavior)
+                            for (i, tensor) in tensors.iter().enumerate() {
+                                let async_sequence =
+                                    AsyncSequence::<_, DefaultRuntime>::new(&mut manager)
+                                        .expect("Should create async sequence");
+
+                                match async_sequence.record_tensor_sync_device(tensor.handle()) {
+                                    Ok(sequence) => match sequence.execute_async().await {
+                                        Ok(_) => {
+                                            successful_operations += 1;
+                                            println!("    ✅ Concurrent operation {} completed", i);
+                                        }
+                                        Err(e) => {
+                                            println!(
+                                                "    ⚠️ Concurrent operation {} failed: {}",
+                                                i, e
+                                            );
+                                        }
+                                    },
+                                    Err(e) => {
+                                        println!(
+                                            "    ⚠️ Failed to record concurrent operation {}: {}",
+                                            i, e
+                                        );
+                                    }
+                                }
+                            }
+
+                            let duration = start.elapsed();
+                            let success_count = successful_operations;
+                            println!(
+                                "    ✅ Concurrent operations: {}/{} succeeded in {:?}",
+                                success_count,
+                                tensors.len(),
+                                duration
+                            );
+
+                            framework.record_test(
+                                "concurrent_async_operations",
+                                success_count == tensors.len(),
+                            );
+                            framework.record_performance("concurrent_async_duration", duration);
+                        });
+                }
+                Err(e) => {
+                    println!("    ❌ Failed to create tensors for concurrent test: {}", e);
+                    framework.record_test("concurrent_async_operations", false);
+                }
+            }
+        }
+        Err(e) => {
+            println!("    ❌ Failed to create manager for concurrent test: {}", e);
+            framework.record_test("concurrent_async_operations", false);
+        }
+    }
+}
+
+#[cfg(not(feature = "async"))]
+fn test_concurrent_async_operations(framework: &mut Phase1ProductionFramework) {
+    println!("    ⚠️ Async features not enabled - skipping concurrent operations");
+    framework.record_test("concurrent_async_available", false);
+}
+
+fn test_async_operation_cancellation(framework: &mut Phase1ProductionFramework) {
+    println!("  🔄 Testing async operation cancellation...");
+
+    // Test cancellation safety for GPU operations
+    // This is critical for production systems that need to handle timeouts
+
+    #[cfg(feature = "async")]
+    {
+        use komputers::async_runtime::DefaultRuntime;
+        use komputers::{async_sequence::AsyncSequence, Manager};
+        use std::time::Duration;
+
+        match Manager::new() {
+            Ok(mut manager) => {
+                let data = vec![1.0f32; 1000];
+                match manager.tensor(&data) {
+                    Ok(tensor) => {
+                        tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap().block_on(async {
+                            let async_sequence = AsyncSequence::<_, DefaultRuntime>::new(&mut manager)
+                                .expect("Should create async sequence");
+
+                            if let Ok(sequence) = async_sequence.record_tensor_sync_device(tensor.handle()) {
+                                // Test timeout-based cancellation
+                                match tokio::time::timeout(Duration::from_millis(100), sequence.execute_async()).await {
+                                    Ok(Ok(_)) => {
+                                        println!("    ✅ Operation completed before timeout");
+                                        framework.record_test("async_cancellation_timeout", true);
+                                    }
+                                    Ok(Err(e)) => {
+                                        println!("    ⚠️ Operation failed: {}", e);
+                                        framework.record_test("async_cancellation_timeout", false);
+                                    }
+                                    Err(_) => {
+                                        println!("    ✅ Operation cancelled due to timeout (expected behavior)");
+                                        framework.record_test("async_cancellation_timeout", true);
+                                    }
+                                }
+                            }
+                        });
+                    }
+                    Err(e) => {
+                        println!(
+                            "    ❌ Failed to create tensor for cancellation test: {}",
+                            e
+                        );
+                        framework.record_test("async_cancellation", false);
+                    }
+                }
+            }
+            Err(e) => {
+                println!(
+                    "    ❌ Failed to create manager for cancellation test: {}",
+                    e
+                );
+                framework.record_test("async_cancellation", false);
+            }
+        }
+    }
+
+    #[cfg(not(feature = "async"))]
+    {
+        println!("    ⚠️ Async features not enabled - skipping cancellation tests");
+        framework.record_test("async_cancellation_available", false);
+    }
+}
+
+fn test_async_error_handling_recovery(framework: &mut Phase1ProductionFramework) {
+    println!("  🔄 Testing async error handling and recovery...");
+
+    #[cfg(feature = "async")]
+    {
+        use komputers::async_runtime::DefaultRuntime;
+        use komputers::{async_sequence::AsyncSequence, Manager};
+
+        match Manager::new() {
+            Ok(mut manager) => {
+                tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap().block_on(async {
+                    // Test error handling with invalid tensor handle
+                    let async_sequence = AsyncSequence::<_, DefaultRuntime>::new(&mut manager)
+                        .expect("Should create async sequence");
+
+                    match async_sequence.record_tensor_sync_device(0) { // Invalid handle
+                        Ok(sequence) => {
+                            match sequence.execute_async().await {
+                                Ok(_) => {
+                                    println!("    ⚠️ Expected error but operation succeeded");
+                                    framework.record_test("async_error_handling", false);
+                                }
+                                Err(e) => {
+                                    println!("    ✅ Correctly handled invalid operation: {}", e);
+                                    framework.record_test("async_error_handling", true);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            println!("    ✅ Error caught at record stage: {}", e);
+                            framework.record_test("async_error_handling", true);
+                        }
+                    }
+
+                    // Test recovery after error
+                    let data = vec![1.0f32; 10];
+                    if let Ok(tensor) = manager.tensor(&data) {
+                        let async_sequence = AsyncSequence::<_, DefaultRuntime>::new(&mut manager)
+                            .expect("Should create async sequence");
+
+                        match async_sequence.record_tensor_sync_device(tensor.handle()) {
+                            Ok(sequence) => {
+                                match sequence.execute_async().await {
+                                    Ok(_) => {
+                                        println!("    ✅ Successfully recovered and executed valid operation");
+                                        framework.record_test("async_error_recovery", true);
+                                    }
+                                    Err(e) => {
+                                        println!("    ❌ Failed to recover from error: {}", e);
+                                        framework.record_test("async_error_recovery", false);
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                println!("    ❌ Failed to record recovery operation: {}", e);
+                                framework.record_test("async_error_recovery", false);
+                            }
+                        }
+                    }
+                });
+            }
+            Err(e) => {
+                println!(
+                    "    ❌ Failed to create manager for error handling test: {}",
+                    e
+                );
+                framework.record_test("async_error_handling", false);
+            }
+        }
+    }
+
+    #[cfg(not(feature = "async"))]
+    {
+        println!("    ⚠️ Async features not enabled - skipping error handling tests");
+        framework.record_test("async_error_handling_available", false);
+    }
+}
+
+fn test_high_load_async_scenarios(framework: &mut Phase1ProductionFramework) {
+    println!("  🔄 Testing high-load async scenarios...");
+
+    #[cfg(feature = "async")]
+    {
+        use komputers::async_runtime::DefaultRuntime;
+        use komputers::{async_sequence::AsyncSequence, Manager};
+        use std::time::Instant;
+
+        match Manager::new() {
+            Ok(mut manager) => {
+                // Create larger tensors for stress testing
+                let large_data = vec![1.0f32; 10000];
+                match manager.tensor(&large_data) {
+                    Ok(tensor) => {
+                        tokio::runtime::Builder::new_current_thread()
+                            .enable_all()
+                            .build()
+                            .unwrap()
+                            .block_on(async {
+                                let start = Instant::now();
+                                let mut successful_operations = 0;
+
+                                // Perform multiple rapid async operations
+                                for i in 0..10 {
+                                    let async_sequence =
+                                        AsyncSequence::<_, DefaultRuntime>::new(&mut manager)
+                                            .expect("Should create async sequence");
+
+                                    if let Ok(sequence) =
+                                        async_sequence.record_tensor_sync_device(tensor.handle())
+                                    {
+                                        match sequence.execute_async().await {
+                                            Ok(_) => {
+                                                successful_operations += 1;
+                                                println!(
+                                                    "    ✅ High-load operation {} completed",
+                                                    i
+                                                );
+                                            }
+                                            Err(e) => {
+                                                println!(
+                                                    "    ⚠️ High-load operation {} failed: {}",
+                                                    i, e
+                                                );
+                                            }
+                                        }
+                                    }
+                                }
+
+                                let duration = start.elapsed();
+                                let success_rate = successful_operations as f64 / 10.0;
+
+                                println!(
+                                    "    📊 High-load results: {}/10 operations succeeded in {:?}",
+                                    successful_operations, duration
+                                );
+
+                                framework.record_test("high_load_async", success_rate >= 0.8); // 80% success rate
+                                framework.record_performance("high_load_duration", duration);
+                                println!("    📊 Success rate: {:.1}%", success_rate * 100.0);
+                            });
+                    }
+                    Err(e) => {
+                        println!(
+                            "    ❌ Failed to create large tensor for high-load test: {}",
+                            e
+                        );
+                        framework.record_test("high_load_async", false);
+                    }
+                }
+            }
+            Err(e) => {
+                println!("    ❌ Failed to create manager for high-load test: {}", e);
+                framework.record_test("high_load_async", false);
+            }
+        }
+    }
+
+    #[cfg(not(feature = "async"))]
+    {
+        println!("    ⚠️ Async features not enabled - skipping high-load tests");
+        framework.record_test("high_load_async_available", false);
+    }
 }
 
 #[test]
