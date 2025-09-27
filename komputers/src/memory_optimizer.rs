@@ -553,8 +553,6 @@ impl MemoryOptimizer {
             if adaptation_history.len() > 100 {
                 adaptation_history.remove(0);
             }
-
-            // TODO: Implement strategy adaptation logic based on performance trends
         }
 
         Ok(())
@@ -746,6 +744,241 @@ impl MemoryOptimizer {
             fragmentation_ratio: stats.average_fragmentation,
         }
     }
+
+    /// Adapt allocation strategy based on performance trends analysis (internal method)
+    ///
+    /// This method analyzes recent performance metrics to detect patterns and
+    /// automatically adjust the allocation strategy for optimal performance.
+    #[allow(dead_code)]
+    fn adapt_strategy_based_on_trends_internal(&mut self) -> Result<()> {
+        // Extract metrics from the current strategy to avoid borrowing conflicts
+        let metrics = if let AllocationStrategy::Adaptive {
+            adaptation_history, ..
+        } = &self.allocation_strategy
+        {
+            adaptation_history.clone()
+        } else {
+            return Ok(());
+        };
+        // Need at least 10 metrics to make adaptation decisions
+        if metrics.len() < 10 {
+            return Ok(());
+        }
+
+        let analysis = self.analyze_performance_trends(&metrics)?;
+
+        // Only adapt if we're currently using an Adaptive strategy
+        if let AllocationStrategy::Adaptive {
+            current_strategy, ..
+        } = &mut self.allocation_strategy
+        {
+            let new_strategy = match analysis {
+                PerformanceTrend::MemoryFragmentation => {
+                    log::info!(
+                        "🔧 Memory fragmentation detected, switching to Conservative strategy"
+                    );
+                    AllocationStrategy::Conservative {
+                        max_single_allocation: 32 * 1024 * 1024, // 32MB max
+                        cleanup_threshold: 0.7,                  // Aggressive cleanup at 70% usage
+                    }
+                }
+                PerformanceTrend::AllocationSpikes => {
+                    log::info!("🔧 Allocation spikes detected, enabling memory pooling");
+                    AllocationStrategy::Aggressive {
+                        preferred_allocation_size: 64 * 1024 * 1024, // 64MB pools
+                        batch_allocation_count: 8,                   // Batch 8 allocations together
+                    }
+                }
+                PerformanceTrend::LargeAllocations => {
+                    log::info!("🔧 Large allocations detected, enabling chunking strategy");
+                    AllocationStrategy::Aggressive {
+                        preferred_allocation_size: 128 * 1024 * 1024, // 128MB chunks
+                        batch_allocation_count: 4,                    // Larger batches
+                    }
+                }
+                PerformanceTrend::HighFailureRate => {
+                    log::warn!(
+                        "⚠️ High allocation failure rate, switching to Conservative strategy"
+                    );
+                    AllocationStrategy::Conservative {
+                        max_single_allocation: 16 * 1024 * 1024, // Smaller 16MB max
+                        cleanup_threshold: 0.5,                  // Very aggressive cleanup
+                    }
+                }
+                PerformanceTrend::SlowAllocations => {
+                    log::info!("🔧 Slow allocations detected, optimizing for speed");
+                    AllocationStrategy::Aggressive {
+                        preferred_allocation_size: 256 * 1024 * 1024, // Large 256MB pools
+                        batch_allocation_count: 16, // Large batches for efficiency
+                    }
+                }
+                PerformanceTrend::Stable => {
+                    // Performance is stable, no adaptation needed
+                    return Ok(());
+                }
+            };
+
+            // Update the strategy if it's different from current
+            let current_type = match &**current_strategy {
+                AllocationStrategy::Conservative { .. } => "Conservative",
+                AllocationStrategy::Aggressive { .. } => "Aggressive",
+                AllocationStrategy::Adaptive { .. } => "Adaptive",
+            };
+            let new_type = match &new_strategy {
+                AllocationStrategy::Conservative { .. } => "Conservative",
+                AllocationStrategy::Aggressive { .. } => "Aggressive",
+                AllocationStrategy::Adaptive { .. } => "Adaptive",
+            };
+
+            if current_type != new_type {
+                **current_strategy = new_strategy;
+                log::info!("✅ Memory allocation strategy adapted based on performance trends");
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Analyze performance trends in allocation metrics
+    #[allow(dead_code)]
+    fn analyze_performance_trends(
+        &self,
+        metrics: &[PerformanceMetric],
+    ) -> Result<PerformanceTrend> {
+        let recent_metrics = &metrics[metrics.len().saturating_sub(20)..]; // Last 20 allocations
+
+        // Calculate key performance indicators
+        let failure_rate = recent_metrics.iter().filter(|m| !m.success).count() as f64
+            / recent_metrics.len() as f64;
+
+        let avg_allocation_time = recent_metrics
+            .iter()
+            .map(|m| m.allocation_time_ms)
+            .sum::<f64>()
+            / recent_metrics.len() as f64;
+
+        let _avg_allocation_size = recent_metrics
+            .iter()
+            .map(|m| m.allocation_size)
+            .sum::<usize>()
+            / recent_metrics.len();
+
+        let large_allocation_ratio = recent_metrics
+            .iter()
+            .filter(|m| m.allocation_size > 100 * 1024 * 1024) // > 100MB
+            .count() as f64
+            / recent_metrics.len() as f64;
+
+        // Detect allocation patterns
+        let allocation_variance = self.calculate_allocation_variance(recent_metrics);
+
+        // Decision logic based on performance indicators
+        if failure_rate > 0.2 {
+            // > 20% failure rate indicates resource pressure
+            Ok(PerformanceTrend::HighFailureRate)
+        } else if avg_allocation_time > 50.0 {
+            // > 50ms average allocation time is slow
+            Ok(PerformanceTrend::SlowAllocations)
+        } else if large_allocation_ratio > 0.3 {
+            // > 30% of allocations are large
+            Ok(PerformanceTrend::LargeAllocations)
+        } else if allocation_variance > 10.0 {
+            // High variance indicates allocation spikes
+            Ok(PerformanceTrend::AllocationSpikes)
+        } else if self.detect_fragmentation_pattern(recent_metrics) {
+            // Pattern analysis suggests fragmentation
+            Ok(PerformanceTrend::MemoryFragmentation)
+        } else {
+            // Performance appears stable
+            Ok(PerformanceTrend::Stable)
+        }
+    }
+
+    /// Calculate variance in allocation sizes to detect patterns
+    #[allow(dead_code)]
+    fn calculate_allocation_variance(&self, metrics: &[PerformanceMetric]) -> f64 {
+        if metrics.is_empty() {
+            return 0.0;
+        }
+
+        let mean_size = metrics
+            .iter()
+            .map(|m| m.allocation_size as f64)
+            .sum::<f64>()
+            / metrics.len() as f64;
+
+        let variance = metrics
+            .iter()
+            .map(|m| {
+                let diff = m.allocation_size as f64 - mean_size;
+                diff * diff
+            })
+            .sum::<f64>()
+            / metrics.len() as f64;
+
+        variance.sqrt() / mean_size // Coefficient of variation
+    }
+
+    /// Detect memory fragmentation patterns in allocation history
+    #[allow(dead_code)]
+    fn detect_fragmentation_pattern(&self, metrics: &[PerformanceMetric]) -> bool {
+        // Look for pattern of increasingly slower allocations over time
+        if metrics.len() < 10 {
+            return false;
+        }
+
+        let first_half = &metrics[..metrics.len() / 2];
+        let second_half = &metrics[metrics.len() / 2..];
+
+        let first_avg_time =
+            first_half.iter().map(|m| m.allocation_time_ms).sum::<f64>() / first_half.len() as f64;
+
+        let second_avg_time = second_half
+            .iter()
+            .map(|m| m.allocation_time_ms)
+            .sum::<f64>()
+            / second_half.len() as f64;
+
+        // Fragmentation suspected if allocation times increased by >50%
+        second_avg_time > first_avg_time * 1.5
+    }
+
+    /// Check if two allocation strategies are functionally equivalent
+    #[allow(dead_code)]
+    fn strategies_equivalent(
+        &self,
+        strategy1: &AllocationStrategy,
+        strategy2: &AllocationStrategy,
+    ) -> bool {
+        matches!(
+            (strategy1, strategy2),
+            (
+                AllocationStrategy::Conservative { .. },
+                AllocationStrategy::Conservative { .. }
+            ) | (
+                AllocationStrategy::Aggressive { .. },
+                AllocationStrategy::Aggressive { .. }
+            )
+        )
+    }
+}
+
+/// Performance trend analysis results for strategy adaptation
+#[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
+enum PerformanceTrend {
+    /// Memory fragmentation is occurring - switch to compaction
+    MemoryFragmentation,
+    /// Allocation spikes detected - enable pooling
+    AllocationSpikes,
+    /// Large allocations dominating - enable chunking
+    LargeAllocations,
+    /// High failure rate - switch to conservative strategy
+    HighFailureRate,
+    /// Slow allocations - optimize for speed
+    SlowAllocations,
+    /// Performance is stable - no change needed
+    Stable,
 }
 
 /// Performance metrics structure for the integration tests

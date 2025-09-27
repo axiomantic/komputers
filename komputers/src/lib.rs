@@ -242,6 +242,9 @@ pub mod dispatch_safety;
 #[cfg(feature = "async")]
 pub mod async_sequence;
 
+// Runtime-agnostic async operations for ecosystem compatibility
+pub mod async_runtime;
+
 // Performance profiling and metrics system
 pub mod performance_metrics;
 

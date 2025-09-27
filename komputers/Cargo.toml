@@ -26,6 +26,10 @@ cxx = "1.0"
 tokio = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 
+# Multi-runtime async support
+async-std = { version = "1.0", features = ["unstable"], optional = true }
+smol = { version = "2.0", optional = true }
+
 # GLSL compilation support
 tempfile = { workspace = true, optional = true }
 
@@ -60,11 +64,16 @@ kompute-master = ["kompute-sys/kompute-master"]
 # kompute-v081 = ["kompute-sys/kompute-v081"]
 
 # Production features for v0.1.0 release
-async = ["tokio", "futures"]
+async = ["tokio", "futures", "tokio-runtime"]
 glsl = ["tempfile"]
 debug = ["serde", "serde_json", "uuid"]
 validation = ["kompute-sys/validation"]
 test-utils = []
+
+# Multi-runtime async support (choose one or more)
+tokio-runtime = ["tokio", "futures"]
+async-std-runtime = ["async-std"]
+smol-runtime = ["smol"]
 
 # Development-only features (not included in production release)
 asan = ["kompute-sys/asan"]  # AddressSanitizer support for debugging

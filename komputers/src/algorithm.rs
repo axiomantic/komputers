@@ -889,8 +889,7 @@ impl Algorithm {
 
         // Check if algorithm has any bound tensors for element count validation
         if !self.bound_tensors.is_empty() {
-            // TODO: Add tensor size vs workgroup size validation
-            // This would require knowing tensor dimensions and compute requirements
+            self.validate_tensor_workgroup_compatibility(workgroup, gpu_limits)?;
         }
 
         // Algorithm-specific validation passed
@@ -925,17 +924,19 @@ impl Algorithm {
     /// # }
     /// ```
     pub fn recommend_workgroup_config(&self, gpu_limits: &GpuLimits) -> DynamicWorkgroupConfig {
-        // Analyze bound tensors to determine optimal workgroup size
+        // Analyze bound tensors to determine optimal workgroup size based on actual tensor data
+        let tensor_analysis = self.analyze_bound_tensor_sizes();
         let total_bound_tensors = self.bound_tensors.len() as u32;
 
-        // For now, use conservative defaults based on number of bound tensors
-        // TODO: Integrate with actual tensor size analysis
+        // Determine optimal dimensions based on tensor size analysis
         let dimensions = if total_bound_tensors <= 1 {
             1 // Simple 1D operations
-        } else if total_bound_tensors <= 3 {
-            2 // 2D operations (e.g., matrix operations)
+        } else if tensor_analysis.is_matrix_like {
+            2 // 2D operations for matrix-like data
+        } else if tensor_analysis.max_elements > 1_000_000 {
+            3 // 3D operations for large datasets
         } else {
-            3 // Complex 3D operations
+            2 // Default to 2D for most cases
         };
 
         // Use GPU limits to recommend optimal configuration
@@ -969,6 +970,135 @@ impl Algorithm {
     pub fn handle(&self) -> u64 {
         self.handle
     }
+
+    /// Validate tensor sizes against workgroup configuration
+    ///
+    /// This method checks if the bound tensors are compatible with the proposed
+    /// workgroup configuration, ensuring proper GPU execution.
+    fn validate_tensor_workgroup_compatibility(
+        &self,
+        workgroup: &DynamicWorkgroupConfig,
+        _gpu_limits: &GpuLimits,
+    ) -> Result<()> {
+        let tensor_analysis = self.analyze_bound_tensor_sizes();
+
+        // Calculate total workgroup threads
+        let total_threads = workgroup.x * workgroup.y * workgroup.z;
+
+        // Validate workgroup size against tensor data
+        if tensor_analysis.max_elements > 0 {
+            // Ensure workgroup can handle the data efficiently
+            let threads_per_element_ratio =
+                total_threads as f64 / tensor_analysis.max_elements as f64;
+
+            // Check for optimal thread-to-data ratio
+            if threads_per_element_ratio > 10.0 {
+                return Err(KomputeError::compute(format!(
+                    "Workgroup size ({}) too large for tensor data ({} elements). \
+                     This may lead to thread underutilization. Consider reducing workgroup size.",
+                    total_threads, tensor_analysis.max_elements
+                )));
+            }
+
+            if threads_per_element_ratio < 0.01 {
+                return Err(KomputeError::compute(format!(
+                    "Workgroup size ({}) too small for tensor data ({} elements). \
+                     This may lead to poor performance. Consider increasing workgroup size or using batching.",
+                    total_threads, tensor_analysis.max_elements
+                )));
+            }
+        }
+
+        // Validate memory requirements (use a reasonable shared memory estimate)
+        let estimated_memory_usage = tensor_analysis.total_bytes;
+        let estimated_shared_memory_limit = 64 * 1024; // 64KB typical shared memory
+
+        if estimated_memory_usage > estimated_shared_memory_limit {
+            log::warn!(
+                "⚠️ Algorithm tensor data ({} bytes) may exceed typical shared memory limits. \
+                Consider using smaller tensors or chunking the computation.",
+                estimated_memory_usage
+            );
+        }
+
+        // Check for potential memory access patterns
+        if tensor_analysis.has_large_tensors && workgroup.y > 1 {
+            log::warn!(
+                "⚠️ Large tensors with multi-dimensional workgroups may cause memory access inefficiencies"
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Analyze bound tensor sizes and characteristics
+    ///
+    /// This method examines all bound tensors to determine their sizes,
+    /// memory usage, and computational characteristics.
+    fn analyze_bound_tensor_sizes(&self) -> TensorAnalysis {
+        let mut analysis = TensorAnalysis::default();
+
+        for &tensor_handle in self.bound_tensors.values() {
+            // Query tensor size using FFI
+            let element_count = kompute_sys::ffi::tensor_size_by_handle(tensor_handle);
+            let byte_size = kompute_sys::ffi::tensor_size_bytes_by_handle(tensor_handle);
+
+            analysis.total_elements += element_count;
+            analysis.total_bytes += byte_size;
+            analysis.max_elements = analysis.max_elements.max(element_count);
+            analysis.min_elements = if analysis.min_elements == 0 {
+                element_count
+            } else {
+                analysis.min_elements.min(element_count)
+            };
+
+            // Determine tensor characteristics
+            if element_count > 1_000_000 {
+                analysis.has_large_tensors = true;
+            }
+
+            // Heuristic for matrix-like data: tensors with similar sizes
+            if analysis.tensor_count > 0 {
+                let size_ratio = element_count as f64 / analysis.avg_elements as f64;
+                if (0.5..=2.0).contains(&size_ratio) {
+                    analysis.is_matrix_like = true;
+                }
+            }
+
+            analysis.tensor_count += 1;
+        }
+
+        // Calculate averages
+        if analysis.tensor_count > 0 {
+            analysis.avg_elements = analysis.total_elements / analysis.tensor_count;
+            analysis.avg_bytes = analysis.total_bytes / analysis.tensor_count;
+        }
+
+        analysis
+    }
+}
+
+/// Analysis results for bound tensor characteristics
+#[derive(Debug, Clone, Default)]
+struct TensorAnalysis {
+    /// Total number of elements across all tensors
+    total_elements: usize,
+    /// Total bytes across all tensors
+    total_bytes: usize,
+    /// Maximum elements in any single tensor
+    max_elements: usize,
+    /// Minimum elements in any single tensor
+    min_elements: usize,
+    /// Average elements per tensor
+    avg_elements: usize,
+    /// Average bytes per tensor
+    avg_bytes: usize,
+    /// Number of tensors analyzed
+    tensor_count: usize,
+    /// Whether any tensor is considered large (>1M elements)
+    has_large_tensors: bool,
+    /// Whether tensors appear to be matrix-like (similar sizes)
+    is_matrix_like: bool,
 }
 
 /// Performance hints for algorithm execution

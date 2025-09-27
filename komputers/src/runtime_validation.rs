@@ -34,7 +34,7 @@ use crate::types::{HasManagerId, TypeSafetyError};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, Weak};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 /// Global flag to control validation on/off
 /// **SAFETY-FIRST CONFIGURATION**: Defaults to enabled in ALL builds for production readiness
@@ -46,7 +46,6 @@ static HANDLE_REGISTRY: std::sync::LazyLock<Mutex<HandleRegistry>> =
     std::sync::LazyLock::new(|| Mutex::new(HandleRegistry::new()));
 
 /// Registry for tracking handle-to-manager relationships at runtime
-#[derive(Debug)]
 struct HandleRegistry {
     /// Maps handle values to their originating manager instance IDs
     handle_to_manager: HashMap<u64, u64>,
@@ -54,6 +53,8 @@ struct HandleRegistry {
     manager_instances: HashMap<u64, Weak<ManagerInstance>>,
     /// Performance metrics for validation overhead tracking
     metrics: ValidationMetrics,
+    /// Performance callback for real-time monitoring
+    performance_callback: Option<Box<dyn PerformanceCallback>>,
 }
 
 impl HandleRegistry {
@@ -62,12 +63,14 @@ impl HandleRegistry {
             handle_to_manager: HashMap::new(),
             manager_instances: HashMap::new(),
             metrics: ValidationMetrics::new(),
+            performance_callback: None,
         }
     }
 
     /// Register a new manager instance
     fn register_manager(&mut self, manager_id: u64, instance: Weak<ManagerInstance>) {
         self.manager_instances.insert(manager_id, instance);
+        self.notify_manager_created(manager_id);
 
         // Clean up dead references periodically
         if self.manager_instances.len().is_multiple_of(100) {
@@ -78,6 +81,7 @@ impl HandleRegistry {
     /// Register a handle as belonging to a specific manager instance
     fn register_handle(&mut self, handle: u64, manager_id: u64) {
         self.handle_to_manager.insert(handle, manager_id);
+        self.notify_handle_registered(handle, manager_id);
     }
 
     /// Validate that a handle belongs to the specified manager
@@ -119,7 +123,12 @@ impl HandleRegistry {
         };
 
         // Update performance metrics
-        self.metrics.record_validation(start_time.elapsed());
+        let duration = start_time.elapsed();
+        self.metrics.record_validation(duration);
+
+        // Notify performance callback
+        self.notify_validation_completed("handle_validation", duration, result.is_ok());
+
         result
     }
 
@@ -477,6 +486,83 @@ pub fn register_handles_batch<T: HasManagerId>(handles: &[u64], manager: &T) {
     if let Ok(mut registry) = HANDLE_REGISTRY.lock() {
         for &handle in handles {
             registry.register_handle(handle, manager_id);
+        }
+    }
+}
+
+// =============================================================================
+// Performance Monitoring Integration
+// =============================================================================
+
+/// Registry snapshot for performance monitoring integration
+#[derive(Debug, Clone)]
+pub struct RegistrySnapshot {
+    /// Total number of active handles
+    pub active_handle_count: usize,
+    /// Total number of active managers
+    pub active_manager_count: usize,
+    /// Estimated total memory allocated (placeholder for future enhancement)
+    pub total_memory_allocated: u64,
+}
+
+/// Performance callback trait for real-time monitoring integration
+pub trait PerformanceCallback: Send + Sync {
+    /// Called when a validation operation completes
+    fn on_validation_completed(&self, operation: &str, duration: Duration, success: bool);
+
+    /// Called when a handle is registered
+    fn on_handle_registered(&self, handle: u64, manager_id: u64);
+
+    /// Called when a manager is created
+    fn on_manager_created(&self, manager_id: u64);
+}
+
+/// Get a snapshot of the registry state for performance monitoring
+pub fn get_registry_snapshot() -> Result<RegistrySnapshot> {
+    if let Ok(registry) = HANDLE_REGISTRY.lock() {
+        Ok(RegistrySnapshot {
+            active_handle_count: registry.handle_to_manager.len(),
+            active_manager_count: registry
+                .manager_instances
+                .values()
+                .filter(|weak_ref| weak_ref.strong_count() > 0)
+                .count(),
+            // Estimate memory based on handle count for now
+            total_memory_allocated: (registry.handle_to_manager.len() as u64) * 1024, // 1KB per handle
+        })
+    } else {
+        Err(KomputeError::compute(
+            "Failed to acquire registry lock for snapshot",
+        ))
+    }
+}
+
+/// Set a performance callback for real-time monitoring
+pub fn set_performance_callback(callback: Box<dyn PerformanceCallback>) {
+    if let Ok(mut registry) = HANDLE_REGISTRY.lock() {
+        registry.performance_callback = Some(callback);
+    }
+}
+
+impl HandleRegistry {
+    /// Trigger performance callback for validation completion
+    fn notify_validation_completed(&self, operation: &str, duration: Duration, success: bool) {
+        if let Some(ref callback) = self.performance_callback {
+            callback.on_validation_completed(operation, duration, success);
+        }
+    }
+
+    /// Trigger performance callback for handle registration
+    fn notify_handle_registered(&self, handle: u64, manager_id: u64) {
+        if let Some(ref callback) = self.performance_callback {
+            callback.on_handle_registered(handle, manager_id);
+        }
+    }
+
+    /// Trigger performance callback for manager creation
+    fn notify_manager_created(&self, manager_id: u64) {
+        if let Some(ref callback) = self.performance_callback {
+            callback.on_manager_created(manager_id);
         }
     }
 }

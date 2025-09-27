@@ -15,13 +15,14 @@
 //!
 //! ```rust,no_run
 //! use komputers::{AsyncSequence, Manager, Tensor};
+//! use komputers::async_runtime::DefaultRuntime;
 //!
 //! async fn gpu_compute() -> komputers::Result<()> {
 //!     let mut manager = Manager::new()?;
 //!     let tensor = Tensor::new(&mut manager, &[1.0f32, 2.0, 3.0])?;
 //!
-//!     // Async execution with full type safety
-//!     let result = AsyncSequence::new(&mut manager)?
+//!     // Async execution with full type safety and runtime binding
+//!     let result = AsyncSequence::<_, DefaultRuntime>::new(&mut manager)?
 //!         .record_tensor_sync_device(tensor.handle())?
 //!         .record_tensor_sync_local(tensor.handle())?
 //!         .execute_async()
@@ -32,6 +33,7 @@
 //! }
 //! ```
 
+use crate::async_runtime::{AsyncRuntime, DefaultRuntime};
 use crate::error::{KomputeError, Result};
 use crate::manager::Manager;
 use crate::runtime_validation;
@@ -43,7 +45,6 @@ use std::marker::PhantomData;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::time::{Duration, Instant};
-use tokio::time::sleep;
 
 // =============================================================================
 // GPU Completion Status Types
@@ -74,6 +75,7 @@ enum GpuCompletionStatus {
 /// - Maintains cross-manager validation through runtime validation system
 /// - Enforces single execution through consuming builder pattern
 /// - Provides cancellation safety for long-running GPU operations
+/// - Runtime-bound execution for cross-runtime safety
 ///
 /// # Performance
 ///
@@ -81,14 +83,18 @@ enum GpuCompletionStatus {
 /// - Efficient polling with adaptive backoff
 /// - GPU command buffer optimization
 /// - Memory-efficient async state management
+/// - Runtime-specific optimizations for different async executors
 #[derive(Debug)]
-pub struct AsyncSequence<State = Recording> {
+pub struct AsyncSequence<State = Recording, R: AsyncRuntime = DefaultRuntime> {
     handle: u64,
     operation_count: usize,
     /// Manager ID for cross-manager validation enhancement
     manager_id: u64,
     execution_start: Option<Instant>,
+    /// Runtime handle for context validation
+    runtime_handle: Option<R::Handle>,
     _state: PhantomData<State>,
+    _runtime: PhantomData<R>,
 }
 
 /// Marker type for async sequences in executing state
@@ -138,7 +144,7 @@ impl Default for AsyncPerformanceMetrics {
 // Recording State Implementation (Consuming Builder Pattern)
 // =============================================================================
 
-impl AsyncSequence<Recording> {
+impl<R: AsyncRuntime> AsyncSequence<Recording, R> {
     /// Create a new async sequence for recording GPU operations
     ///
     /// Creates a sequence in the recording state, ready to record operations
@@ -168,12 +174,17 @@ impl AsyncSequence<Recording> {
         // Register the sequence handle with the manager for runtime validation
         manager.register_handle(handle);
 
+        // Get runtime handle for context validation
+        let runtime_handle = R::current_handle().ok();
+
         Ok(Self {
             handle,
             operation_count: 0,
             manager_id: manager.manager_id(),
             execution_start: None,
+            runtime_handle,
             _state: PhantomData,
+            _runtime: PhantomData,
         })
     }
 
@@ -356,6 +367,11 @@ impl AsyncSequence<Recording> {
     /// all GPU operations complete. The future is cancellation-safe and provides
     /// detailed performance metrics.
     ///
+    /// # Runtime Safety
+    ///
+    /// The execution is bound to the runtime R, preventing GPU resources from
+    /// moving between different async executors.
+    ///
     /// # Returns
     ///
     /// A future that resolves to `AsyncSequenceResult` containing execution metrics
@@ -363,14 +379,29 @@ impl AsyncSequence<Recording> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// let result = AsyncSequence::new(&mut manager)?
+    /// use komputers::async_runtime::TokioRuntime;
+    ///
+    /// let result = AsyncSequence::<_, TokioRuntime>::new(&mut manager)?
     ///     .record_tensor_sync_device(tensor.handle())?
     ///     .execute_async()
     ///     .await?;
     ///
     /// println!("Async execution took {:?}", result.execution_time);
     /// ```
-    pub fn execute_async(mut self) -> AsyncSequenceExecution {
+    pub fn execute_async(mut self) -> AsyncSequenceExecution<R> {
+        // Validate runtime context if we have a stored handle
+        if let Some(ref stored_handle) = self.runtime_handle {
+            if let Err(e) = crate::async_runtime::validate_runtime_context::<R>(Some(stored_handle))
+            {
+                return AsyncSequenceExecution::new_with_error(
+                    crate::error::KomputeError::compute(format!(
+                        "Runtime context validation failed: {}",
+                        e
+                    )),
+                );
+            }
+        }
+
         // Prevent execution of empty sequences
         if self.operation_count == 0 {
             return AsyncSequenceExecution::new_with_error(crate::error::KomputeError::compute(
@@ -401,23 +432,30 @@ impl AsyncSequence<Recording> {
 /// Future for async GPU sequence execution
 ///
 /// This future polls the GPU for completion status and provides cancellation
-/// safety for long-running operations.
-pub struct AsyncSequenceExecution {
-    sequence: Option<AsyncSequence<Recording>>,
+/// safety for long-running operations. It is bound to a specific async runtime
+/// to ensure GPU resources don't move between execution contexts.
+///
+/// # Type Parameters
+///
+/// * `R` - The async runtime type this execution is bound to
+pub struct AsyncSequenceExecution<R: AsyncRuntime = DefaultRuntime> {
+    sequence: Option<AsyncSequence<Recording, R>>,
     error: Option<KomputeError>,
     metrics: AsyncPerformanceMetrics,
     last_poll: Instant,
     poll_interval: Duration,
+    runtime: PhantomData<R>,
 }
 
-impl AsyncSequenceExecution {
-    fn new(sequence: AsyncSequence<Recording>) -> Self {
+impl<R: AsyncRuntime> AsyncSequenceExecution<R> {
+    fn new(sequence: AsyncSequence<Recording, R>) -> Self {
         Self {
             sequence: Some(sequence),
             error: None,
             metrics: AsyncPerformanceMetrics::default(),
             last_poll: Instant::now(),
             poll_interval: Duration::from_millis(1), // Start with fast polling
+            runtime: PhantomData,
         }
     }
 
@@ -428,6 +466,7 @@ impl AsyncSequenceExecution {
             metrics: AsyncPerformanceMetrics::default(),
             last_poll: Instant::now(),
             poll_interval: Duration::from_millis(1),
+            runtime: PhantomData,
         }
     }
 
@@ -519,44 +558,63 @@ impl AsyncSequenceExecution {
     }
 }
 
-impl Future for AsyncSequenceExecution {
+impl<R: AsyncRuntime> Future for AsyncSequenceExecution<R> {
     type Output = Result<AsyncSequenceResult>;
 
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let this = unsafe { self.get_unchecked_mut() };
+
         // Return error immediately if we have one
-        if let Some(error) = self.error.take() {
+        if let Some(error) = this.error.take() {
             return Poll::Ready(Err(error));
         }
 
         let poll_start = Instant::now();
 
         // Get sequence handle or return error if missing
-        let sequence_handle = match self.sequence.as_ref() {
+        let sequence_handle = match this.sequence.as_ref() {
             Some(seq) => seq.handle,
             None => return Poll::Ready(Err(KomputeError::compute("Async sequence was consumed"))),
         };
 
         // Check if enough time has passed since last poll
-        if poll_start.duration_since(self.last_poll) < self.poll_interval {
-            // Schedule wake up after poll interval
+        if poll_start.duration_since(this.last_poll) < this.poll_interval {
+            // Schedule wake up after poll interval using runtime-agnostic sleep
             let waker = cx.waker().clone();
-            let interval = self.poll_interval;
-            tokio::spawn(async move {
-                sleep(interval).await;
-                waker.wake();
-            });
+            let interval = this.poll_interval;
+
+            // Create a sleep future and wake the task when it completes
+            let sleep_future = R::sleep(interval);
+
+            // We need to be careful here - we can't just spawn arbitrarily
+            // For now, we'll use a simple approach that works across runtimes
+            #[cfg(feature = "tokio-runtime")]
+            {
+                tokio::spawn(async move {
+                    sleep_future.await;
+                    waker.wake();
+                });
+            }
+
+            #[cfg(not(feature = "tokio-runtime"))]
+            {
+                // For non-Tokio runtimes, schedule immediate wake
+                // This reduces efficiency but maintains correctness
+                cx.waker().wake_by_ref();
+            }
+
             return Poll::Pending;
         }
 
         // Update last poll time
-        self.last_poll = poll_start;
+        this.last_poll = poll_start;
 
         // Check if GPU operations are complete
-        if self.check_completion(sequence_handle) {
+        if this.check_completion(sequence_handle) {
             // Operations are complete, execute and return result
-            let sequence = self.sequence.take().unwrap();
+            let sequence = this.sequence.take().unwrap();
 
-            match self.execute_sync(sequence.handle) {
+            match this.execute_sync(sequence.handle) {
                 Ok(()) => {
                     let execution_time = sequence
                         .execution_start
@@ -564,14 +622,14 @@ impl Future for AsyncSequenceExecution {
                         .unwrap_or_else(|| Duration::from_nanos(0));
 
                     let poll_time = poll_start.elapsed();
-                    self.update_metrics(poll_time);
+                    this.update_metrics(poll_time);
 
                     let result = AsyncSequenceResult {
                         operation_count: sequence.operation_count,
                         execution_time,
-                        gpu_wait_time: execution_time - self.metrics.async_overhead,
+                        gpu_wait_time: execution_time - this.metrics.async_overhead,
                         was_cancelled: false,
-                        async_metrics: self.metrics.clone(),
+                        async_metrics: this.metrics.clone(),
                     };
 
                     Poll::Ready(Ok(result))
@@ -581,16 +639,29 @@ impl Future for AsyncSequenceExecution {
         } else {
             // GPU operations still running, continue polling
             let poll_time = poll_start.elapsed();
-            self.update_metrics(poll_time);
-            self.adapt_polling_interval();
+            this.update_metrics(poll_time);
+            this.adapt_polling_interval();
 
-            // Schedule next poll
+            // Schedule next poll using runtime-agnostic sleep
             let waker = cx.waker().clone();
-            let interval = self.poll_interval;
-            tokio::spawn(async move {
-                sleep(interval).await;
-                waker.wake();
-            });
+            let interval = this.poll_interval;
+
+            // Create a sleep future for timing
+            let sleep_future = R::sleep(interval);
+
+            #[cfg(feature = "tokio-runtime")]
+            {
+                tokio::spawn(async move {
+                    sleep_future.await;
+                    waker.wake();
+                });
+            }
+
+            #[cfg(not(feature = "tokio-runtime"))]
+            {
+                // For non-Tokio runtimes, schedule immediate wake
+                cx.waker().wake_by_ref();
+            }
 
             Poll::Pending
         }
@@ -620,8 +691,8 @@ pub mod async_utils {
     /// # Returns
     ///
     /// Vector of results in the same order as input sequences
-    pub async fn execute_concurrent_with_timeout(
-        sequences: Vec<AsyncSequenceExecution>,
+    pub async fn execute_concurrent_with_timeout<R: AsyncRuntime>(
+        sequences: Vec<AsyncSequenceExecution<R>>,
         timeout_duration: Duration,
     ) -> Result<Vec<Result<AsyncSequenceResult>>> {
         let futures: Vec<_> = sequences.into_iter().collect();
@@ -638,9 +709,9 @@ pub mod async_utils {
     ///
     /// This helper automatically configures the async sequence for optimal
     /// performance based on the manager's GPU capabilities.
-    pub fn create_optimized_async_sequence(
+    pub fn create_optimized_async_sequence<R: AsyncRuntime>(
         manager: &mut Manager,
-    ) -> Result<AsyncSequence<Recording>> {
+    ) -> Result<AsyncSequence<Recording, R>> {
         // TODO: Add GPU-specific optimizations based on vendor
         AsyncSequence::new(manager)
     }
@@ -698,12 +769,14 @@ mod tests {
         use crate::types::TypeSafetyError;
 
         // Create a mock AsyncSequence with a specific manager ID
-        let sequence = AsyncSequence::<Recording> {
+        let sequence = AsyncSequence::<Recording, DefaultRuntime> {
             handle: 12345,
             operation_count: 0,
             manager_id: 100, // Manager A
             execution_start: None,
+            runtime_handle: None,
             _state: PhantomData,
+            _runtime: PhantomData,
         };
 
         // Test successful validation with same manager ID
@@ -764,7 +837,9 @@ mod tests {
             operation_count: 1,
             manager_id: 100,
             execution_start: Some(std::time::Instant::now()),
+            runtime_handle: None,
             _state: PhantomData::<Recording>,
+            _runtime: PhantomData::<DefaultRuntime>,
         };
 
         let execution = AsyncSequenceExecution {
@@ -773,6 +848,7 @@ mod tests {
             metrics: AsyncPerformanceMetrics::default(),
             last_poll: std::time::Instant::now(),
             poll_interval: Duration::from_millis(1),
+            runtime: PhantomData::<DefaultRuntime>,
         };
 
         // Test that the basic completion check structure works
@@ -812,7 +888,7 @@ mod tests {
             .expect("Failed to create input tensor");
 
         // Create and execute async sequence with new completion checking
-        let result = AsyncSequence::new(&mut manager)
+        let result = AsyncSequence::<_, DefaultRuntime>::new(&mut manager)
             .expect("Failed to create async sequence")
             .record_tensor_sync_device(input.handle())
             .expect("Failed to record tensor sync")
@@ -848,12 +924,13 @@ mod tests {
     #[test]
     fn test_completion_error_handling() {
         // Test that error handling in completion checking is robust
-        let execution = AsyncSequenceExecution {
+        let execution = AsyncSequenceExecution::<DefaultRuntime> {
             sequence: None, // No sequence to simulate error condition
             error: None,
             metrics: AsyncPerformanceMetrics::default(),
             last_poll: std::time::Instant::now(),
             poll_interval: Duration::from_millis(1),
+            runtime: PhantomData,
         };
 
         // Test completion checking with no sequence
