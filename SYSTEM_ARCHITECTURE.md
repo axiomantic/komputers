@@ -268,7 +268,7 @@ The project maintains these documentation artifacts:
 - **`SYSTEM_ARCHITECTURE.md` (This Document)**: The architectural constitution and single source of truth
 - **`CONTRIBUTING.md`**: Development workflow and contribution guidelines
 - **`GRIMOIRE.md`**: Implementation templates and patterns
-- **`API_EXTENSIONS_TODO.md`**: Roadmap of unimplemented API features
+- **`API_EXTENSIONS_REFERENCE.md`**: Comprehensive reference for current and planned API extensions
 - **`API_DESIGN_PATTERNS.md`**: Reference patterns for safe API implementation
 - **`GLOSSARY.md`**: GPU computing terminology and concept definitions
 
@@ -279,7 +279,7 @@ All development must reference these documents appropriately:
 - Consult `SYSTEM_ARCHITECTURE.md` for architectural principles and component relationships
 - Follow workflow defined in `CONTRIBUTING.md` for development methodology
 - Use `GRIMOIRE.md` as implementation template for all development work
-- Reference `API_EXTENSIONS_TODO.md` for implementation priorities and missing features
+- Reference `API_EXTENSIONS_REFERENCE.md` for implementation priorities and planned API extensions
 - Reference `GLOSSARY.md` for precise terminology and concept definitions
 
 ## 11. Implementation Status & Evolution

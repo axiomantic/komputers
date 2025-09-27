@@ -99,91 +99,179 @@ jobs:
           cargo test --doc algorithm::Algorithm --features "async,glsl,debug,validation,test-utils"
           echo "✅ All algorithm.rs rustdoc examples pass"
 
-  # TODO: Enable when GitHub hosted runners are desired
   # Phase 2: Memory Safety & Sanitization (Production Readiness)
-  # memory-safety-sanitizers:
-  #   name: Memory Safety (Address & Thread Sanitizers)
-  #   runs-on: ubuntu-latest
-  #    strategy:
-  #      matrix:
-  #        sanitizer: [address, thread]
-  #        include:
-  #          - sanitizer: address
-  #            features: "async,glsl,debug,validation,test-utils"
-  #            rustflags: "-Z sanitizer=address"
-  #            toolchain: "nightly"
-  #          - sanitizer: thread
-  #            features: "async,glsl,debug,validation,test-utils"
-  #            rustflags: "-Z sanitizer=thread"
-  #            toolchain: "nightly"
-  #
-  #    steps:
-  #      - uses: actions/checkout@v4
-  #        with:
-  #          submodules: recursive
-  #
-  #      - name: Install Rust nightly (required for sanitizers)
-  #        uses: dtolnay/rust-toolchain@nightly
-  #        with:
-  #          components: rust-src
-  #
-  #      - name: Cache cargo registry
-  #        uses: actions/cache@v4
-  #        with:
-  #          path: |
-  #            ~/.cargo/registry
-  #            ~/.cargo/git
-  #            target
-  #          key: ${{ runner.os }}-sanitizer-${{ matrix.sanitizer }}-${{ hashFiles('**/Cargo.lock') }}
-  #          restore-keys: |
-  #            ${{ runner.os }}-sanitizer-${{ matrix.sanitizer }}-
-  #            ${{ runner.os }}-sanitizer-
-  #
-  #      - name: Install Vulkan SDK and validation layers
-  #        run: |
-  #          sudo apt update
-  #          sudo apt install -y vulkan-tools libvulkan-dev vulkan-validationlayers-dev cmake build-essential
-  #
-  #      - name: Enable Vulkan validation layers for memory debugging
-  #        run: |
-  #          echo "VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation" >> $GITHUB_ENV
-  #          echo "VK_LOADER_DEBUG=error,warn,info" >> $GITHUB_ENV
-  #          echo "KOMPUTE_DISABLE_VULKAN_CHECK=1" >> $GITHUB_ENV
-  #
-  #      - name: Run ${{ matrix.sanitizer }} sanitizer tests
-  #        env:
-  #          RUSTFLAGS: ${{ matrix.rustflags }}
-  #          ASAN_OPTIONS: "detect_leaks=1:abort_on_error=1:halt_on_error=1:check_initialization_order=1"
-  #          TSAN_OPTIONS: "halt_on_error=1:abort_on_error=1:report_signal_unsafe=1"
-  #        run: |
-  #          echo "🧪 Running ${{ matrix.sanitizer }} sanitizer tests"
-  #
-  #          # Run Phase 2 memory safety specific tests
-  #          cargo test --target x86_64-unknown-linux-gnu \
-  #                     --features="${{ matrix.features }}" \
-  #                     --test memory_safety_asan_tests \
-  #                     --test memory_safety_tsan_tests \
-  #                     --verbose -- --nocapture
-  #
-  #          # Run broader test suite with sanitizer (library tests only to avoid GPU requirements)
-  #          cargo test --target x86_64-unknown-linux-gnu \
-  #                     --features="${{ matrix.features }}" \
-  #                     --lib \
-  #                     --verbose -- --nocapture
-  #
-  #      - name: Run GPU resource leak detection
-  #        env:
-  #          RUSTFLAGS: ${{ matrix.rustflags }}
-  #          ASAN_OPTIONS: "detect_leaks=1:abort_on_error=1:halt_on_error=1"
-  #          KOMPUTE_DISABLE_VULKAN_CHECK: 1
-  #        run: |
-  #          echo "💾 Running GPU memory leak detection with ${{ matrix.sanitizer }} sanitizer"
-  #          cargo test --target x86_64-unknown-linux-gnu \
-  #                     --features="${{ matrix.features }}" \
-  #                     --test gpu_memory_leak_validation_tests \
-  #                     --test resource_exhaustion_recovery_tests \
-  #                     --verbose -- --nocapture
-  #
+  # Enabled for broader platform testing coverage
+  memory-safety-sanitizers:
+    name: Memory Safety (Address & Thread Sanitizers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      KOMPUTE_DISABLE_VULKAN_CHECK: 1 # Disable Vulkan for hosted runners
+    strategy:
+      matrix:
+        sanitizer: [address, thread]
+        include:
+          - sanitizer: address
+            features: "async,glsl,debug,validation,test-utils"
+            rustflags: "-Z sanitizer=address"
+            toolchain: "nightly"
+          - sanitizer: thread
+            features: "async,glsl,debug,validation,test-utils"
+            rustflags: "-Z sanitizer=thread"
+            toolchain: "nightly"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust nightly (required for sanitizers)
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-sanitizer-${{ matrix.sanitizer }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-sanitizer-${{ matrix.sanitizer }}-
+            ${{ runner.os }}-sanitizer-
+
+      - name: Install Vulkan SDK and validation layers
+        run: |
+          sudo apt update
+          sudo apt install -y vulkan-tools libvulkan-dev vulkan-validationlayers-dev cmake build-essential
+
+      - name: Enable Vulkan validation layers for memory debugging
+        run: |
+          echo "VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation" >> $GITHUB_ENV
+          echo "VK_LOADER_DEBUG=error,warn,info" >> $GITHUB_ENV
+          echo "KOMPUTE_DISABLE_VULKAN_CHECK=1" >> $GITHUB_ENV
+
+      - name: Run ${{ matrix.sanitizer }} sanitizer tests
+        env:
+          RUSTFLAGS: ${{ matrix.rustflags }}
+          ASAN_OPTIONS: "detect_leaks=1:abort_on_error=1:halt_on_error=1:check_initialization_order=1"
+          TSAN_OPTIONS: "halt_on_error=1:abort_on_error=1:report_signal_unsafe=1"
+        run: |
+          echo "🧪 Running ${{ matrix.sanitizer }} sanitizer tests"
+
+          # Run Phase 2 memory safety specific tests
+          cargo test --target x86_64-unknown-linux-gnu \
+                     --features="${{ matrix.features }}" \
+                     --test memory_safety_asan_tests \
+                     --test memory_safety_tsan_tests \
+                     --verbose -- --nocapture
+
+          # Run broader test suite with sanitizer (library tests only to avoid GPU requirements)
+          cargo test --target x86_64-unknown-linux-gnu \
+                     --features="${{ matrix.features }}" \
+                     --lib \
+                     --verbose -- --nocapture
+
+      - name: Run GPU resource leak detection
+        env:
+          RUSTFLAGS: ${{ matrix.rustflags }}
+          ASAN_OPTIONS: "detect_leaks=1:abort_on_error=1:halt_on_error=1"
+          KOMPUTE_DISABLE_VULKAN_CHECK: 1
+        run: |
+          echo "💾 Running GPU memory leak detection with ${{ matrix.sanitizer }} sanitizer"
+          cargo test --target x86_64-unknown-linux-gnu \
+                     --features="${{ matrix.features }}" \
+                     --test gpu_memory_leak_validation_tests \
+                     --test resource_exhaustion_recovery_tests \
+                     --verbose -- --nocapture
+
+  # Cross-platform basic validation on GitHub hosted runners
+  cross-platform-basic:
+    name: Cross-Platform Basic Tests
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        rust: [stable]
+    env:
+      KOMPUTE_DISABLE_VULKAN_CHECK: 1 # Disable Vulkan for hosted runners
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ matrix.rust }}-
+            ${{ runner.os }}-cargo-
+
+      # Platform-specific dependencies
+      - name: Install Vulkan SDK (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt update
+          sudo apt install -y vulkan-tools libvulkan-dev vulkan-utility-libraries-dev cmake build-essential
+
+      - name: Install Vulkan SDK (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install vulkan-headers vulkan-loader molten-vk cmake
+
+      - name: Install Vulkan SDK (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: powershell
+        run: |
+          # Install Vulkan SDK for Windows
+          Invoke-WebRequest -Uri "https://vulkan.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe" -OutFile "vulkan-sdk.exe"
+          Start-Process -FilePath "vulkan-sdk.exe" -ArgumentList "/S" -Wait
+          # Add to PATH (will be available for subsequent steps)
+          echo "C:\VulkanSDK\$(Get-ChildItem C:\VulkanSDK | Sort-Object Name -Descending | Select-Object -First 1 Name)\Bin" | Out-File -Append $env:GITHUB_PATH
+
+      # Build and test
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy
+        run: cargo clippy --all-features --workspace -- -D warnings
+
+      - name: Build (default features)
+        run: cargo build --verbose
+
+      - name: Build (all features)
+        run: cargo build --all-features --verbose
+
+      - name: Run unit tests
+        run: cargo test --lib --all-features --verbose
+
+      - name: Run documentation tests
+        run: cargo test --doc --all-features
+
+      - name: Build examples
+        run: cargo build --examples --all-features
+
+      - name: Run memory safety tests
+        run: cargo test memory_safety --all-features -- --nocapture
+
+      - name: Generate documentation
+        run: cargo doc --all-features --no-deps --workspace
+
   #  # GPU tests moved to self-hosted runners
   #  # test:
   #  #   name: Test Suite
@@ -608,14 +696,112 @@ jobs:
       #       *.log
       #     retention-days: 3
 
-  # TODO: Enable when Linux self-hosted GPU runner is available
-  # gpu-tests-self-hosted-linux:
-  #   name: GPU Tests (Self-Hosted Linux)
-  #   runs-on: [self-hosted, linux, gpu]
-  #   steps: [Linux GPU test steps...]
+  # Conditional Linux GPU testing - Enable when runner is available
+  gpu-tests-self-hosted-linux:
+    name: GPU Tests (Self-Hosted Linux)
+    runs-on: [self-hosted, linux, gpu]
+    timeout-minutes: 45
+    # Only run when Linux GPU runner is explicitly available
+    if: ${{ vars.LINUX_GPU_RUNNER_AVAILABLE == 'true' && github.repository_owner == 'axiomantic' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-  # TODO: Enable when Windows self-hosted GPU runner is available
-  # gpu-tests-self-hosted-windows:
-  #   name: GPU Tests (Self-Hosted Windows)
-  #   runs-on: [self-hosted, windows, gpu]
-  #   steps: [Windows GPU test steps...]
+      - name: Configure Linux GPU Environment
+        run: |
+          echo "🐧 Configuring Linux GPU development environment"
+
+          # Ensure Rust is in PATH
+          export PATH="$HOME/.cargo/bin:$PATH"
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+          # Configure sccache for faster compilation
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+          echo "SCCACHE_CACHE_SIZE=2G" >> $GITHUB_ENV
+          echo "SCCACHE_DIR=$HOME/.cache/sccache" >> $GITHUB_ENV
+
+          # Configure parallel compilation
+          CPU_COUNT=$(nproc)
+          echo "CMAKE_BUILD_PARALLEL_LEVEL=${CPU_COUNT}" >> $GITHUB_ENV
+          echo "MAKEFLAGS=-j${CPU_COUNT}" >> $GITHUB_ENV
+
+          # Verify essential tools
+          cmake --version
+          rustc --version
+          cargo --version
+
+      - name: Validate Linux GPU Environment
+        run: |
+          echo "🔍 Validating Linux GPU Environment"
+          echo "CUDA available:" && nvidia-smi || echo "No NVIDIA GPU"
+          echo "Vulkan available:" && vulkaninfo --summary || echo "No Vulkan support"
+          echo "GPU modules:" && lsmod | grep -E "(nvidia|amdgpu|radeon)" || echo "No GPU modules"
+
+      - name: Run Linux GPU Tests
+        run: |
+          echo "🧪 Running complete test suite on Linux GPU"
+          cargo test --features "async,glsl,debug,validation,test-utils" --workspace -- --nocapture
+
+      - name: Run Linux-specific GPU Integration Tests
+        run: |
+          echo "🚀 Running Linux-specific GPU integration tests"
+          cargo test --test gpu_compute_integration --features kompute-master -- --nocapture
+          cargo test --test cross_platform_behavior_parity_tests --features kompute-master -- --nocapture
+
+  # Conditional Windows GPU testing - Enable when runner is available
+  gpu-tests-self-hosted-windows:
+    name: GPU Tests (Self-Hosted Windows)
+    runs-on: [self-hosted, windows, gpu]
+    timeout-minutes: 45
+    # Only run when Windows GPU runner is explicitly available
+    if: ${{ vars.WINDOWS_GPU_RUNNER_AVAILABLE == 'true' && github.repository_owner == 'axiomantic' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure Windows GPU Environment
+        shell: powershell
+        run: |
+          Write-Host "🪟 Configuring Windows GPU development environment"
+
+          # Ensure Rust is in PATH
+          $env:PATH += ";$env:USERPROFILE\.cargo\bin"
+          echo "$env:USERPROFILE\.cargo\bin" | Out-File -Append $env:GITHUB_PATH
+
+          # Configure sccache for faster compilation
+          echo "RUSTC_WRAPPER=sccache" | Out-File -Append $env:GITHUB_ENV
+          echo "SCCACHE_CACHE_SIZE=2G" | Out-File -Append $env:GITHUB_ENV
+          echo "SCCACHE_DIR=$env:USERPROFILE\.cache\sccache" | Out-File -Append $env:GITHUB_ENV
+
+          # Configure parallel compilation
+          $CPU_COUNT = (Get-WmiObject -Class Win32_ComputerSystem).NumberOfLogicalProcessors
+          echo "CMAKE_BUILD_PARALLEL_LEVEL=$CPU_COUNT" | Out-File -Append $env:GITHUB_ENV
+
+          # Verify essential tools
+          cmake --version
+          rustc --version
+          cargo --version
+
+      - name: Validate Windows GPU Environment
+        shell: powershell
+        run: |
+          Write-Host "🔍 Validating Windows GPU Environment"
+          Write-Host "NVIDIA GPU:"
+          nvidia-smi | Out-Host
+          Write-Host "Vulkan available:"
+          vulkaninfo --summary | Out-Host
+
+      - name: Run Windows GPU Tests
+        shell: powershell
+        run: |
+          Write-Host "🧪 Running complete test suite on Windows GPU"
+          cargo test --features "async,glsl,debug,validation,test-utils" --workspace -- --nocapture
+
+      - name: Run Windows-specific GPU Integration Tests
+        shell: powershell
+        run: |
+          Write-Host "🚀 Running Windows-specific GPU integration tests"
+          cargo test --test gpu_compute_integration --features kompute-master -- --nocapture
+          cargo test --test cross_platform_behavior_parity_tests --features kompute-master -- --nocapture
