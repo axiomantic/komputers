@@ -4,7 +4,10 @@
 // using Komputers with compile-time and runtime safety checks.
 
 #[cfg(feature = "async")]
-use komputers::{async_sequence::AsyncSequence, DataType, Manager, Tensor, VulkanConfig};
+use komputers::{
+    async_runtime::DefaultRuntime, async_sequence::AsyncSequence, DataType, Manager, Tensor,
+    VulkanConfig,
+};
 use std::time::Duration;
 
 #[cfg(feature = "async")]
@@ -41,7 +44,7 @@ async fn basic_async_operations() -> komputers::Result<()> {
     let output: Tensor<f32> = Tensor::uninit(&mut manager, 4)?;
 
     // Create async sequence with consuming builder pattern
-    let result = AsyncSequence::new(&mut manager)?
+    let result = AsyncSequence::<_, DefaultRuntime>::new(&mut manager)?
         .record_tensor_sync_device(input.handle())?
         .record_tensor_sync_device(output.handle())?
         .record_tensor_sync_local(output.handle())?
@@ -104,7 +107,7 @@ async fn async_tensor_operations(manager: &mut Manager) -> komputers::Result<Vec
     assert_eq!(data_type, DataType::Float32);
 
     // Execute async operations with type safety
-    let _result = AsyncSequence::new(manager)?
+    let _result = AsyncSequence::<_, DefaultRuntime>::new(manager)?
         .record_tensor_sync_device(input.handle())?
         .record_tensor_sync_local(input.handle())?
         .execute_async()
@@ -118,7 +121,7 @@ async fn async_tensor_operations(manager: &mut Manager) -> komputers::Result<Vec
 async fn async_operation_with_timeout(manager: &mut Manager) -> komputers::Result<Duration> {
     let input = Tensor::new(manager, &[1.0f32; 1000])?; // Larger dataset
 
-    let execution = AsyncSequence::new(manager)?
+    let execution = AsyncSequence::<_, DefaultRuntime>::new(manager)?
         .record_tensor_sync_device(input.handle())?
         .record_tensor_sync_local(input.handle())?
         .execute_async();
@@ -146,14 +149,14 @@ async fn async_multi_type_operations() -> komputers::Result<()> {
     let i32_tensor = Tensor::new(&mut manager, &[1i32, 2, 3])?;
 
     // Process f32 data asynchronously
-    let f32_result = AsyncSequence::new(&mut manager)?
+    let f32_result = AsyncSequence::<_, DefaultRuntime>::new(&mut manager)?
         .record_tensor_sync_device(f32_tensor.handle())?
         .record_tensor_sync_local(f32_tensor.handle())?
         .execute_async()
         .await?;
 
     // Process i32 data asynchronously
-    let i32_result = AsyncSequence::new(&mut manager)?
+    let i32_result = AsyncSequence::<_, DefaultRuntime>::new(&mut manager)?
         .record_tensor_sync_device(i32_tensor.handle())?
         .record_tensor_sync_local(i32_tensor.handle())?
         .execute_async()
