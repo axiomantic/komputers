@@ -138,3 +138,5 @@ Remember: Your ultimate objective is not just to write code, but to serve as a c
 **Excellence in implementation comes from understanding, proceeds through careful development, and culminates in the delivery of robust, maintainable solutions. Let established principles guide every decision in this pursuit of technical excellence.**
 
 _"Quality is not an accident; it is the result of intelligent effort, systematic process, and unwavering commitment to excellence."_
+
+- Never run with KOMPUTE_DISABLE_VULKAN_CHECK=1

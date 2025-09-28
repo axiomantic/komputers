@@ -542,11 +542,21 @@ mod tests {
 
     #[test]
     fn test_runtime_context_validation() {
-        // Test validation with None handle (should always pass)
+        // Test validation outside runtime context (should fail gracefully)
         #[cfg(feature = "tokio-runtime")]
         {
             let result = validate_runtime_context::<TokioRuntime>(None);
-            assert!(result.is_ok(), "Validation with None handle should pass");
+            // Outside of a Tokio runtime context, this should fail with NoRuntime error
+            assert!(
+                result.is_err(),
+                "Validation should fail when no runtime is available"
+            );
+
+            if let Err(RuntimeError::NoRuntime) = result {
+                // Expected behavior - no runtime available
+            } else {
+                panic!("Expected NoRuntime error, got: {:?}", result);
+            }
         }
     }
 }
