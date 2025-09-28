@@ -1,6 +1,6 @@
 //! Runtime-agnostic async operations for GPU compute safety
 //!
-//! This module provides abstractions over different async runtimes (Tokio, async-std, smol)
+//! This module provides abstractions over different async runtimes (Tokio, smol)
 //! to ensure GPU operations maintain safety guarantees regardless of the execution context.
 //!
 //! # Safety Guarantees
@@ -8,7 +8,7 @@
 //! - **Runtime Context Validation**: GPU operations bound to specific runtime contexts
 //! - **Cross-Runtime Prevention**: Prevents GPU resources from moving between executors
 //! - **Type Safety**: Compile-time enforcement of runtime compatibility
-//! - **Ecosystem Compatibility**: Support for Tokio, async-std, smol with feature flags
+//! - **Ecosystem Compatibility**: Support for Tokio, smol with feature flags
 //!
 //! # Example
 //!
@@ -217,79 +217,6 @@ impl<T> Future for TokioJoinHandle<T> {
     }
 }
 
-// =============================================================================
-// Async-std Runtime Implementation (when feature enabled)
-// =============================================================================
-
-/// Async-std runtime implementation
-#[cfg(feature = "async-std-runtime")]
-pub struct AsyncStdRuntime;
-
-#[cfg(feature = "async-std-runtime")]
-impl AsyncRuntime for AsyncStdRuntime {
-    type Handle = AsyncStdHandle;
-    type Sleep = async_std::task::Sleep;
-    type JoinHandle<T>
-        = AsyncStdJoinHandle<T>
-    where
-        T: Send + 'static;
-
-    fn current_handle() -> std::result::Result<Self::Handle, RuntimeError> {
-        // async-std doesn't have explicit handles, so we use a dummy handle
-        Ok(AsyncStdHandle)
-    }
-
-    fn spawn<F>(&self, future: F) -> Self::JoinHandle<F::Output>
-    where
-        F: Future + Send + 'static,
-        F::Output: Send + 'static,
-    {
-        AsyncStdJoinHandle {
-            inner: async_std::task::spawn(future),
-        }
-    }
-
-    fn sleep(duration: Duration) -> Self::Sleep {
-        async_std::task::sleep(duration)
-    }
-
-    fn runtime_name() -> &'static str {
-        "async-std"
-    }
-
-    fn supports_feature(feature: RuntimeFeature) -> bool {
-        match feature {
-            RuntimeFeature::TaskSpawning => true,
-            RuntimeFeature::HighPrecisionTiming => false, // Less precise than Tokio
-            RuntimeFeature::TaskCancellation => false,    // Limited cancellation support
-            RuntimeFeature::LocalTaskSets => false,
-        }
-    }
-}
-
-/// Dummy handle for async-std (it doesn't have explicit runtime handles)
-#[cfg(feature = "async-std-runtime")]
-#[derive(Debug, Clone)]
-pub struct AsyncStdHandle;
-
-/// Wrapper for async-std's JoinHandle
-#[cfg(feature = "async-std-runtime")]
-pub struct AsyncStdJoinHandle<T> {
-    inner: async_std::task::JoinHandle<T>,
-}
-
-#[cfg(feature = "async-std-runtime")]
-impl<T> Future for AsyncStdJoinHandle<T> {
-    type Output = std::result::Result<T, JoinError>;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        // async-std's JoinHandle doesn't provide detailed error information
-        match Pin::new(&mut self.inner).poll(cx) {
-            Poll::Ready(value) => Poll::Ready(Ok(value)),
-            Poll::Pending => Poll::Pending,
-        }
-    }
-}
 
 // =============================================================================
 // Smol Runtime Implementation (when feature enabled)
@@ -373,13 +300,9 @@ impl<T> Future for SmolJoinHandle<T> {
 #[cfg(feature = "tokio-runtime")]
 pub type DefaultRuntime = TokioRuntime;
 
-#[cfg(all(feature = "async-std-runtime", not(feature = "tokio-runtime")))]
-pub type DefaultRuntime = AsyncStdRuntime;
-
 #[cfg(all(
     feature = "smol-runtime",
-    not(feature = "tokio-runtime"),
-    not(feature = "async-std-runtime")
+    not(feature = "tokio-runtime")
 ))]
 pub type DefaultRuntime = SmolRuntime;
 
@@ -387,10 +310,9 @@ pub type DefaultRuntime = SmolRuntime;
 // Note: This is commented out to allow compilation without runtime features during development
 // #[cfg(not(any(
 //     feature = "tokio-runtime",
-//     feature = "async-std-runtime",
 //     feature = "smol-runtime"
 // )))]
-// compile_error!("At least one async runtime feature must be enabled: tokio-runtime, async-std-runtime, or smol-runtime");
+// compile_error!("At least one async runtime feature must be enabled: tokio-runtime, or smol-runtime");
 
 // =============================================================================
 // Utility Functions
@@ -403,10 +325,6 @@ pub fn detect_current_runtime() -> std::result::Result<&'static str, RuntimeErro
         return Ok(TokioRuntime::runtime_name());
     }
 
-    #[cfg(feature = "async-std-runtime")]
-    if AsyncStdRuntime::current_handle().is_ok() {
-        return Ok(AsyncStdRuntime::runtime_name());
-    }
 
     #[cfg(feature = "smol-runtime")]
     if SmolRuntime::current_handle().is_ok() {
@@ -455,16 +373,6 @@ mod tests {
             assert_eq!(TokioRuntime::runtime_name(), "tokio");
         }
 
-        #[cfg(feature = "async-std-runtime")]
-        {
-            assert!(AsyncStdRuntime::supports_feature(
-                RuntimeFeature::TaskSpawning
-            ));
-            assert!(!AsyncStdRuntime::supports_feature(
-                RuntimeFeature::TaskCancellation
-            ));
-            assert_eq!(AsyncStdRuntime::runtime_name(), "async-std");
-        }
 
         #[cfg(feature = "smol-runtime")]
         {
