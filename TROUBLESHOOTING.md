@@ -343,7 +343,7 @@ let final_result = output_tensor.to_vec()?;
 
 ```bash
 # Run with all debug features
-cargo test --features "kompute-master,debug" -- --nocapture
+cargo test --features "async,glsl,debug,validation,test-utils" -- --nocapture
 
 # Specific test categories
 cargo test --test gpu_compute_integration -- --nocapture
@@ -364,8 +364,8 @@ cargo run --example basic_gpu_computing --features validation
 ### Performance Profiling
 
 ```bash
-# Run benchmarks
-cargo test --release benchmark_tests -- --nocapture
+# Run benchmarks (requires criterion compilation)
+cargo test --release --features "benchmarks" benchmark_tests -- --nocapture
 
 # Profile specific operations
 cargo run --example basic_gpu_computing --release

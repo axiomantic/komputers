@@ -12,8 +12,27 @@ pub mod ffi {
         // Factory method for Manager
         fn create_manager(device_id: u32) -> UniquePtr<Manager>;
 
+        // Config-based factory method for Manager
+        fn create_manager_with_config(
+            device_id: u32,
+            use_moltenvk: bool,
+            use_validation: bool,
+            use_portability_extension: bool,
+            icd_path: &str,
+            layer_paths: &[String],
+        ) -> UniquePtr<Manager>;
+
         // Device enumeration
         fn get_device_count() -> i32;
+
+        // Config-based device enumeration
+        fn get_device_count_with_config(
+            use_moltenvk: bool,
+            use_validation: bool,
+            use_portability_extension: bool,
+            icd_path: &str,
+            layer_paths: &[String],
+        ) -> i32;
 
         // Tensor class
         type Tensor;

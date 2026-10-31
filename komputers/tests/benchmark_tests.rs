@@ -3,16 +3,23 @@
 //! These tests measure performance characteristics and help identify
 //! performance regressions over time.
 
-use kompute::{Manager, Result, Sequence, Tensor};
+use komputers::test_utils::{get_manager_from_pool, return_manager_to_pool, should_skip_gpu_test};
+use komputers::{Result, Sequence, Tensor};
+use serial_test::serial;
 use std::time::{Duration, Instant};
 
 /// Benchmark tensor creation performance.
 #[test]
-
+#[serial(gpu)]
 fn bench_tensor_creation() -> Result<()> {
+    if should_skip_gpu_test() {
+        println!("⏭️ Skipping GPU benchmark - GPU tests disabled");
+        return Ok(());
+    }
+
     println!("Starting tensor creation benchmark...");
 
-    let mut manager = Manager::new()?;
+    let mut manager = get_manager_from_pool()?;
     let sizes = vec![10, 100, 1_000, 10_000];
 
     for size in sizes {
@@ -49,16 +56,22 @@ fn bench_tensor_creation() -> Result<()> {
         );
     }
 
+    return_manager_to_pool(manager);
     Ok(())
 }
 
 /// Benchmark tensor data transfer performance.
 #[test]
-
+#[serial(gpu)]
 fn bench_tensor_data_transfer() -> Result<()> {
+    if should_skip_gpu_test() {
+        println!("⏭️ Skipping GPU benchmark - GPU tests disabled");
+        return Ok(());
+    }
+
     println!("Starting tensor data transfer benchmark...");
 
-    let mut manager = Manager::new()?;
+    let mut manager = get_manager_from_pool()?;
     let sizes = vec![1_000, 10_000, 100_000];
 
     for size in sizes {
@@ -97,16 +110,22 @@ fn bench_tensor_data_transfer() -> Result<()> {
         );
     }
 
+    return_manager_to_pool(manager);
     Ok(())
 }
 
 /// Benchmark sequence operations.
 #[test]
-
+#[serial(gpu)]
 fn bench_sequence_operations() -> Result<()> {
+    if should_skip_gpu_test() {
+        println!("⏭️ Skipping GPU benchmark - GPU tests disabled");
+        return Ok(());
+    }
+
     println!("Starting sequence operations benchmark...");
 
-    let mut manager = Manager::new()?;
+    let mut manager = get_manager_from_pool()?;
     let data = vec![1.0f32; 1000];
     let _tensor = Tensor::new(&mut manager, &data)?;
 
@@ -131,19 +150,25 @@ fn bench_sequence_operations() -> Result<()> {
         "Sequence creation should be fast"
     );
 
+    return_manager_to_pool(manager);
     Ok(())
 }
 
 /// Benchmark concurrent operations.
 #[test]
-
+#[serial(gpu)]
 fn bench_concurrent_operations() -> Result<()> {
     use std::sync::{Arc, Mutex};
     use std::thread;
 
+    if should_skip_gpu_test() {
+        println!("⏭️ Skipping GPU benchmark - GPU tests disabled");
+        return Ok(());
+    }
+
     println!("Starting concurrent operations benchmark...");
 
-    let manager = Arc::new(Mutex::new(Manager::new()?));
+    let manager = Arc::new(Mutex::new(get_manager_from_pool()?));
     let thread_count = 4;
     let operations_per_thread = 25;
 
@@ -182,16 +207,28 @@ fn bench_concurrent_operations() -> Result<()> {
         "Concurrent operations should maintain throughput"
     );
 
+    // Extract manager from Arc<Mutex<>> to return to pool
+    let manager = Arc::try_unwrap(manager)
+        .map_err(|_| komputers::KomputeError::compute("Failed to unwrap Arc<Manager>"))?
+        .into_inner()
+        .map_err(|_| komputers::KomputeError::compute("Failed to extract Manager from Mutex"))?;
+    return_manager_to_pool(manager);
+
     Ok(())
 }
 
 /// Benchmark memory usage patterns.
 #[test]
-
+#[serial(gpu)]
 fn bench_memory_usage() -> Result<()> {
+    if should_skip_gpu_test() {
+        println!("⏭️ Skipping GPU benchmark - GPU tests disabled");
+        return Ok(());
+    }
+
     println!("Starting memory usage benchmark...");
 
-    let mut manager = Manager::new()?;
+    let mut manager = get_manager_from_pool()?;
 
     // Test creating many small tensors
     let small_tensor_count = 1000;
@@ -247,16 +284,22 @@ fn bench_memory_usage() -> Result<()> {
         small_cleanup_time, large_cleanup_time
     );
 
+    return_manager_to_pool(manager);
     Ok(())
 }
 
 /// Benchmark handle operations.
 #[test]
-
+#[serial(gpu)]
 fn bench_handle_operations() -> Result<()> {
+    if should_skip_gpu_test() {
+        println!("⏭️ Skipping GPU benchmark - GPU tests disabled");
+        return Ok(());
+    }
+
     println!("Starting handle operations benchmark...");
 
-    let mut manager = Manager::new()?;
+    let mut manager = get_manager_from_pool()?;
 
     // Create tensors and measure handle access performance
     let tensor_count = 1000;
@@ -312,15 +355,22 @@ fn bench_handle_operations() -> Result<()> {
         total_queries, elapsed, queries_per_second
     );
 
+    return_manager_to_pool(manager);
     Ok(())
 }
 
 /// Stress test with realistic workload patterns.
 #[test]
+#[serial(gpu)]
 fn bench_realistic_workload() -> Result<()> {
+    if should_skip_gpu_test() {
+        println!("⏭️ Skipping GPU benchmark - GPU tests disabled");
+        return Ok(());
+    }
+
     println!("Starting realistic workload benchmark...");
 
-    let mut manager = Manager::new()?;
+    let mut manager = get_manager_from_pool()?;
 
     // Simulate a machine learning workload:
     // - Create input tensors
@@ -389,5 +439,6 @@ fn bench_realistic_workload() -> Result<()> {
         total_elements as f64 / total_time.as_secs_f64()
     );
 
+    return_manager_to_pool(manager);
     Ok(())
 }

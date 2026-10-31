@@ -1,6 +1,6 @@
 //! Test using the new handle-based system
 
-use kompute::{Manager, Result, Sequence, Tensor};
+use komputers::{Manager, Result, Sequence, Tensor};
 
 #[test]
 

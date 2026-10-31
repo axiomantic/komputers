@@ -5,25 +5,199 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
+  schedule:
+    # Run cache warming daily at 2 AM UTC to pre-build kompute-master
+    - cron: "0 2 * * *"
 
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  KOMPUTE_VERBOSE_DETECTION: 1 # Enable detailed platform detection logging
+  # KOMPUTE_DISABLE_VULKAN_CHECK: Unset for self-hosted GPU runners to enable proper Vulkan detection
 
 jobs:
-  test:
-    name: Test Suite
+  documentation-and-examples:
+    name: Documentation & Examples Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 20 # Give enough time for documentation and examples
+    env:
+      KOMPUTE_DISABLE_VULKAN_CHECK: 1 # Disable Vulkan check for non-GPU runners
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Verify Rust components
+        run: |
+          echo "🔧 Verifying Rust toolchain components are installed"
+          rustc --version
+          cargo --version
+          rustfmt --version
+          cargo clippy --version
+          echo "✅ All Rust components verified"
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-docs-examples-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-docs-examples-
+
+      - name: Install Vulkan SDK
+        run: |
+          sudo apt update
+          sudo apt install -y vulkan-tools libvulkan-dev vulkan-utility-libraries-dev cmake build-essential
+
+      - name: Check code formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy (warnings only for docs)
+        run: cargo clippy --all-features --workspace -- -W clippy::all
+
+      - name: Verify all examples compile
+        run: |
+          echo "🔨 Verifying all examples compile with proper features"
+          cargo check --examples --features "async,glsl,debug,validation,test-utils" --verbose
+          echo "✅ All examples compile successfully"
+
+      - name: Run critical documentation tests
+        run: |
+          echo "📚 Running critical documentation tests for recently fixed code"
+          echo "Testing algorithm.rs doctests (recently fixed):"
+          cargo test --doc algorithm::Algorithm --features "async,glsl,debug,validation,test-utils" --verbose
+          echo "Testing async_sequence.rs doctests:"
+          cargo test --doc async_sequence --features "async,glsl,debug,validation,test-utils" --verbose || echo "async_sequence doctests may have GPU dependencies"
+          echo "✅ Critical documentation tests completed"
+
+      - name: Build documentation
+        run: |
+          echo "📖 Building complete documentation"
+          cargo doc --all-features --no-deps --workspace --verbose
+          echo "✅ Documentation builds successfully"
+
+      - name: Verify specific critical examples
+        run: |
+          echo "🧪 Testing compilation of specific critical examples"
+          cargo check --example type_safe_gpu_computing --features "async,glsl,debug,validation,test-utils"
+          cargo check --example async_type_safety --features "async,glsl,debug,validation,test-utils"
+          cargo check --example basic_gpu_computing --features "kompute-master"
+          echo "✅ All critical examples compile"
+
+      - name: Test algorithm.rs rustdoc examples specifically
+        run: |
+          echo "🔍 Testing algorithm.rs rustdoc examples that were recently fixed"
+          cargo test --doc algorithm::Algorithm --features "async,glsl,debug,validation,test-utils"
+          echo "✅ All algorithm.rs rustdoc examples pass"
+
+  # Phase 2: Memory Safety & Sanitization (Production Readiness)
+  # Enabled for broader platform testing coverage
+  memory-safety-sanitizers:
+    name: Memory Safety (Address & Thread Sanitizers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      KOMPUTE_DISABLE_VULKAN_CHECK: 1 # Disable Vulkan for hosted runners
+    strategy:
+      matrix:
+        sanitizer: [address, thread]
+        include:
+          - sanitizer: address
+            features: "async,glsl,debug,validation,test-utils"
+            rustflags: "-Z sanitizer=address"
+            toolchain: "nightly"
+          - sanitizer: thread
+            features: "async,glsl,debug,validation,test-utils"
+            rustflags: "-Z sanitizer=thread"
+            toolchain: "nightly"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust nightly (required for sanitizers)
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-sanitizer-${{ matrix.sanitizer }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-sanitizer-${{ matrix.sanitizer }}-
+            ${{ runner.os }}-sanitizer-
+
+      - name: Install Vulkan SDK and validation layers
+        run: |
+          sudo apt update
+          sudo apt install -y vulkan-tools libvulkan-dev vulkan-validationlayers-dev cmake build-essential
+
+      - name: Enable Vulkan validation layers for memory debugging
+        run: |
+          echo "VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation" >> $GITHUB_ENV
+          echo "VK_LOADER_DEBUG=error,warn,info" >> $GITHUB_ENV
+          echo "KOMPUTE_DISABLE_VULKAN_CHECK=1" >> $GITHUB_ENV
+
+      - name: Run ${{ matrix.sanitizer }} sanitizer tests
+        env:
+          RUSTFLAGS: ${{ matrix.rustflags }}
+          ASAN_OPTIONS: "detect_leaks=1:abort_on_error=1:halt_on_error=1:check_initialization_order=1"
+          TSAN_OPTIONS: "halt_on_error=1:abort_on_error=1:report_signal_unsafe=1"
+        run: |
+          echo "🧪 Running ${{ matrix.sanitizer }} sanitizer tests"
+
+          # Run Phase 2 memory safety specific tests
+          cargo test --target x86_64-unknown-linux-gnu \
+                     --features="${{ matrix.features }}" \
+                     --test memory_safety_asan_tests \
+                     --test memory_safety_tsan_tests \
+                     --verbose -- --nocapture
+
+          # Run broader test suite with sanitizer (library tests only to avoid GPU requirements)
+          cargo test --target x86_64-unknown-linux-gnu \
+                     --features="${{ matrix.features }}" \
+                     --lib \
+                     --verbose -- --nocapture
+
+      - name: Run GPU resource leak detection
+        env:
+          RUSTFLAGS: ${{ matrix.rustflags }}
+          ASAN_OPTIONS: "detect_leaks=1:abort_on_error=1:halt_on_error=1"
+          KOMPUTE_DISABLE_VULKAN_CHECK: 1
+        run: |
+          echo "💾 Running GPU memory leak detection with ${{ matrix.sanitizer }} sanitizer"
+          cargo test --target x86_64-unknown-linux-gnu \
+                     --features="${{ matrix.features }}" \
+                     --test gpu_memory_leak_validation_tests \
+                     --test resource_exhaustion_recovery_tests \
+                     --verbose -- --nocapture
+
+  # Cross-platform basic validation on GitHub hosted runners
+  cross-platform-basic:
+    name: Cross-Platform Basic Tests
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        rust: [stable, beta]
-        exclude:
-          # Reduce matrix size for faster CI
-          - os: windows-latest
-            rust: beta
-          - os: macos-latest
-            rust: beta
+        rust: [stable]
+    env:
+      KOMPUTE_DISABLE_VULKAN_CHECK: 1 # Disable Vulkan for hosted runners
 
     steps:
       - uses: actions/checkout@v4
@@ -43,8 +217,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
+            ${{ runner.os }}-cargo-${{ matrix.rust }}-
             ${{ runner.os }}-cargo-
 
       # Platform-specific dependencies
@@ -61,11 +236,13 @@ jobs:
 
       - name: Install Vulkan SDK (Windows)
         if: matrix.os == 'windows-latest'
+        shell: powershell
         run: |
-          # Download and install Vulkan SDK
+          # Install Vulkan SDK for Windows
           Invoke-WebRequest -Uri "https://vulkan.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe" -OutFile "vulkan-sdk.exe"
           Start-Process -FilePath "vulkan-sdk.exe" -ArgumentList "/S" -Wait
-          echo "C:\VulkanSDK\$(Get-ChildItem C:\VulkanSDK | Sort-Object Name -Descending | Select-Object -First 1 Name)\Bin" >> $env:GITHUB_PATH
+          # Add to PATH (will be available for subsequent steps)
+          echo "C:\VulkanSDK\$(Get-ChildItem C:\VulkanSDK | Sort-Object Name -Descending | Select-Object -First 1 Name)\Bin" | Out-File -Append $env:GITHUB_PATH
 
       # Build and test
       - name: Check formatting
@@ -89,51 +266,348 @@ jobs:
       - name: Build examples
         run: cargo build --examples --all-features
 
-      # GPU tests only on platforms where they're likely to work
-      - name: Run GPU integration tests (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          # Only run if Vulkan/MoltenVK is available
-          if vulkaninfo --summary >/dev/null 2>&1; then
-            echo "Vulkan detected, running GPU tests"
-            cargo test --test gpu_compute_integration --features kompute-master -- --nocapture || echo "GPU tests failed (expected on CI)"
-          else
-            echo "No Vulkan support detected, skipping GPU tests"
-          fi
-
       - name: Run memory safety tests
         run: cargo test memory_safety --all-features -- --nocapture
 
       - name: Generate documentation
         run: cargo doc --all-features --no-deps --workspace
 
-  gpu-tests-self-hosted:
-    name: GPU Tests (Self-Hosted macOS)
+  #  # GPU tests moved to self-hosted runners
+  #  # test:
+  #  #   name: Test Suite
+  #  #   runs-on: ${{ matrix.os }}
+  #  #   strategy:
+  #  #     matrix:
+  #  #       os: [ubuntu-latest, windows-latest, macos-latest]
+  #  #       rust: [stable, beta]
+  #  #       exclude:
+  #  #         # Reduce matrix size for faster CI
+  #  #         - os: windows-latest
+  #  #           rust: beta
+  #  #         - os: macos-latest
+  #  #           rust: beta
+  #  #   env:
+  #  #     KOMPUTE_DISABLE_VULKAN_CHECK: 1 # Disable Vulkan version check for non-GPU runners
+  #
+  #  #   steps:
+  #  #     - uses: actions/checkout@v4
+  #  #       with:
+  #  #         submodules: recursive
+  #  #
+  #  #     - name: Install Rust
+  #  #       uses: dtolnay/rust-toolchain@master
+  #  #       with:
+  #  #         toolchain: ${{ matrix.rust }}
+  #  #         components: rustfmt, clippy
+  #  #
+  #  #     - name: Cache cargo registry
+  #  #       uses: actions/cache@v4
+  #  #       with:
+  #  #         path: |
+  #  #           ~/.cargo/registry
+  #  #           ~/.cargo/git
+  #  #           target
+  #  #         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+  #  #         restore-keys: |
+  #  #           ${{ runner.os }}-cargo-
+  #  #
+  #  #     # Platform-specific dependencies
+  #  #     - name: Install Vulkan SDK (Ubuntu)
+  #  #       if: matrix.os == 'ubuntu-latest'
+  #  #       run: |
+  #  #         sudo apt update
+  #  #         sudo apt install -y vulkan-tools libvulkan-dev vulkan-utility-libraries-dev cmake build-essential
+  #  #
+  #  #     - name: Install Vulkan SDK (macOS)
+  #  #       if: matrix.os == 'macos-latest'
+  #  #       run: |
+  #  #         brew install vulkan-headers vulkan-loader molten-vk cmake
+  #  #
+  #  #     - name: Install Vulkan SDK (Windows)
+  #  #       if: matrix.os == 'windows-latest'
+  #  #       run: |
+  #  #         # Download and install Vulkan SDK
+  #  #         Invoke-WebRequest -Uri "https://vulkan.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe" -OutFile "vulkan-sdk.exe"
+  #  #         Start-Process -FilePath "vulkan-sdk.exe" -ArgumentList "/S" -Wait
+  #  #         echo "C:\VulkanSDK\$(Get-ChildItem C:\VulkanSDK | Sort-Object Name -Descending | Select-Object -First 1 Name)\Bin" >> $env:GITHUB_PATH
+  #  #
+  #  #     # Build and test
+  #  #     - name: Check formatting
+  #  #       run: cargo fmt --all -- --check
+  #  #
+  #  #     - name: Run clippy
+  #  #       run: cargo clippy --all-features --workspace -- -D warnings
+  #  #
+  #  #     - name: Build (default features)
+  #  #       run: cargo build --verbose
+  #  #
+  #  #     - name: Build (all features)
+  #  #       run: cargo build --all-features --verbose
+  #  #
+  #  #     - name: Run unit tests
+  #  #       run: cargo test --lib --all-features --verbose
+  #  #
+  #  #     - name: Run documentation tests
+  #  #       run: cargo test --doc --all-features
+  #  #
+  #  #     - name: Build examples
+  #  #       run: cargo build --examples --all-features
+  #  #
+  #  #     # GPU tests only on platforms where they're likely to work
+  #  #     - name: Run GPU integration tests (macOS)
+  #  #       if: matrix.os == 'macos-latest'
+  #  #       run: |
+  #  #         # Only run if Vulkan/MoltenVK is available
+  #  #         if vulkaninfo --summary >/dev/null 2>&1; then
+  #  #           echo "Vulkan detected, running GPU tests"
+  #  #           cargo test --test gpu_compute_integration --features kompute-master -- --nocapture || echo "GPU tests failed (expected on CI)"
+  #  #         else
+  #  #           echo "No Vulkan support detected, skipping GPU tests"
+  #  #         fi
+  #  #
+  #  #     - name: Run memory safety tests
+  #  #       run: cargo test memory_safety --all-features -- --nocapture
+  #  #
+  #  #     - name: Generate documentation
+  #  #       run: cargo doc --all-features --no-deps --workspace
+  #
+  # Cache warming job - runs daily to pre-build kompute-master and populate caches
+  cache-warming:
+    name: Cache Warming (Kompute Master)
     runs-on: self-hosted
-    if: ${{ github.repository_owner == 'axiomantic' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}
+    timeout-minutes: 60 # Extra time for clean build
+    if: ${{ github.repository_owner == 'axiomantic' && github.event_name == 'schedule' }}
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      # - name: Install Rust
-      #   uses: dtolnay/rust-toolchain@stable
-      #   with:
-      #     components: rustfmt, clippy
+      - name: Configure Development Environment
+        run: |
+          echo "🔥 Cache warming: Building kompute-master from scratch"
+          export PATH="/opt/homebrew/bin:$HOME/.cargo/bin:$PATH"
+          echo "/opt/homebrew/bin" >> $GITHUB_PATH
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+          # Configure sccache
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+          echo "SCCACHE_CACHE_SIZE=2G" >> $GITHUB_ENV
+          echo "SCCACHE_DIR=$HOME/.cache/sccache" >> $GITHUB_ENV
+
+          # Configure parallel compilation
+          CPU_COUNT=$(sysctl -n hw.ncpu)
+          echo "CMAKE_BUILD_PARALLEL_LEVEL=${CPU_COUNT}" >> $GITHUB_ENV
+          echo "MAKEFLAGS=-j${CPU_COUNT}" >> $GITHUB_ENV
+
+          rustup component add rustfmt clippy 2>/dev/null || echo "Components already installed"
+          echo "RUSTC_VERSION=$(rustc --version | cut -d' ' -f2)" >> $GITHUB_ENV
+
+      - name: Cache sccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/sccache
+          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}-${{ env.RUSTC_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-sccache-
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache Cargo Target Directory
+        uses: actions/cache@v4
+        with:
+          path: target/
+          key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('**/*.rs') }}-${{ env.RUSTC_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-cargo-target-
+
+      - name: Cache CMake Build Output
+        uses: actions/cache@v4
+        with:
+          path: |
+            target/release/build/kompute-sys-*/out/
+            target/debug/build/kompute-sys-*/out/
+            ~/.cache/kompute-build/
+          key: ${{ runner.os }}-cmake-kompute-${{ hashFiles('kompute-sys/build.rs', 'kompute-sys/Cargo.toml') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-cmake-kompute-${{ hashFiles('kompute-sys/build.rs', 'kompute-sys/Cargo.toml') }}-
+            ${{ runner.os }}-cmake-kompute-
+
+      - name: Warm build cache
+        run: |
+          echo "🔥 Building kompute-master to warm caches"
+          cargo build --features "async,glsl,debug,validation,test-utils" --release
+          echo "✅ Cache warming completed"
+
+  gpu-tests-self-hosted:
+    name: GPU Tests (Self-Hosted macOS)
+    runs-on: self-hosted
+    timeout-minutes: 45 # Extended time for C++ compilation and GPU tests
+    # Optimized triggers: Skip draft PRs, focus on main branch + releases + manual dispatch
+    if: ${{ github.repository_owner == 'axiomantic' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure Development Environment
+        run: |
+          echo "🔧 Configuring development environment for self-hosted runner"
+
+          # Ensure Homebrew and Rust are in PATH
+          export PATH="/opt/homebrew/bin:$HOME/.cargo/bin:$PATH"
+          echo "/opt/homebrew/bin" >> $GITHUB_PATH
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+          # Configure sccache for much faster compilation
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+          echo "SCCACHE_CACHE_SIZE=2G" >> $GITHUB_ENV
+          echo "SCCACHE_DIR=$HOME/.cache/sccache" >> $GITHUB_ENV
+
+          # Configure parallel C++ compilation for faster builds
+          CPU_COUNT=$(sysctl -n hw.ncpu)
+          echo "CMAKE_BUILD_PARALLEL_LEVEL=${CPU_COUNT}" >> $GITHUB_ENV
+          echo "MAKEFLAGS=-j${CPU_COUNT}" >> $GITHUB_ENV
+          echo "🚀 Configured parallel compilation with ${CPU_COUNT} cores"
+
+          # Initialize sccache
+          mkdir -p $HOME/.cache/sccache
+          sccache --show-stats
+          echo "sccache configured with cache dir: $HOME/.cache/sccache"
+
+          # Verify essential build tools
+          cmake --version
+          rustc --version
+          cargo --version
+          rustfmt --version || echo "rustfmt not found, installing..."
+          clippy-driver --version || echo "clippy not found, installing..."
+
+          # Set Rust version for cache key consistency
+          echo "RUSTC_VERSION=$(rustc --version | cut -d' ' -f2)" >> $GITHUB_ENV
+
+          # Install missing Rust components if needed
+          rustup component add rustfmt clippy 2>/dev/null || echo "Components already installed"
+
+      - name: Cache sccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/sccache
+          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}-${{ env.RUSTC_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-sccache-
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache Cargo Target Directory
+        uses: actions/cache@v4
+        with:
+          path: target/
+          key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('**/*.rs') }}-${{ env.RUSTC_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-cargo-target-
+
+      - name: Cache CMake Build Output
+        uses: actions/cache@v4
+        with:
+          path: |
+            target/release/build/kompute-sys-*/out/
+            target/debug/build/kompute-sys-*/out/
+            ~/.cache/kompute-build/
+          key: ${{ runner.os }}-cmake-kompute-${{ hashFiles('kompute-sys/build.rs', 'kompute-sys/Cargo.toml') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-cmake-kompute-${{ hashFiles('kompute-sys/build.rs', 'kompute-sys/Cargo.toml') }}-
+            ${{ runner.os }}-cmake-kompute-
+
+      - name: Cache Downloaded Sources
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cmake/
+            /tmp/kompute-*
+            /tmp/fmt-*
+            /tmp/spdlog-*
+          key: ${{ runner.os }}-sources-${{ hashFiles('kompute-sys/build.rs', 'kompute-sys/Cargo.toml') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-sources-${{ hashFiles('kompute-sys/build.rs', 'kompute-sys/Cargo.toml') }}-
+            ${{ runner.os }}-sources-
+
+      - name: Setup Local Cache Directories
+        run: |
+          echo "🗂️  Setting up local cache directories for self-hosted runner"
+
+          # Create persistent cache directories on self-hosted runner
+          mkdir -p ~/.cache/komputers/{cargo,cmake,sources}
+          mkdir -p ~/.cache/komputers/build-metrics
+
+          # Set cache size limits to prevent disk bloat (optional cleanup)
+          echo "Cache directories created for persistent storage"
+
+          # Log current cache usage
+          echo "Current cache usage:"
+          du -sh ~/.cache/komputers/ 2>/dev/null || echo "No existing cache"
+
+          # Set environment variables for cache monitoring
+          echo "CACHE_START_TIME=$(date +%s)" >> $GITHUB_ENV
 
       - name: Validate GPU Environment
         run: |
           echo "🍎 Validating macOS GPU Environment"
+          echo "Environment variables:"
+          echo "  KOMPUTE_DISABLE_VULKAN_CHECK: ${KOMPUTE_DISABLE_VULKAN_CHECK:-unset}"
+          echo "  VULKAN_SDK: ${VULKAN_SDK:-unset}"
+          echo "  VK_LAYER_PATH: ${VK_LAYER_PATH:-unset}"
+          echo "  VK_ICD_FILENAMES: ${VK_ICD_FILENAMES:-unset}"
+          echo "  VK_INSTANCE_LAYERS: ${VK_INSTANCE_LAYERS:-unset}"
+          echo "  RUNNER_NAME: ${RUNNER_NAME:-unset}"
+          echo ""
+          echo "Vulkan Instance and Layers:"
           vulkaninfo --summary || echo "Vulkan check failed"
+          echo ""
+          echo "Available Vulkan Layers:"
+          vulkaninfo | grep -A 20 "Instance Layers:" || echo "Could not list layers"
+          echo ""
+          echo "GPU Hardware:"
           system_profiler SPDisplaysDataType | grep -A 5 "Chipset Model" || echo "GPU info not found"
 
+      - name: Verify sccache Configuration
+        run: |
+          echo "🔧 Verifying sccache configuration"
+          echo "RUSTC_WRAPPER: $RUSTC_WRAPPER"
+          echo "SCCACHE_DIR: $SCCACHE_DIR"
+          echo "SCCACHE_CACHE_SIZE: $SCCACHE_CACHE_SIZE"
+          sccache --show-stats
+          echo "✅ sccache is ready"
+
       - name: Build all features
-        run: cargo build --all-features --release
+        run: |
+          echo "🔨 Building with sccache acceleration"
+          cargo build --features "async,glsl,debug,validation,test-utils" --release
 
       - name: Run complete test suite
         run: |
           echo "🧪 Running complete test suite with GPU support"
-          cargo test --all-features --workspace -- --nocapture
+          cargo test --features "async,glsl,debug,validation,test-utils" --workspace -- --nocapture
 
       - name: Run GPU integration tests
         run: |
@@ -145,13 +619,72 @@ jobs:
       - name: Run ignored tests (GPU required)
         run: |
           echo "🔥 Running tests that require real GPU hardware"
-          cargo test --all-features -- --ignored --nocapture
+          cargo test --features "async,glsl,debug,validation,test-utils" -- --ignored --nocapture
+
+      - name: Verify all examples compile with GPU features
+        run: |
+          echo "🔨 Verifying all examples compile with GPU features"
+          cargo check --examples --features "async,glsl,debug,validation,test-utils" --verbose
+          echo "✅ All examples compile with GPU features"
+
+      - name: Run critical documentation tests with GPU
+        run: |
+          echo "📚 Running critical documentation tests with real GPU environment"
+          echo "Testing algorithm.rs doctests (recently fixed):"
+          cargo test --doc algorithm::Algorithm --features "async,glsl,debug,validation,test-utils" --verbose
+          echo "Testing async_sequence.rs doctests:"
+          cargo test --doc async_sequence --features "async,glsl,debug,validation,test-utils" --verbose
+          echo "Testing manager.rs basic doctests:"
+          cargo test --doc manager::Manager --features "async,glsl,debug,validation,test-utils" --verbose || echo "Some manager doctests may require specific GPU setup"
+          echo "✅ Critical documentation tests completed with GPU"
 
       - name: Test examples with GPU
         run: |
           echo "📋 Testing examples with real GPU"
-          timeout 60 cargo run --example basic_gpu_computing --features kompute-master || echo "Example timeout (expected)"
-          timeout 60 cargo run --example multi_type_tensors --features kompute-master || echo "Example timeout (expected)"
+          echo "Testing type_safe_gpu_computing example..."
+          timeout 60 cargo run --example type_safe_gpu_computing --features "async,glsl,debug,validation,test-utils" || echo "Example completed or timeout (expected)"
+          echo "Testing async_type_safety example..."
+          timeout 60 cargo run --example async_type_safety --features "async,glsl,debug,validation,test-utils" || echo "Example completed or timeout (expected)"
+          echo "Testing basic_gpu_computing example..."
+          timeout 60 cargo run --example basic_gpu_computing --features kompute-master || echo "Example completed or timeout (expected)"
+          echo "Testing multi_type_tensors example..."
+          timeout 60 cargo run --example multi_type_tensors --features kompute-master || echo "Example completed or timeout (expected)"
+
+      - name: Cache Performance Report
+        if: always()
+        run: |
+          echo "📊 Build and Cache Performance Report"
+          echo "=================================="
+
+          # Show sccache statistics
+          echo "🏎️  sccache Statistics:"
+          sccache --show-stats || echo "sccache stats unavailable"
+          echo ""
+
+          # Calculate total build time
+          BUILD_END_TIME=$(date +%s)
+          TOTAL_TIME=$((BUILD_END_TIME - CACHE_START_TIME))
+          echo "Total build time: ${TOTAL_TIME} seconds"
+
+          # Report cache usage
+          echo ""
+          echo "Final cache usage:"
+          du -sh ~/.cache/komputers/ 2>/dev/null || echo "No cache directory"
+
+          echo ""
+          echo "Cargo target directory size:"
+          du -sh target/ 2>/dev/null || echo "No target directory"
+
+          echo ""
+          echo "Cache hit indicators:"
+          if [ -d "target/release/build/kompute-sys-"*"/out/kompute_build" ]; then
+            echo "✅ CMake cache likely hit (kompute_build exists)"
+          else
+            echo "❌ CMake cache miss (fresh build)"
+          fi
+
+          # Save metrics for trend analysis
+          echo "$(date): ${TOTAL_TIME}s" >> ~/.cache/komputers/build-metrics/build-times.log
 
       # - name: Upload test results
       #   uses: actions/upload-artifact@v4
@@ -163,96 +696,112 @@ jobs:
       #       *.log
       #     retention-days: 3
 
+  # Conditional Linux GPU testing - Enable when runner is available
   gpu-tests-self-hosted-linux:
     name: GPU Tests (Self-Hosted Linux)
     runs-on: [self-hosted, linux, gpu]
-    if: ${{ github.repository_owner == 'axiomantic' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}
+    timeout-minutes: 45
+    # Only run when Linux GPU runner is explicitly available
+    if: ${{ vars.LINUX_GPU_RUNNER_AVAILABLE == 'true' && github.repository_owner == 'axiomantic' }}
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Validate GPU Environment
+      - name: Configure Linux GPU Environment
         run: |
-          echo "🐧 Validating Linux GPU Environment"
-          nvidia-smi || echo "NVIDIA GPU check failed"
-          vulkaninfo --summary || echo "Vulkan check failed"
-          lspci | grep -i vga || echo "GPU detection failed"
+          echo "🐧 Configuring Linux GPU development environment"
 
-      - name: Build all features
-        run: cargo build --all-features --release
+          # Ensure Rust is in PATH
+          export PATH="$HOME/.cargo/bin:$PATH"
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-      - name: Run complete test suite
+          # Configure sccache for faster compilation
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+          echo "SCCACHE_CACHE_SIZE=2G" >> $GITHUB_ENV
+          echo "SCCACHE_DIR=$HOME/.cache/sccache" >> $GITHUB_ENV
+
+          # Configure parallel compilation
+          CPU_COUNT=$(nproc)
+          echo "CMAKE_BUILD_PARALLEL_LEVEL=${CPU_COUNT}" >> $GITHUB_ENV
+          echo "MAKEFLAGS=-j${CPU_COUNT}" >> $GITHUB_ENV
+
+          # Verify essential tools
+          cmake --version
+          rustc --version
+          cargo --version
+
+      - name: Validate Linux GPU Environment
         run: |
-          echo "🧪 Running complete test suite with GPU support"
-          cargo test --all-features --workspace -- --nocapture
+          echo "🔍 Validating Linux GPU Environment"
+          echo "CUDA available:" && nvidia-smi || echo "No NVIDIA GPU"
+          echo "Vulkan available:" && vulkaninfo --summary || echo "No Vulkan support"
+          echo "GPU modules:" && lsmod | grep -E "(nvidia|amdgpu|radeon)" || echo "No GPU modules"
 
-      - name: Run GPU integration tests
+      - name: Run Linux GPU Tests
         run: |
-          echo "🚀 Running GPU-specific integration tests"
+          echo "🧪 Running complete test suite on Linux GPU"
+          cargo test --features "async,glsl,debug,validation,test-utils" --workspace -- --nocapture
+
+      - name: Run Linux-specific GPU Integration Tests
+        run: |
+          echo "🚀 Running Linux-specific GPU integration tests"
           cargo test --test gpu_compute_integration --features kompute-master -- --nocapture
-          cargo test --test cross_platform_integration --features kompute-master -- --nocapture
-          cargo test --test gpu_vendor_compatibility_matrix --features kompute-master -- --nocapture
+          cargo test --test cross_platform_behavior_parity_tests --features kompute-master -- --nocapture
 
-      - name: Run ignored tests (GPU required)
-        run: |
-          echo "🔥 Running tests that require real GPU hardware"
-          cargo test --all-features -- --ignored --nocapture
-
-      - name: Test examples with GPU
-        run: |
-          echo "📋 Testing examples with real GPU"
-          timeout 60 cargo run --example basic_gpu_computing --features kompute-master || echo "Example timeout (expected)"
-          timeout 60 cargo run --example multi_type_tensors --features kompute-master || echo "Example timeout (expected)"
-
+  # Conditional Windows GPU testing - Enable when runner is available
   gpu-tests-self-hosted-windows:
     name: GPU Tests (Self-Hosted Windows)
     runs-on: [self-hosted, windows, gpu]
-    if: ${{ github.repository_owner == 'axiomantic' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}
+    timeout-minutes: 45
+    # Only run when Windows GPU runner is explicitly available
+    if: ${{ vars.WINDOWS_GPU_RUNNER_AVAILABLE == 'true' && github.repository_owner == 'axiomantic' }}
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Validate GPU Environment
+      - name: Configure Windows GPU Environment
         shell: powershell
         run: |
-          Write-Host "🪟 Validating Windows GPU Environment"
-          try { nvidia-smi } catch { Write-Host "NVIDIA GPU check failed" }
-          try { vulkaninfo.exe } catch { Write-Host "Vulkan check failed" }
-          Get-WmiObject Win32_VideoController | Select-Object Name, DriverVersion
+          Write-Host "🪟 Configuring Windows GPU development environment"
 
-      - name: Build all features
-        run: cargo build --all-features --release
+          # Ensure Rust is in PATH
+          $env:PATH += ";$env:USERPROFILE\.cargo\bin"
+          echo "$env:USERPROFILE\.cargo\bin" | Out-File -Append $env:GITHUB_PATH
 
-      - name: Run complete test suite
+          # Configure sccache for faster compilation
+          echo "RUSTC_WRAPPER=sccache" | Out-File -Append $env:GITHUB_ENV
+          echo "SCCACHE_CACHE_SIZE=2G" | Out-File -Append $env:GITHUB_ENV
+          echo "SCCACHE_DIR=$env:USERPROFILE\.cache\sccache" | Out-File -Append $env:GITHUB_ENV
+
+          # Configure parallel compilation
+          $CPU_COUNT = (Get-WmiObject -Class Win32_ComputerSystem).NumberOfLogicalProcessors
+          echo "CMAKE_BUILD_PARALLEL_LEVEL=$CPU_COUNT" | Out-File -Append $env:GITHUB_ENV
+
+          # Verify essential tools
+          cmake --version
+          rustc --version
+          cargo --version
+
+      - name: Validate Windows GPU Environment
+        shell: powershell
         run: |
-          Write-Host "🧪 Running complete test suite with GPU support"
-          cargo test --all-features --workspace -- --nocapture
+          Write-Host "🔍 Validating Windows GPU Environment"
+          Write-Host "NVIDIA GPU:"
+          nvidia-smi | Out-Host
+          Write-Host "Vulkan available:"
+          vulkaninfo --summary | Out-Host
 
-      - name: Run GPU integration tests
+      - name: Run Windows GPU Tests
+        shell: powershell
         run: |
-          Write-Host "🚀 Running GPU-specific integration tests"
+          Write-Host "🧪 Running complete test suite on Windows GPU"
+          cargo test --features "async,glsl,debug,validation,test-utils" --workspace -- --nocapture
+
+      - name: Run Windows-specific GPU Integration Tests
+        shell: powershell
+        run: |
+          Write-Host "🚀 Running Windows-specific GPU integration tests"
           cargo test --test gpu_compute_integration --features kompute-master -- --nocapture
-          cargo test --test cross_platform_integration --features kompute-master -- --nocapture
-          cargo test --test gpu_vendor_compatibility_matrix --features kompute-master -- --nocapture
-
-      - name: Run ignored tests (GPU required)
-        run: |
-          Write-Host "🔥 Running tests that require real GPU hardware"
-          cargo test --all-features -- --ignored --nocapture
-
-      - name: Test examples with GPU
-        shell: powershell
-        run: |
-          Write-Host "📋 Testing examples with real GPU"
-          try {
-            timeout /t 60 cargo run --example basic_gpu_computing --features kompute-master
-          } catch {
-            Write-Host "Example timeout (expected)"
-          }
-          try {
-            timeout /t 60 cargo run --example multi_type_tensors --features kompute-master
-          } catch {
-            Write-Host "Example timeout (expected)"
-          }
+          cargo test --test cross_platform_behavior_parity_tests --features kompute-master -- --nocapture

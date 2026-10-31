@@ -6,8 +6,6 @@
 //!
 //! This module is only available when the `glsl` feature is enabled.
 
-#![cfg(feature = "glsl")]
-
 use crate::error::{KomputeError, Result};
 use std::collections::HashMap;
 use std::fs;

@@ -39,3 +39,5 @@ asan = []        # Enable AddressSanitizer for C++ memory debugging
 # Ensure docs build on docs.rs with proper features
 features = []
 rustdoc-args = ["--cfg", "docsrs"]
+# Disable Vulkan version checking for docs.rs builds
+rustc-env = { KOMPUTE_DISABLE_VULKAN_CHECK = "1" }

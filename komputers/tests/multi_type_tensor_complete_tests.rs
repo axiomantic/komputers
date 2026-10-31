@@ -3,7 +3,7 @@
 //! This test suite validates complete support for f64, i32, and u32 tensor types
 //! with full GPU integration and proper type safety validation.
 
-use kompute::{Manager, Result, Tensor, TensorData};
+use komputers::{Manager, Tensor, TensorData};
 
 #[test]
 fn test_f64_tensor_precision_handling() {
@@ -162,7 +162,7 @@ fn test_tensor_data_trait_consistency() {
     println!("  ✓ TensorData trait data type IDs are consistent");
 
     // Test that data type IDs are unique
-    let type_ids = vec![
+    let type_ids = [
         f32::data_type_id(),
         f64::data_type_id(),
         i32::data_type_id(),

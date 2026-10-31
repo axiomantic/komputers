@@ -27,14 +27,13 @@ use std::collections::HashMap;
 ///     let data = vec![1.0f32, 2.0, 3.0, 4.0];
 ///     let tensor = Tensor::new(multi_manager.manager(), &data)?;
 ///
-///     // These operations can run concurrently
-///     let mut compute_seq = multi_manager.create_sequence_on_queue("compute")?;
-///     let mut transfer_seq = multi_manager.create_sequence_on_queue("transfer")?;
+///     // Execute operations using consuming builder pattern
+///     let compute_seq = multi_manager.create_sequence_on_queue("compute")?
+///         .record_tensor_sync_device(tensor.handle())?;
+///     let transfer_seq = multi_manager.create_sequence_on_queue("transfer")?
+///         .record_tensor_sync_local(tensor.handle())?;
 ///
-///     compute_seq.record_tensor_sync_device(tensor.handle())?;
-///     transfer_seq.record_tensor_sync_local(tensor.handle())?;
-///
-///     // Execute both sequences in parallel
+///     // Execute both sequences on their designated queues
 ///     multi_manager.execute_parallel(vec![
 ///         ("compute".to_string(), compute_seq),
 ///         ("transfer".to_string(), transfer_seq),
@@ -181,7 +180,7 @@ impl MultiQueueManager {
     /// # Errors
     ///
     /// Returns [`KomputeError::ComputeError`] if any sequence execution fails.
-    pub fn execute_parallel(&mut self, mut sequences: Vec<(String, Sequence)>) -> Result<()> {
+    pub fn execute_parallel(&mut self, sequences: Vec<(String, Sequence)>) -> Result<()> {
         // Validate input
         if sequences.is_empty() {
             return Err(KomputeError::compute("Cannot execute empty sequence list"));
@@ -208,20 +207,11 @@ impl MultiQueueManager {
             }
         }
 
-        // Start all sequences asynchronously
-        for (queue_name, sequence) in &mut sequences {
-            // Start async execution
-            if let Err(e) = sequence.eval_async() {
-                return Err(KomputeError::compute(format!(
-                    "Failed to start async execution on queue '{}': {}",
-                    queue_name, e
-                )));
-            }
-        }
-
-        // Wait for all sequences to complete with error handling
-        for (queue_name, sequence) in &mut sequences {
-            if let Err(e) = sequence.eval_await(0) {
+        // Execute sequences using consuming builder pattern
+        // Note: Consuming pattern doesn't support deferred parallel execution,
+        // so we execute sequences sequentially but on their designated queues
+        for (queue_name, sequence) in sequences {
+            if let Err(e) = sequence.execute() {
                 return Err(KomputeError::compute(format!(
                     "Sequence execution failed on queue '{}': {}",
                     queue_name, e

@@ -4,7 +4,7 @@
 //! memory issues in the C++ bridge code, including memory leaks,
 //! use-after-free, buffer overflows, and handle registry safety.
 
-use kompute::{Manager, Tensor};
+use komputers::{Manager, Tensor};
 use std::env;
 use std::process::Command;
 use std::time::Instant;

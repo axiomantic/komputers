@@ -4,7 +4,7 @@
 //! provides meaningful error messages, and maintains stability
 //! under various failure conditions.
 
-use kompute::{KomputeError, Manager, Result, Sequence, Tensor};
+use komputers::{KomputeError, Manager, Result, Sequence, Tensor};
 use std::panic;
 
 /// Test error handling in manager creation and device operations.
@@ -246,6 +246,9 @@ fn test_error_message_quality() {
             KomputeError::PlatformError(_) => assert!(message.contains("Platform")),
             KomputeError::EnvironmentError(_) => assert!(message.contains("Environment")),
             KomputeError::InternalError(_) => assert!(message.contains("Internal")),
+            KomputeError::TypeSafety(_) => {
+                assert!(message.contains("Type") || message.contains("safety"))
+            }
         }
     }
 

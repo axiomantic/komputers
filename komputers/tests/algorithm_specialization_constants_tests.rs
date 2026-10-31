@@ -3,7 +3,7 @@
 //! This test suite validates the newly implemented specialization constants
 //! and push constants functionality for GPU algorithms.
 
-use kompute::{Algorithm, Manager, Result};
+use komputers::{Algorithm, Manager, Result};
 
 #[test]
 fn test_algorithm_specialization_constants_api() {
@@ -123,7 +123,7 @@ fn test_algorithm_constants_with_tensor_binding() {
 
         // Create a tensor to bind
         let data = vec![1.0f32, 2.0, 3.0, 4.0];
-        match kompute::Tensor::new(&mut manager, &data) {
+        match komputers::Tensor::new(&mut manager, &data) {
             Ok(tensor) => {
                 // Create algorithm with tensors
                 match Algorithm::with_tensors(&mut manager, &spirv_data, &[&tensor]) {

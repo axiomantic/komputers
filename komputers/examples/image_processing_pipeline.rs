@@ -141,7 +141,7 @@ fn example_gaussian_blur(
         kernel_size as f32,
     ];
     let params_tensor = Tensor::new(manager, &params)?;
-    let mut output_tensor: Tensor<f32> = Tensor::uninit(manager, width * height * channels)?;
+    let output_tensor: Tensor<f32> = Tensor::uninit(manager, width * height * channels)?;
 
     profiler.end_operation("gaussian_setup")?;
 
@@ -160,11 +160,12 @@ fn example_gaussian_blur(
         ],
     )?;
 
-    let mut sequence = manager.sequence()?;
-    let workgroup_x = (width + 15) / 16;
-    let workgroup_y = (height + 15) / 16;
-    sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    let _workgroup_x = (width + 15) / 16;
+    let _workgroup_y = (height + 15) / 16;
+    manager
+        .sequence()?
+        .record_algorithm_dispatch(algorithm.handle())?
+        .execute()?;
 
     profiler.end_operation("gaussian_compute")?;
 
@@ -215,7 +216,7 @@ fn example_edge_detection(
     let sobel_y_tensor = Tensor::new(manager, &sobel_y)?;
     let params = vec![width as f32, height as f32, channels as f32];
     let params_tensor = Tensor::new(manager, &params)?;
-    let mut edge_magnitude: Tensor<f32> = Tensor::uninit(manager, width * height)?; // Grayscale output
+    let edge_magnitude: Tensor<f32> = Tensor::uninit(manager, width * height)?; // Grayscale output
 
     profiler.end_operation("edge_setup")?;
 
@@ -235,11 +236,12 @@ fn example_edge_detection(
         ],
     )?;
 
-    let mut sequence = manager.sequence()?;
-    let workgroup_x = (width + 15) / 16;
-    let workgroup_y = (height + 15) / 16;
-    sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    let _workgroup_x = (width + 15) / 16;
+    let _workgroup_y = (height + 15) / 16;
+    manager
+        .sequence()?
+        .record_algorithm_dispatch(algorithm.handle())?
+        .execute()?;
 
     profiler.end_operation("edge_compute")?;
 
@@ -290,7 +292,7 @@ fn example_histogram_equalization(
     }
 
     let grayscale_tensor = Tensor::new(manager, &grayscale)?;
-    let mut histogram: Tensor<f32> = Tensor::uninit(manager, num_bins)?;
+    let histogram: Tensor<f32> = Tensor::uninit(manager, num_bins)?;
     let params = vec![width as f32, height as f32, num_bins as f32];
     let params_tensor = Tensor::new(manager, &params)?;
 
@@ -307,10 +309,11 @@ fn example_histogram_equalization(
         &[&grayscale_tensor, &params_tensor, &histogram],
     )?;
 
-    let mut sequence = manager.sequence()?;
-    let workgroup_x = (total_pixels + 255) / 256;
-    sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    let _workgroup_x = (total_pixels + 255) / 256;
+    manager
+        .sequence()?
+        .record_algorithm_dispatch(algorithm.handle())?
+        .execute()?;
 
     profiler.end_operation("histogram_compute")?;
 
@@ -335,7 +338,7 @@ fn example_histogram_equalization(
 
     let image_tensor = Tensor::new(manager, image_data)?;
     let cdf_tensor = Tensor::new(manager, &cdf)?;
-    let mut equalized: Tensor<f32> = Tensor::uninit(manager, width * height * channels)?;
+    let equalized: Tensor<f32> = Tensor::uninit(manager, width * height * channels)?;
 
     let equalize_spirv = create_equalization_shader();
     let algorithm = Algorithm::with_tensors(
@@ -344,10 +347,11 @@ fn example_histogram_equalization(
         &[&image_tensor, &cdf_tensor, &params_tensor, &equalized],
     )?;
 
-    let mut sequence = manager.sequence()?;
-    let workgroup_x = (total_pixels + 255) / 256;
-    sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    let _workgroup_x = (total_pixels + 255) / 256;
+    manager
+        .sequence()?
+        .record_algorithm_dispatch(algorithm.handle())?
+        .execute()?;
 
     profiler.end_operation("equalization_compute")?;
 
@@ -405,8 +409,8 @@ fn example_morphological_operations(
         threshold,
     ];
     let params_tensor = Tensor::new(manager, &params)?;
-    let mut eroded: Tensor<f32> = Tensor::uninit(manager, width * height)?;
-    let mut dilated: Tensor<f32> = Tensor::uninit(manager, width * height)?;
+    let eroded: Tensor<f32> = Tensor::uninit(manager, width * height)?;
+    let dilated: Tensor<f32> = Tensor::uninit(manager, width * height)?;
 
     profiler.end_operation("morphology_setup")?;
 
@@ -419,11 +423,12 @@ fn example_morphological_operations(
         &[&binary_tensor, &struct_tensor, &params_tensor, &eroded],
     )?;
 
-    let mut sequence = manager.sequence()?;
-    let workgroup_x = (width + 15) / 16;
-    let workgroup_y = (height + 15) / 16;
-    sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    let _workgroup_x = (width + 15) / 16;
+    let _workgroup_y = (height + 15) / 16;
+    manager
+        .sequence()?
+        .record_algorithm_dispatch(algorithm.handle())?
+        .execute()?;
     profiler.end_operation("erosion_compute")?;
 
     // Dilation operation
@@ -435,9 +440,10 @@ fn example_morphological_operations(
         &[&binary_tensor, &struct_tensor, &params_tensor, &dilated],
     )?;
 
-    let mut sequence = manager.sequence()?;
-    sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    manager
+        .sequence()?
+        .record_algorithm_dispatch(algorithm.handle())?
+        .execute()?;
     profiler.end_operation("dilation_compute")?;
 
     // Analyze morphological operations
@@ -490,7 +496,7 @@ fn example_color_space_conversion(
     let image_tensor = Tensor::new(manager, image_data)?;
     let params = vec![width as f32, height as f32, channels as f32];
     let params_tensor = Tensor::new(manager, &params)?;
-    let mut hsv_tensor: Tensor<f32> = Tensor::uninit(manager, total_pixels * channels)?;
+    let hsv_tensor: Tensor<f32> = Tensor::uninit(manager, total_pixels * channels)?;
 
     profiler.end_operation("color_conversion_setup")?;
 
@@ -504,10 +510,11 @@ fn example_color_space_conversion(
         &[&image_tensor, &params_tensor, &hsv_tensor],
     )?;
 
-    let mut sequence = manager.sequence()?;
-    let workgroup_x = (total_pixels + 255) / 256;
-    sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    let _workgroup_x = (total_pixels + 255) / 256;
+    manager
+        .sequence()?
+        .record_algorithm_dispatch(algorithm.handle())?
+        .execute()?;
 
     profiler.end_operation("color_conversion_compute")?;
 
@@ -579,9 +586,9 @@ fn example_color_space_conversion(
 
 // Utility functions for image analysis
 
-fn calculate_image_variance(image_data: &[f32], width: usize, height: usize) -> f32 {
-    let channels = 3;
-    let total_pixels = width * height;
+fn calculate_image_variance(image_data: &[f32], _width: usize, _height: usize) -> f32 {
+    let _channels = 3;
+    let _total_pixels = _width * _height;
 
     // Calculate mean
     let mean = image_data.iter().sum::<f32>() / image_data.len() as f32;

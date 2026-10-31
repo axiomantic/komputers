@@ -4,7 +4,7 @@
 //! path detection, fallback mechanisms, and cross-platform compatibility
 //! for the VulkanSetup module functionality.
 
-use kompute::vulkan_setup::{configure_vulkan_environment, verify_vulkan_availability};
+use komputers::vulkan_setup::{configure_vulkan_environment, verify_vulkan_availability};
 use std::env;
 use std::path::Path;
 

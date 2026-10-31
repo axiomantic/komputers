@@ -3,7 +3,7 @@
 //! This test suite addresses critical testing gaps identified in
 //! PHASE_2_TEST_COVERAGE_AUDIT.md for production readiness validation.
 
-use kompute::{Manager, MemoryOptimizer};
+use komputers::{Manager, MemoryOptimizer};
 use std::collections::HashMap;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -184,9 +184,7 @@ fn test_memory_optimization_production() {
                     framework.record_performance("memory_statistics", stats_time);
 
                     // Validate statistics structure
-                    let stats_valid = stats.total_allocated >= 0
-                        && stats.total_free >= 0
-                        && stats.average_fragmentation >= 0.0;
+                    let stats_valid = stats.average_fragmentation >= 0.0;
                     framework.record_test("memory_statistics_valid", stats_valid);
 
                     println!(

@@ -1,6 +1,6 @@
 //! Integration test demonstrating end-to-end GPU compute functionality.
 
-use kompute::{Manager, Result};
+use komputers::{Manager, Result};
 
 #[test]
 

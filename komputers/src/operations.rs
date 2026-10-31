@@ -104,22 +104,14 @@ impl GpuOperations {
         let tensors = vec![a, b, output];
         let algorithm = Algorithm::with_tensors(&mut self.manager, spirv_data, &tensors)?;
 
-        // Create sequence and record operations
-        let mut sequence = Sequence::new(&mut self.manager)?;
-
-        // Record tensor synchronization to device
-        sequence.record_tensor_sync_device(a.handle())?;
-        sequence.record_tensor_sync_device(b.handle())?;
-        sequence.record_tensor_sync_device(output.handle())?;
-
-        // Record algorithm dispatch
-        sequence.record_algorithm_dispatch(algorithm.handle())?;
-
-        // Record output tensor synchronization back to host
-        sequence.record_tensor_sync_local(output.handle())?;
-
-        // Execute the sequence
-        sequence.eval()?;
+        // Execute operations using consuming builder pattern
+        Sequence::new(&mut self.manager)?
+            .record_tensor_sync_device(a.handle())?
+            .record_tensor_sync_device(b.handle())?
+            .record_tensor_sync_device(output.handle())?
+            .record_algorithm_dispatch(algorithm.handle())?
+            .record_tensor_sync_local(output.handle())?
+            .execute()?;
 
         Ok(())
     }
@@ -158,15 +150,11 @@ impl GpuOperations {
             )));
         }
 
-        // Create a sequence for the copy operation
-        let mut sequence = Sequence::new(&mut self.manager)?;
-
-        // Record tensor synchronization operations
-        sequence.record_tensor_sync_device(source.handle())?;
-        sequence.record_tensor_sync_device(dest.handle())?;
-
-        // Execute the sequence
-        sequence.eval()?;
+        // Execute copy operation using consuming builder pattern
+        Sequence::new(&mut self.manager)?
+            .record_tensor_sync_device(source.handle())?
+            .record_tensor_sync_device(dest.handle())?
+            .execute()?;
 
         Ok(())
     }
@@ -317,9 +305,8 @@ impl GpuOperations {
     ///
     /// Ensures all queued operations complete before returning.
     pub fn synchronize(&mut self) -> Result<()> {
-        // Create a sequence to synchronize all operations
-        let mut sequence = Sequence::new(&mut self.manager)?;
-        sequence.eval()?;
+        // Synchronize all operations using consuming builder pattern
+        Sequence::new(&mut self.manager)?.execute()?;
         Ok(())
     }
 
@@ -380,22 +367,14 @@ impl GpuOperations {
             )));
         }
 
-        // Create sequence and record operations
-        let mut sequence = Sequence::new(&mut self.manager)?;
-
-        // Record tensor synchronization to device
-        sequence.record_tensor_sync_device(a.handle())?;
-        sequence.record_tensor_sync_device(b.handle())?;
-        sequence.record_tensor_sync_device(output.handle())?;
-
-        // Record algorithm dispatch
-        sequence.record_algorithm_dispatch(binding.algorithm().handle())?;
-
-        // Record output tensor synchronization back to host
-        sequence.record_tensor_sync_local(output.handle())?;
-
-        // Execute the sequence
-        sequence.eval()?;
+        // Execute validated operation using consuming builder pattern
+        Sequence::new(&mut self.manager)?
+            .record_tensor_sync_device(a.handle())?
+            .record_tensor_sync_device(b.handle())?
+            .record_tensor_sync_device(output.handle())?
+            .record_algorithm_dispatch(binding.algorithm().handle())?
+            .record_tensor_sync_local(output.handle())?
+            .execute()?;
 
         Ok(validation_report)
     }
@@ -601,7 +580,7 @@ impl MemoryPatterns {
     pub fn is_coalesced_access(tensor_size: usize) -> bool {
         // Memory coalescing works best with sizes that are multiples of the warp size (32)
         // and align well with cache line sizes (typically 128 bytes = 32 floats)
-        tensor_size % 32 == 0
+        tensor_size.is_multiple_of(32)
     }
 
     /// Suggest padding size to optimize memory access.

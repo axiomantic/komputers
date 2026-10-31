@@ -4,7 +4,7 @@
 //! management, statistics calculation, concurrent access patterns,
 //! and edge case handling in the HandleTracker system.
 
-use kompute::handle_tracker::{global_tracker, HandleTracker, TrackedHandle};
+use komputers::handle_tracker::{global_tracker, HandleTracker, TrackedHandle};
 use std::sync::{Arc, Barrier};
 use std::thread;
 use std::time::Instant;

@@ -4,8 +4,8 @@
 //! in critical GPU operations, tensor manipulations, handle management,
 //! and overall system throughput across different workloads.
 
-use kompute::handle_tracker::HandleTracker;
-use kompute::Manager;
+use komputers::handle_tracker::HandleTracker;
+use komputers::Manager;
 use std::sync::{Arc, Barrier};
 use std::thread;
 use std::time::{Duration, Instant};

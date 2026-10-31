@@ -49,16 +49,16 @@ fn example_monte_carlo_pi(manager: &mut Manager, profiler: &mut PerformanceProfi
 
     // Generate random points in [0,1] x [0,1]
     let random_x: Vec<f32> = (0..num_samples)
-        .map(|i| ((i as f32 * 1234.5) % 1.0))
+        .map(|i| (i as f32 * 1234.5) % 1.0)
         .collect();
 
     let random_y: Vec<f32> = (0..num_samples)
-        .map(|i| ((i as f32 * 5678.9) % 1.0))
+        .map(|i| (i as f32 * 5678.9) % 1.0)
         .collect();
 
     let x_tensor = Tensor::new(manager, &random_x)?;
     let y_tensor = Tensor::new(manager, &random_y)?;
-    let mut results_tensor: Tensor<f32> = Tensor::uninit(manager, num_samples)?;
+    let results_tensor: Tensor<f32> = Tensor::uninit(manager, num_samples)?;
 
     profiler.end_operation("monte_carlo_setup")?;
 
@@ -72,10 +72,10 @@ fn example_monte_carlo_pi(manager: &mut Manager, profiler: &mut PerformanceProfi
         &[&x_tensor, &y_tensor, &results_tensor],
     )?;
 
-    let mut sequence = manager.sequence()?;
-    let workgroups = (num_samples + 255) / 256;
-    sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    manager
+        .sequence()?
+        .record_algorithm_dispatch(algorithm.handle())?
+        .execute()?;
 
     profiler.end_operation("monte_carlo_compute")?;
 
@@ -145,9 +145,9 @@ fn example_nbody_simulation(
     let g_tensor = Tensor::new(manager, &[g_constant])?;
 
     // Output tensors for forces
-    let mut force_x_tensor: Tensor<f32> = Tensor::uninit(manager, num_bodies)?;
-    let mut force_y_tensor: Tensor<f32> = Tensor::uninit(manager, num_bodies)?;
-    let mut force_z_tensor: Tensor<f32> = Tensor::uninit(manager, num_bodies)?;
+    let force_x_tensor: Tensor<f32> = Tensor::uninit(manager, num_bodies)?;
+    let force_y_tensor: Tensor<f32> = Tensor::uninit(manager, num_bodies)?;
+    let force_z_tensor: Tensor<f32> = Tensor::uninit(manager, num_bodies)?;
 
     profiler.end_operation("nbody_setup")?;
 
@@ -174,10 +174,10 @@ fn example_nbody_simulation(
         ],
     )?;
 
-    let mut sequence = manager.sequence()?;
-    let workgroups = (num_bodies + 63) / 64; // 64 threads per workgroup for good occupancy
-    sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    manager
+        .sequence()?
+        .record_algorithm_dispatch(algorithm.handle())?
+        .execute()?;
 
     profiler.end_operation("nbody_force_calculation")?;
 
@@ -237,7 +237,7 @@ fn example_numerical_integration(
     let x_values: Vec<f32> = (0..=n).map(|i| a + i as f32 * h).collect();
 
     let x_tensor = Tensor::new(manager, &x_values)?;
-    let mut fx_tensor: Tensor<f32> = Tensor::uninit(manager, n + 1)?;
+    let fx_tensor: Tensor<f32> = Tensor::uninit(manager, n + 1)?;
 
     profiler.end_operation("integration_setup")?;
 
@@ -249,10 +249,10 @@ fn example_numerical_integration(
     let algorithm =
         Algorithm::with_tensors(manager, &function_eval_spirv, &[&x_tensor, &fx_tensor])?;
 
-    let mut sequence = manager.sequence()?;
-    let workgroups = ((n + 1) + 255) / 256;
-    sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    manager
+        .sequence()?
+        .record_algorithm_dispatch(algorithm.handle())?
+        .execute()?;
 
     profiler.end_operation("function_evaluation")?;
 
@@ -312,7 +312,7 @@ fn example_frequency_analysis(
         .collect();
 
     let signal_tensor = Tensor::new(manager, &signal)?;
-    let mut magnitude_spectrum: Tensor<f32> = Tensor::uninit(manager, n / 2)?; // Only positive frequencies
+    let magnitude_spectrum: Tensor<f32> = Tensor::uninit(manager, n / 2)?; // Only positive frequencies
 
     profiler.end_operation("frequency_setup")?;
 
@@ -323,10 +323,10 @@ fn example_frequency_analysis(
     let algorithm =
         Algorithm::with_tensors(manager, &dft_spirv, &[&signal_tensor, &magnitude_spectrum])?;
 
-    let mut sequence = manager.sequence()?;
-    let workgroups = ((n / 2) + 63) / 64;
-    sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    manager
+        .sequence()?
+        .record_algorithm_dispatch(algorithm.handle())?
+        .execute()?;
 
     profiler.end_operation("dft_computation")?;
 
@@ -415,7 +415,7 @@ fn example_heat_equation(manager: &mut Manager, profiler: &mut PerformanceProfil
     }
 
     let initial_temp_tensor = Tensor::new(manager, &temperature)?;
-    let mut new_temp_tensor: Tensor<f32> = Tensor::uninit(manager, grid_size)?;
+    let new_temp_tensor: Tensor<f32> = Tensor::uninit(manager, grid_size)?;
 
     // Parameters tensor
     let params = vec![dx, dy, dt, alpha, nx as f32, ny as f32];
@@ -435,11 +435,10 @@ fn example_heat_equation(manager: &mut Manager, profiler: &mut PerformanceProfil
             &[&initial_temp_tensor, &params_tensor, &new_temp_tensor],
         )?;
 
-        let mut sequence = manager.sequence()?;
-        let workgroups_x = (nx + 15) / 16;
-        let workgroups_y = (ny + 15) / 16;
-        sequence.record_algorithm_dispatch(algorithm.handle())?;
-        sequence.eval()?;
+        manager
+            .sequence()?
+            .record_algorithm_dispatch(algorithm.handle())?
+            .execute()?;
 
         // Swap tensors for next iteration (in real implementation)
         if (step + 1) % 20 == 0 {

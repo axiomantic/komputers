@@ -2,12 +2,16 @@
 //!
 //! These tests verify that properties hold across a wide range of inputs,
 //! helping to catch edge cases and ensure robust behavior.
+//!
+//! Note: These tests require the `property-testing` feature to be enabled.
 
-use kompute::{Manager, Tensor};
+#[cfg(feature = "property-testing")]
+use komputers::{Manager, Tensor};
+#[cfg(feature = "property-testing")]
 use proptest::prelude::*;
 
 /// Property test: Tensor creation and data retrieval should be consistent.
-#[cfg(test)]
+#[cfg(all(test, feature = "property-testing"))]
 mod tensor_properties {
     use super::*;
 
@@ -124,7 +128,7 @@ mod tensor_properties {
 }
 
 /// Property tests for special float values and edge cases.
-#[cfg(test)]
+#[cfg(all(test, feature = "property-testing"))]
 mod float_properties {
     use super::*;
 
@@ -200,7 +204,7 @@ mod float_properties {
 }
 
 /// Property tests for error handling and robustness.
-#[cfg(test)]
+#[cfg(all(test, feature = "property-testing"))]
 mod error_properties {
     use super::*;
 
@@ -253,7 +257,7 @@ mod error_properties {
 }
 
 /// Property tests for concurrency and thread safety.
-#[cfg(test)]
+#[cfg(all(test, feature = "property-testing"))]
 mod concurrency_properties {
     use super::*;
     use std::sync::{Arc, Mutex};
@@ -325,9 +329,9 @@ mod concurrency_properties {
 }
 
 /// Property tests for data type consistency.
-#[cfg(test)]
+#[cfg(all(test, feature = "property-testing"))]
 mod type_properties {
-    use kompute::TensorData;
+    use komputers::TensorData;
 
     #[test]
     fn prop_tensor_data_type_ids_unique() {

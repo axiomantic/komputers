@@ -16,7 +16,7 @@ readme = "README.md"
 
 [dependencies]
 # Core dependencies
-kompute-sys = { version = "0.1.0", path = "../kompute-sys" }
+kompute-sys = { version = "0.4.0", path = "../kompute-sys" }
 ash.workspace = true
 thiserror.workspace = true
 log.workspace = true
@@ -26,6 +26,9 @@ cxx = "1.0"
 tokio = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 
+# Multi-runtime async support
+smol = { version = "2.0", optional = true }
+
 # GLSL compilation support
 tempfile = { workspace = true, optional = true }
 
@@ -33,18 +36,22 @@ tempfile = { workspace = true, optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0", optional = true }
 uuid = { version = "1.0", features = ["v4"], optional = true }
-chrono = { version = "0.4", features = ["serde"], optional = true }
+# chrono removed - using std::time instead
 
 # Crash debugging and analysis
 backtrace = { version = "0.3", optional = true }
 signal-hook = { version = "0.3", optional = true }
 libc = { version = "0.2", optional = true }
 
+# Benchmarking dependencies (optional - only needed for benchmarks)
+criterion = { workspace = true, optional = true }
+
+# Property testing dependencies (optional - only needed for property tests)
+proptest = { workspace = true, optional = true }
+
 [dev-dependencies]
-env_logger.workspace = true
-criterion.workspace = true
-proptest.workspace = true
 anyhow.workspace = true
+serial_test = "3.0"
 
 [features]
 default = ["kompute-master"]
@@ -56,15 +63,21 @@ kompute-master = ["kompute-sys/kompute-master"]
 # kompute-v081 = ["kompute-sys/kompute-v081"]
 
 # Production features for v0.1.0 release
-async = ["tokio", "futures"]
+async = ["tokio", "futures", "tokio-runtime"]
 glsl = ["tempfile"]
-debug = ["serde", "serde_json", "uuid", "chrono"]
+debug = ["serde", "serde_json", "uuid"]
 validation = ["kompute-sys/validation"]
 test-utils = []
 
+# Multi-runtime async support (choose one or more)
+tokio-runtime = ["tokio", "futures"]
+smol-runtime = ["smol"]
+
 # Development-only features (not included in production release)
-# asan = ["kompute-sys/asan"]  # Commented out due to linker issues on macOS
+asan = ["kompute-sys/asan"]  # AddressSanitizer support for debugging
 # crash-debug = ["backtrace", "signal-hook", "libc"]
+benchmarks = ["criterion"]
+property-testing = ["proptest"]
 
 [[example]]
 name = "defensive_guards_demo"
@@ -78,9 +91,6 @@ path = "examples/basic_gpu_computing.rs"
 name = "advanced_gpu_operations"
 path = "examples/advanced_gpu_operations.rs"
 
-[[example]]
-name = "async_gpu_operations"
-path = "examples/async_gpu_operations.rs"
 
 [[example]]
 name = "image_processing_pipeline"
@@ -98,6 +108,55 @@ path = "examples/multi_type_tensors.rs"
 name = "scientific_computing"
 path = "examples/scientific_computing.rs"
 
+[[example]]
+name = "dimension_safe_tensors"
+path = "examples/dimension_safe_tensors.rs"
+
+[[example]]
+name = "type_safe_shaders"
+path = "examples/type_safe_shaders.rs"
+
+[[example]]
+name = "memory_aligned_tensors"
+path = "examples/memory_aligned_tensors.rs"
+
+[[example]]
+name = "lifetime_bound_resources"
+path = "examples/lifetime_bound_resources.rs"
+
+[[example]]
+name = "type_indexed_dispatch"
+path = "examples/type_indexed_dispatch.rs"
+
+[[example]]
+name = "type_safe_gpu_computing"
+path = "examples/type_safe_gpu_computing.rs"
+
+[[example]]
+name = "async_type_safety"
+path = "examples/async_type_safety.rs"
+
+# Revolutionary safety examples (to be implemented when validation system is ready)
+# [[example]]
+# name = "basic_gpu_safety"
+# path = "docs/examples/basic_gpu_safety.rs"
+#
+# [[example]]
+# name = "cross_manager_safety"
+# path = "docs/examples/cross_manager_safety.rs"
+#
+# [[example]]
+# name = "consuming_builder_safety"
+# path = "docs/examples/consuming_builder_safety.rs"
+#
+# [[example]]
+# name = "spirv_algorithm_safety"
+# path = "docs/examples/spirv_algorithm_safety.rs"
+#
+# [[example]]
+# name = "performance_safety_overhead"
+# path = "docs/examples/performance_safety_overhead.rs"
+
 # Benchmarks will be added later
 # [[bench]]
 # name = "tensor_operations"
@@ -107,3 +166,5 @@ path = "examples/scientific_computing.rs"
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 targets = ["x86_64-unknown-linux-gnu", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-pc-windows-msvc"]
+# Disable Vulkan version checking for docs.rs builds
+rustc-env = { KOMPUTE_DISABLE_VULKAN_CHECK = "1" }

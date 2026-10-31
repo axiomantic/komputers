@@ -3,7 +3,7 @@
 //! These tests verify that the GPU operations module performs actual compute
 //! operations on real GPU hardware with correct results.
 
-use kompute::{GpuOperations, Manager, Tensor, TensorData};
+use komputers::{GpuOperations, Tensor};
 
 #[test]
 fn test_elementwise_add_f32_real_gpu_computation() {
@@ -80,7 +80,7 @@ fn test_elementwise_add_f64_precision() {
         let a_data = vec![
             std::f64::consts::PI,
             std::f64::consts::E,
-            1.41421356237309504880f64, // √2
+            std::f64::consts::SQRT_2, // √2
         ];
         let b_data = vec![1.0f64, 1.0f64, 1.0f64];
         let expected: Vec<f64> = a_data
@@ -124,7 +124,7 @@ fn test_elementwise_add_i32_integer_arithmetic() {
     if let Ok(mut ops) = GpuOperations::new() {
         let a_data = vec![100i32, -50, 0, i32::MAX - 1, i32::MIN + 1];
         let b_data = vec![25i32, 75, -100, 1, -1];
-        let expected = vec![125i32, 25, -100, i32::MAX, i32::MIN];
+        let expected = [125i32, 25, -100, i32::MAX, i32::MIN];
 
         println!("Testing i32 integer arithmetic element-wise addition...");
 
@@ -161,7 +161,7 @@ fn test_elementwise_add_u32_unsigned_arithmetic() {
     if let Ok(mut ops) = GpuOperations::new() {
         let a_data = vec![100u32, 4294967290u32, 0u32]; // Near u32::MAX - 5
         let b_data = vec![50u32, 5u32, u32::MAX];
-        let expected = vec![150u32, 4294967295u32, u32::MAX]; // u32::MAX
+        let expected = [150u32, 4294967295u32, u32::MAX]; // u32::MAX
 
         println!("Testing u32 unsigned arithmetic element-wise addition...");
 

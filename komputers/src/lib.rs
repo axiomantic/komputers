@@ -1,79 +1,178 @@
-//! Idiomatic Rust bindings for the Kompute GPU compute framework.
+//! # Komputers: Type-Safe GPU Computing for Rust
 //!
-//! Kompute is a general-purpose GPU computing framework built on Vulkan that provides
-//! simple abstractions for GPU memory management and compute shader execution.
-//! This crate provides memory-safe, idiomatic Rust bindings with zero-cost abstractions.
+//! A Rust wrapper for Vulkan GPU compute operations, built on the [Kompute](https://github.com/KomputeProject/kompute)
+//! C++ framework. Komputers provides memory-safe GPU computing with compile-time and runtime safety checks.
 //!
-//! # Features
+//! ## Features
 //!
-//! - **Memory Safety**: All GPU resource management is handled through RAII patterns
-//! - **Type Safety**: Generic tensor types with compile-time data type validation
-//! - **Cross-Platform**: Supports Linux, Windows, and macOS with Vulkan drivers
-//! - **Zero-Cost Abstractions**: Minimal overhead compared to C++ Kompute
-//! - **Async Support**: Optional futures-based async API (requires `async` feature)
+//! - **Type Safety**: Compile-time validation of GPU resource usage and tensor operations
+//! - **Memory Safety**: RAII resource management with automatic cleanup and lifetime tracking
+//! - **Cross-Manager Protection**: Runtime validation prevents resource corruption across GPU contexts
+//! - **Consuming Builders**: Rust-idiomatic APIs that prevent accidental reuse of GPU sequences
+//! - **Async Support**: Optional async/await support for non-blocking GPU operations
 //!
-//! # Quick Start
+//! ## Quick Start
 //!
-//! ## Basic Tensor Operations
+//! ### Basic GPU Operations
 //!
 //! ```rust,no_run
-//! use kompute::{Manager, Tensor, Result};
+//! use komputers::{KomputeError, Manager, Tensor, Result, VulkanConfig};
 //!
-//! fn basic_example() -> Result<()> {
-//!     // Create a GPU manager
-//!     let mut manager = Manager::new()?;
+//! fn main() -> Result<()> {
+//!     let config = VulkanConfig::auto_detect()
+//!         .map_err(|e| KomputeError::vulkan(&e))?;
+//!     let mut manager = Manager::with_config(config)?;
+//!     let tensor = Tensor::new(&mut manager, &[1.0f32, 2.0, 3.0, 4.0])?;
 //!
-//!     // Create tensors with data
-//!     let tensor_a = Tensor::new(&mut manager, &[1.0f32, 2.0, 3.0])?;
-//!     let tensor_b = Tensor::new(&mut manager, &[4.0f32, 5.0, 6.0])?;
-//!     let mut tensor_out: Tensor<f32> = Tensor::uninit(&mut manager, 3)?;
+//!     // Consuming builder pattern ensures sequences are used exactly once
+//!     let result = manager
+//!         .sequence()?
+//!         .record_tensor_sync_device(tensor.handle())?
+//!         .record_tensor_sync_local(tensor.handle())?
+//!         .execute()?;
 //!
-//!     // Access tensor properties
-//!     println!("Tensor A size: {}", tensor_a.size());
-//!     println!("Tensor B size: {}", tensor_b.size());
+//!     println!("Executed {} operations in {:?}",
+//!              result.operation_count, result.execution_time);
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ### Cross-Manager Safety
+//!
+//! ```rust,compile_fail
+//! use komputers::{KomputeError, Manager, Tensor, VulkanConfig};
+//!
+//! fn cross_manager_example() -> komputers::Result<()> {
+//!     let config1 = VulkanConfig::auto_detect()
+//!         .map_err(|e| KomputeError::vulkan(&e))?;
+//!     let mut manager1 = Manager::with_config(config1)?;
+//!     let config2 = VulkanConfig::auto_detect()
+//!         .map_err(|e| KomputeError::vulkan(&e))?;
+//!     let mut manager2 = Manager::with_config(config2)?;
+//!
+//!     let tensor = Tensor::new(&mut manager1, &[1.0f32])?;
+//!
+//!     // This will be caught at runtime with a clear error message
+//!     manager2.sequence()?
+//!         .record_tensor_sync_device(tensor.handle())?
+//!         .execute()?;
 //!
 //!     Ok(())
 //! }
 //! ```
 //!
-//! ## High-Level GPU Operations
+//! ### Async Operations
 //!
 //! ```rust,no_run
-//! use kompute::{GpuOperations, Tensor, WorkgroupConfig, Result};
+//! # #[cfg(feature = "async")]
+//! use komputers::*;
 //!
-//! fn gpu_operations_example() -> Result<()> {
-//!     // Create high-level GPU operations manager
-//!     let mut ops = GpuOperations::new()?;
+//! # #[cfg(feature = "async")]
+//! async fn async_example() -> Result<()> {
+//!     let config = VulkanConfig::auto_detect()
+//!         .map_err(|e| KomputeError::vulkan(&e))?;
+//!     let mut manager = Manager::with_config(config)?;
+//!     let tensor = Tensor::new(&mut manager, &[1.0f32, 2.0, 3.0])?;
 //!
-//!     // Create tensors for computation
-//!     let source = Tensor::new(ops.manager(), &[1.0f32, 2.0, 3.0, 4.0])?;
-//!     let mut dest: Tensor<f32> = Tensor::uninit(ops.manager(), 4)?;
+//!     let result = manager
+//!         .sequence()?
+//!         .record_tensor_sync_device(tensor.handle())?
+//!         .execute_async()?
+//!         .await?;
 //!
-//!     // Perform GPU copy operation
-//!     ops.copy(&source, &mut dest)?;
-//!
-//!     // Configure optimal workgroup for 1000 elements
-//!     let workgroup = WorkgroupConfig::optimal_1d(1000);
-//!     println!("Optimal workgroup: {}x{}x{}", workgroup.x, workgroup.y, workgroup.z);
-//!
+//!     println!("Async execution completed in {:?}", result.execution_time);
 //!     Ok(())
 //! }
 //! ```
 //!
-//! # Architecture
+//! ## Architecture
 //!
-//! The crate is structured around four main components:
+//! Komputers combines compile-time and runtime validation:
 //!
-//! - [`Manager`]: GPU device management and resource allocation
-//! - [`Tensor`]: Type-safe GPU memory with host synchronization
-//! - [`Algorithm`]: SPIR-V compute shader with parameter bindings
-//! - [`Sequence`]: Command buffer for batched GPU operations
+//! - **[`Manager`]**: GPU device management with resource tracking
+//! - **[`Tensor<T>`]**: Type-safe GPU memory with automatic cleanup
+//! - **[`Sequence<State>`]**: Consuming builder for operation chaining
+//! - **[`Algorithm`]**: SPIR-V compute shaders with validation
+//! - **Handle System**: Phantom types prevent resource misuse
+//! - **Runtime Validation**: Cross-manager usage detection
 //!
-//! # Error Handling
+//! ## Implementation Details
 //!
-//! All operations return [`Result`] types with detailed [`KomputeError`] information.
-//! GPU operations can fail due to device errors, out-of-memory conditions, or
-//! invalid shader parameters.
+//! ### Phantom Type System
+//! ```rust,ignore
+//! pub struct Handle<ObjectType, SyncMode, ManagerType> {
+//!     value: u64,
+//!     _phantom: PhantomData<(ObjectType, SyncMode, ManagerType)>,
+//! }
+//! ```
+//!
+//! ### Consuming Builder Pattern
+//! ```rust,ignore
+//! impl Sequence<Recording> {
+//!     pub fn record_tensor_sync_device(mut self, handle: u64) -> Result<Self>;
+//!     pub fn execute(self) -> Result<SequenceResult>;  // Consumes self
+//! }
+//! ```
+//!
+//! ### Runtime Validation
+//! ```rust,ignore
+//! static HANDLE_REGISTRY: LazyLock<Mutex<HandleRegistry>> =
+//!     LazyLock::new(|| Mutex::new(HandleRegistry::new()));
+//! ```
+//!
+//! ## Rust GPU Libraries Comparison
+//!
+//! | Feature              | Komputers         | wgpu              | candle            | burn                 | RustCUDA          |
+//! |----------------------|-------------------|-------------------|-------------------|----------------------|-------------------|
+//! | **GPU Backends**     |                   |                   |                   |                      |                   |
+//! | Vulkan               | ✅ Yes            | ✅ Yes            | ❌ No             | ✅ Via wgpu          | ❌ No             |
+//! | Metal                | ✅ Via MoltenVK   | ✅ Native         | ✅ Native         | ✅ Native + wgpu     | ❌ No             |
+//! | DirectX 12           | ✅ Via DXVK       | ✅ Native         | ❌ No             | ✅ Via wgpu          | ❌ No             |
+//! | DirectX 11           | ❌ No             | ❌ Via ANGLE only | ❌ No             | ❌ Via ANGLE only    | ❌ No             |
+//! | CUDA                 | ❌ No             | ❌ No             | ✅ Primary        | ✅ Native            | ✅ Exclusive      |
+//! | OpenGL/GLES          | ❌ No             | ✅ Yes            | ❌ No             | ✅ Via wgpu          | ❌ No             |
+//! | WebGPU               | ❌ No             | ✅ Yes            | ❌ No             | ✅ Via wgpu          | ❌ No             |
+//! | **Library Features** |                   |                   |                   |                      |                   |
+//! | Maturity             | ⚠️ New            | ✅ Mature         | ✅ Active         | ✅ Active            | ✅ Stable         |
+//! | Graphics Rendering   | ❌ No             | ✅ Primary focus  | ❌ No             | ❌ No                | ❌ No             |
+//! | Built-in Tensors     | ✅ Yes            | 🔧 Manual buffers | ✅ Yes            | ✅ Yes               | 🔧 Manual         |
+//! | ML/AI Focus          | 🔧 General compute| 🔧 General graphics| ✅ Inference     | ✅ Training          | 🔧 General compute|
+//! | Memory Safety        | ✅ Enhanced       | ✅ Standard Rust  | ✅ Standard Rust  | ✅ Standard Rust     | ⚠️ Unsafe required|
+//! | Cross-Platform       | ✅ Excellent      | ✅ Excellent      | 🔧 CUDA + Metal only| ✅ Excellent       | ❌ NVIDIA only    |
+//! | Learning Curve       | 🔶 Moderate       | 🔶 Steep          | ✅ Easy for ML    | ✅ Easy for ML       | 🔶 Steep          |
+//! | Documentation        | 📝 Limited        | ✅ Extensive      | ✅ Good           | ✅ Good              | ✅ Good           |
+//! | Ecosystem            | 📦 Small          | ✅ Large          | ✅ Growing        | ✅ Growing           | ✅ Established    |
+//!
+//! **Library Selection Guide:**
+//!
+//! - **For ML/AI**: Consider [candle](https://github.com/huggingface/candle) or [burn](https://burn.dev/) first - they're purpose-built and more mature
+//! - **For graphics**: Use [wgpu](https://wgpu.rs/) - it's the clear choice with excellent support
+//! - **For NVIDIA-specific compute**: [RustCUDA](https://github.com/Rust-GPU/Rust-CUDA) offers direct CUDA access
+//! - **For Komputers**: Consider it if you need the specific safety features for general Vulkan compute work
+//!
+//! Komputers is experimental and adds an extra layer over Kompute. Most users are better served by the more mature alternatives above.
+//!
+//! ## Error Handling
+//!
+//! Operations return [`Result`] types with detailed [`KomputeError`] information:
+//!
+//! ```rust,no_run
+//! # use komputers::*;
+//! # fn example() -> Result<()> {
+//! match manager.sequence()?.execute() {
+//!     Ok(result) => {
+//!         println!("Success: {} operations", result.operation_count);
+//!     },
+//!     Err(KomputeError::TypeSafety(safety_error)) => {
+//!         eprintln!("Safety validation failed: {}", safety_error);
+//!     },
+//!     Err(other) => {
+//!         eprintln!("GPU error: {}", other);
+//!     }
+//! }
+//! # Ok(())
+//! # }
+//! ```
 
 #![deny(missing_docs)]
 #![warn(rust_2018_idioms)]
@@ -86,11 +185,11 @@
 #[cfg(not(feature = "kompute-master"))]
 compile_error!(
     "
-❌ NO KOMPUTE VERSION SELECTED
-✅ SOLUTION: v0.1.0 release only supports kompute-master
-📖 Example: cargo build --features kompute-master
-⚠️  Note: This release uses Kompute master branch due to compatibility requirements
-💡 Future releases may support official Kompute versions when compatibility is resolved
+NO KOMPUTE VERSION SELECTED
+SOLUTION: v0.1.0 release only supports kompute-master
+Example: cargo build --features kompute-master
+Note: This release uses Kompute master branch due to compatibility requirements
+Future releases may support official Kompute versions when compatibility is resolved
 "
 );
 
@@ -105,6 +204,7 @@ pub mod error_recovery;
 pub mod glsl_compiler;
 pub mod handle_tracker;
 pub mod manager;
+pub mod memory_layout;
 pub mod memory_optimizer;
 pub mod multi_queue;
 pub mod operations;
@@ -115,19 +215,43 @@ pub mod sequence;
 pub mod spirv_shaders;
 pub mod spirv_utils;
 pub mod tensor;
-#[cfg(test)]
+#[cfg(any(test, feature = "test-utils"))]
 pub mod test_utils;
+pub mod vulkan_config;
 pub mod vulkan_setup;
 
-// Feature-gated async support
-#[cfg(feature = "async")]
-pub mod async_executor;
+// Type-safe handle system for compile-time validation
+pub mod handle;
+pub mod typed_manager;
+pub mod types;
+
+// Runtime validation system for cross-manager handle safety
+pub mod runtime_validation;
+
+// Workgroup validation system for GPU compute operations
+pub mod workgroup_validation;
+
+// Resource lifecycle and borrowing safety system
+pub mod lifetime_safety;
+
+// Compute shader dispatch safety system
+pub mod dispatch_safety;
+
+// Feature-gated async support - async_executor and async_gpu removed due to deprecated APIs
 
 #[cfg(feature = "async")]
-pub mod async_gpu;
+pub mod async_sequence;
+
+// Runtime-agnostic async operations for ecosystem compatibility
+pub mod async_runtime;
+
+// Performance profiling and metrics system
+pub mod performance_metrics;
 
 // Re-export main types
-pub use algorithm::Algorithm;
+pub use algorithm::{
+    Algorithm, AlgorithmPerformanceHints, ShaderDataType, ShaderInterface, TypeSafeAlgorithm,
+};
 pub use algorithm_binding::{
     AccessPattern, AlgorithmBinding, BindingTemplate, BindingValidationReport,
     CommonBindingTemplates, ParameterSpec, TensorBinding, TensorDataType, ValidationRule,
@@ -154,6 +278,7 @@ pub use glsl_compiler::{
 };
 pub use handle_tracker::{HandleStatistics, HandleTracker, TrackedHandle};
 pub use manager::Manager;
+pub use memory_layout::{alignment, AlignedData, AlignedTensor, GpuAligned, MemoryLayoutInfo};
 pub use memory_optimizer::{
     AllocationStrategy, MemoryOptimizer, MemoryPool, PerformanceMetric, PerformanceMetrics,
 };
@@ -171,20 +296,68 @@ pub use platform::{
 pub use queue::Queue;
 pub use sequence::Sequence;
 pub use spirv_utils::{CommonKernels, ShaderCompilationGuide, SpirvUtils};
-pub use tensor::{DataType, Tensor, TensorData};
+pub use tensor::{DataType, DimensionSafety, DimensionTensor, Tensor, TensorData};
+pub use vulkan_config::VulkanConfig;
 pub use vulkan_setup::{
     configure_vulkan_environment, configure_vulkan_environment_intelligent,
     diagnose_vulkan_environment, verify_vulkan_availability,
 };
 
-// Feature-gated async support
-#[cfg(feature = "async")]
-pub use async_executor::{AsyncGpuExecutor, AsyncSequence, AsyncSequenceExecution};
+// Type-safe handle system exports
+pub use handle::{
+    AlgorithmType, AsyncAlgorithmHandle, AsyncMarker, AsyncQueueHandle, AsyncSequenceHandle,
+    AsyncTensorHandle, CompatibleHandles, Handle, IsAsync, IsSync, QueueType, SequenceType,
+    SyncAlgorithmHandle, SyncMarker, SyncQueueHandle, SyncSequenceHandle, SyncTensorHandle,
+    TensorType, UntypedHandle,
+};
+pub use runtime_validation::{
+    get_validation_metrics, is_validation_enabled, is_validation_overhead_acceptable,
+    register_handle_with_manager, register_handles_batch, set_validation_enabled,
+    validate_handle_with_manager, validate_handles_same_manager, ManagerInstance,
+};
+pub use typed_manager::{
+    create_async_manager, create_async_manager_with_config, create_sync_manager,
+    create_sync_manager_with_config, AsyncManager, AsyncTypedAlgorithm, AsyncTypedSequence,
+    AsyncTypedTensor, SyncManager, TypedAlgorithm, TypedSequence, TypedTensor,
+};
+pub use types::{
+    AsyncManagerType, DefaultAsyncManager, DefaultManagerId, DefaultSyncManager, HasManagerId,
+    ManagerId, RuntimeManagerId, SyncManagerType, TypeSafetyError,
+};
+pub use workgroup_validation::{
+    common_1d, common_2d, common_3d, DynamicWorkgroupConfig, GpuLimits, VendorInfo,
+    WorkgroupConfig as TypedWorkgroupConfig, WorkgroupPerformanceHints, WorkgroupValidation,
+};
+
+// Lifetime safety exports
+pub use lifetime_safety::{
+    LifetimeBound, LifetimeBoundAlgorithm, LifetimeBoundResource, LifetimeBoundResourcePool,
+    LifetimeBoundSequence, LifetimeBoundTensor, LifetimeValidator, ScopedResourceHelper,
+};
+
+// Dispatch safety exports
+pub use dispatch_safety::{
+    BatchDispatchManager, BatchDispatchResult, DispatchAnalysis, DispatchOptimizer, Param1, Param2,
+    Param3, Param4, ParamCons, ParamNil, ParameterList, SafeDispatchBuilder, SafeDispatchResult,
+    ShaderParameter, TypeIndexedAlgorithm,
+};
+
+// Legacy async modules were removed due to deprecated APIs
+// Modern async support is provided through async_sequence module
 
 #[cfg(feature = "async")]
-pub use async_gpu::{
-    AsyncComputeKernel, AsyncGpuContext, AsyncSequence as AsyncGpuSequence, AsyncTensor,
-    AsyncWorkflowBuilder,
+pub use async_sequence::{
+    async_utils, AsyncPerformanceMetrics, AsyncSequence as TypedAsyncSequence,
+    AsyncSequenceExecution as TypedAsyncSequenceExecution, AsyncSequenceResult,
+};
+
+// Performance profiling and metrics (with aliases to avoid conflicts)
+pub use performance_metrics::{
+    global_profiler, GlobalStatistics, OperationCategory, OperationProfile, OptimizationCategory,
+    OptimizationRecommendation as MetricsOptimizationRecommendation, PerformanceImprovement,
+    PerformanceProfiler as MetricsPerformanceProfiler, ProfilerConfig,
+    RecommendationPriority as MetricsRecommendationPriority, SessionReport, SessionSummary,
+    ValidationMetrics,
 };
 
 /// Version information for the kompute crate.

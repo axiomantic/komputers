@@ -1,7 +1,27 @@
 //! Low-level Rust bindings for the Kompute GPU compute framework.
 //!
-//! This crate provides safe Rust bindings to the Kompute C++ library using cxx,
-//! enabling GPU compute operations through Vulkan with zero-cost abstractions.
+//! **⚠️ Most users want the [`komputers`] crate instead!**
+//!
+//! This crate provides unsafe, low-level FFI bindings to the Kompute C++ library.
+//! For safe, idiomatic Rust GPU computing, use the [`komputers`] crate which provides:
+//!
+//! - Type-safe tensor operations
+//! - Memory safety and automatic resource cleanup
+//! - Cross-manager validation
+//! - Consuming builder APIs
+//! - Comprehensive error handling
+//!
+//! [`komputers`]: https://docs.rs/komputers
+//!
+//! ## When to use kompute-sys directly
+//!
+//! Only use this crate if you need:
+//! - Direct access to Kompute C++ APIs
+//! - Custom memory management strategies
+//! - Integration with existing C++ codebases
+//! - Performance-critical paths that avoid Rust abstractions
+//!
+//! For most GPU compute applications, [`komputers`] is the better choice.
 //!
 //! # Examples
 //!
@@ -44,10 +64,9 @@ mod tests {
             device_count
         );
 
-        // TEMPORARY: Skip manager creation due to kp::Manager segfault
-        // TODO: Re-enable once segfault is resolved
-        // let manager = ffi::create_manager(0);
-        // assert!(!manager.is_null(), "Manager creation should succeed");
+        let manager = ffi::create_manager(0);
+        assert!(!manager.is_null(), "Manager creation should succeed");
+        println!("✅ Manager creation succeeded in FFI layer");
         // UniquePtr handles destruction automatically
 
         println!(
@@ -72,11 +91,11 @@ mod tests {
             device_count
         );
 
-        // TEMPORARY: Skip manager creation due to kp::Manager segfault
-        // TODO: Re-enable once segfault is resolved
-        /*
         let mut manager = ffi::create_manager(0);
-        assert!(!manager.is_null(), "Manager creation failed - this should not happen");
+        assert!(
+            !manager.is_null(),
+            "Manager creation failed - this should not happen"
+        );
 
         // Create tensor
         let data = [1.0f32, 2.0, 3.0, 4.0];
@@ -89,8 +108,7 @@ mod tests {
 
         // SharedPtr handles destruction automatically
         // UniquePtr handles manager destruction automatically
-        */
 
-        println!("Complete workflow test passed (manager creation temporarily bypassed)");
+        println!("✅ Complete workflow test passed");
     }
 }

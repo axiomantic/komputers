@@ -4,14 +4,15 @@
 //! using Komputers, including matrix operations, activation functions,
 //! and gradient computations commonly used in neural networks.
 
-use komputers::{Algorithm, Manager, PerformanceProfiler, Result, Tensor};
+use komputers::{Algorithm, Manager, PerformanceProfiler, Result, Tensor, VulkanConfig};
 
 fn main() -> Result<()> {
     println!("🧠 Machine Learning Operations with GPU");
     println!("=====================================");
 
     // Initialize GPU manager and profiler
-    let mut manager = Manager::new()?;
+    let config = VulkanConfig::auto_detect().map_err(|e| komputers::KomputeError::vulkan(&e))?;
+    let mut manager = Manager::with_config(config)?;
     let mut profiler = PerformanceProfiler::new();
     profiler.begin_session("ml_operations")?;
 
@@ -64,7 +65,7 @@ fn example_neural_layer(manager: &mut Manager, profiler: &mut PerformanceProfile
     let input_tensor = Tensor::new(manager, &input_data)?;
     let weight_tensor = Tensor::new(manager, &weight_data)?;
     let bias_tensor = Tensor::new(manager, &bias_data)?;
-    let mut output_tensor: Tensor<f32> = Tensor::uninit(manager, batch_size * output_size)?;
+    let output_tensor: Tensor<f32> = Tensor::uninit(manager, batch_size * output_size)?;
 
     profiler.end_operation("neural_layer_setup")?;
 
@@ -86,9 +87,10 @@ fn example_neural_layer(manager: &mut Manager, profiler: &mut PerformanceProfile
     )?;
 
     // Execute the computation
-    let mut sequence = manager.sequence()?;
-    sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    manager
+        .sequence()?
+        .record_algorithm_dispatch(algorithm.handle())?
+        .execute()?;
 
     profiler.end_operation("neural_layer_compute")?;
 
@@ -155,7 +157,7 @@ fn example_convolution(manager: &mut Manager, profiler: &mut PerformanceProfiler
 
     let image_tensor = Tensor::new(manager, &image_data)?;
     let kernel_tensor = Tensor::new(manager, &kernel_data)?;
-    let mut output_tensor: Tensor<f32> = Tensor::uninit(manager, output_size)?;
+    let output_tensor: Tensor<f32> = Tensor::uninit(manager, output_size)?;
 
     profiler.end_operation("convolution_setup")?;
 
@@ -176,12 +178,13 @@ fn example_convolution(manager: &mut Manager, profiler: &mut PerformanceProfiler
         &[&image_tensor, &kernel_tensor, &output_tensor],
     )?;
 
-    let mut sequence = manager.sequence()?;
     // Dispatch with 2D workgroups for image processing
-    let workgroup_x = (output_width + 15) / 16; // 16x16 workgroup size
-    let workgroup_y = (output_height + 15) / 16;
-    sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    let _workgroup_x = (output_width + 15) / 16; // 16x16 workgroup size
+    let _workgroup_y = (output_height + 15) / 16;
+    manager
+        .sequence()?
+        .record_algorithm_dispatch(algorithm.handle())?
+        .execute()?;
 
     profiler.end_operation("convolution_compute")?;
 
@@ -218,7 +221,7 @@ fn example_gradient_descent(
     let param_count = 1000;
     let learning_rate = 0.001f32;
 
-    let mut weights: Vec<f32> = (0..param_count)
+    let weights: Vec<f32> = (0..param_count)
         .map(|i| (i as f32 * 0.01).sin()) // Initial weights
         .collect();
 
@@ -229,7 +232,7 @@ fn example_gradient_descent(
     let weight_tensor = Tensor::new(manager, &weights)?;
     let gradient_tensor = Tensor::new(manager, &gradients)?;
     let lr_tensor = Tensor::new(manager, &[learning_rate])?;
-    let mut updated_weights_tensor: Tensor<f32> = Tensor::uninit(manager, param_count)?;
+    let updated_weights_tensor: Tensor<f32> = Tensor::uninit(manager, param_count)?;
 
     profiler.end_operation("gradient_setup")?;
 
@@ -251,10 +254,11 @@ fn example_gradient_descent(
         ],
     )?;
 
-    let mut sequence = manager.sequence()?;
-    let workgroups = (param_count + 255) / 256; // 256 threads per workgroup
-    sequence.record_algorithm_dispatch(algorithm.handle())?;
-    sequence.eval()?;
+    let _workgroups = (param_count + 255) / 256; // 256 threads per workgroup
+    manager
+        .sequence()?
+        .record_algorithm_dispatch(algorithm.handle())?
+        .execute()?;
 
     profiler.end_operation("gradient_descent_compute")?;
 

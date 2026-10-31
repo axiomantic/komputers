@@ -3,7 +3,7 @@
 //! These tests verify that the build system correctly compiles the C++ Kompute
 //! library, generates FFI bindings, and enables basic GPU operations.
 
-use kompute::{Manager, Result};
+use komputers::{Manager, Result};
 
 /// Test that the build system successfully links against Vulkan.
 #[test]

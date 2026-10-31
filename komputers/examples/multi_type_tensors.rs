@@ -167,6 +167,9 @@ fn main() -> Result<()> {
     let device_count = Manager::device_count()?;
     println!("   Available devices: {}", device_count);
 
+    // 6. Demonstrate advanced multi-type operations
+    demonstrate_advanced_operations(&mut manager)?;
+
     println!("\n🎉 Multi-type tensor example completed successfully!");
     println!("   • Created tensors for f32, f64, i32, u32 data types");
     println!("   • Demonstrated runtime type detection");

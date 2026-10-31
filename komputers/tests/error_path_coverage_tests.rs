@@ -4,9 +4,9 @@
 //! ensuring robust behavior under failure conditions, invalid inputs,
 //! resource exhaustion, and edge cases throughout the system.
 
-use kompute::handle_tracker::{HandleTracker, TrackedHandle};
-use kompute::vulkan_setup::{configure_vulkan_environment, verify_vulkan_availability};
-use kompute::{KomputeError, Manager};
+use komputers::handle_tracker::{HandleTracker, TrackedHandle};
+use komputers::vulkan_setup::{configure_vulkan_environment, verify_vulkan_availability};
+use komputers::{KomputeError, Manager};
 use std::env;
 use std::sync::{Arc, Barrier};
 use std::thread;

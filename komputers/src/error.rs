@@ -48,6 +48,10 @@ pub enum KomputeError {
     #[error("Operation not supported: {0}")]
     NotSupported(String),
 
+    /// Type safety validation errors from runtime validation system
+    #[error("Type safety error: {0}")]
+    TypeSafety(#[from] crate::types::TypeSafetyError),
+
     /// Platform-specific errors (driver issues, environment setup)
     #[error("Platform error: {0}")]
     PlatformError(String),

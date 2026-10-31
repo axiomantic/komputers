@@ -8,7 +8,7 @@ fn test_basic_linking() {
 
 #[test]
 fn test_imports() {
-    use kompute::{Algorithm, Manager, Sequence, Tensor};
+    use komputers::{Algorithm, Manager, Sequence, Tensor};
 
     // Just verify all types can be imported
     println!("✓ All kompute types imported successfully");

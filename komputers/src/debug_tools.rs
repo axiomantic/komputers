@@ -631,7 +631,11 @@ impl DebugUtils {
 
     /// Create debug context with auto-generated session name
     pub fn create_debug_session() -> DebugContext {
-        let session_name = format!("debug_session_{}", chrono::Utc::now().timestamp());
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let session_name = format!("debug_session_{}", timestamp);
         DebugContext::new(&session_name)
     }
 }

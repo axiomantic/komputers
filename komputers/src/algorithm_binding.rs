@@ -332,7 +332,7 @@ impl<T: TensorData> AlgorithmBinding<T> {
         }
 
         // Memory alignment hints
-        if (tensor.size() * std::mem::size_of::<T>()) % 256 != 0 {
+        if !(tensor.size() * std::mem::size_of::<T>()).is_multiple_of(256) {
             hints
                 .push("Consider padding to 256-byte alignment for optimal performance".to_string());
         }

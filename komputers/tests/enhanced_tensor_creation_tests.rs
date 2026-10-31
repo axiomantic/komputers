@@ -3,7 +3,7 @@
 //! This test suite validates the enhanced tensor creation methods including
 //! tensor_filled(), tensor_zeros(), tensor_ones(), and their Tensor static equivalents.
 
-use kompute::{Manager, Result, Tensor, TensorData};
+use komputers::{Manager, Tensor};
 
 #[test]
 fn test_tensor_filled_all_types() {

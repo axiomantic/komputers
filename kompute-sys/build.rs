@@ -1,5 +1,6 @@
 use std::env;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 #[derive(Debug, Clone)]
 enum KomputeVersion {
@@ -41,6 +42,32 @@ fn determine_kompute_version() -> KomputeVersion {
     }
 }
 
+/// Detect available C++ compiler cache (sccache > ccache > none)
+fn detect_compiler_cache() -> Option<String> {
+    // Check for sccache first (Rust ecosystem preference)
+    if let Ok(output) = Command::new("sccache").arg("--version").output() {
+        if output.status.success() {
+            return Some("sccache".to_string());
+        }
+    }
+
+    // Fall back to ccache
+    if let Ok(output) = Command::new("ccache").arg("--version").output() {
+        if output.status.success() {
+            return Some("ccache".to_string());
+        }
+    }
+
+    // Check for environment override
+    if let Ok(launcher) = env::var("CMAKE_CXX_COMPILER_LAUNCHER") {
+        if !launcher.is_empty() {
+            return Some(launcher);
+        }
+    }
+
+    None
+}
+
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/");
@@ -54,16 +81,36 @@ fn main() {
     );
 
     // Configure AddressSanitizer if asan feature is enabled
-    if cfg!(feature = "asan") {
+    // Allow disabling ASAN via environment variable for CI compatibility
+    let disable_asan = env::var("KOMPUTE_DISABLE_ASAN").is_ok();
+    if cfg!(feature = "asan") && !disable_asan {
         configure_address_sanitizer();
     }
 
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
+    // Detect CI environment - multiple common CI environment variables
+    let is_ci = env::var("CI").is_ok()
+        || env::var("GITHUB_ACTIONS").is_ok()
+        || env::var("TRAVIS").is_ok()
+        || env::var("CIRCLECI").is_ok()
+        || env::var("APPVEYOR").is_ok()
+        || env::var("GITLAB_CI").is_ok();
+
+    // Detect self-hosted GPU runners - these should have Vulkan enabled
+    let is_self_hosted_gpu_runner =
+        env::var("RUNNER_NAME").is_ok() && env::var("GITHUB_ACTIONS").is_ok();
+
     // Build Kompute C++ library (it will manage its own Vulkan headers)
-    let kompute_lib_path = build_kompute_library(&out_dir, &target_os, &kompute_version)
-        .expect("Failed to build Kompute C++ library");
+    let kompute_lib_path = build_kompute_library(
+        &out_dir,
+        &target_os,
+        &kompute_version,
+        is_ci,
+        is_self_hosted_gpu_runner,
+    )
+    .expect("Failed to build Kompute C++ library");
 
     // Configure linking for Kompute and system libraries
     configure_kompute_linking(&kompute_lib_path, &target_os);
@@ -97,6 +144,8 @@ fn build_kompute_library(
     out_dir: &Path,
     target_os: &str,
     kompute_version: &KomputeVersion,
+    is_ci: bool,
+    is_self_hosted_gpu_runner: bool,
 ) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let cmake_dir = out_dir.join("cmake_build");
     std::fs::create_dir_all(&cmake_dir)?;
@@ -107,6 +156,18 @@ fn build_kompute_library(
     std::fs::create_dir_all(&build_dir)?;
 
     let mut cmake_config = cmake::Config::new(&cmake_dir);
+
+    // Detect and configure C++ compiler caching (sccache or ccache)
+    if let Some(compiler_launcher) = detect_compiler_cache() {
+        println!(
+            "cargo:warning=Using {} for C++ compilation caching",
+            compiler_launcher
+        );
+        cmake_config
+            .define("CMAKE_CXX_COMPILER_LAUNCHER", &compiler_launcher)
+            .define("CMAKE_C_COMPILER_LAUNCHER", &compiler_launcher);
+    }
+
     cmake_config
         .out_dir(&build_dir)
         .define("CMAKE_BUILD_TYPE", "Release")
@@ -117,8 +178,35 @@ fn build_kompute_library(
         .define("KOMPUTE_OPT_BUILD_SINGLE_HEADER", "OFF")
         .define("KOMPUTE_OPT_USE_BUILT_IN_VULKAN_HEADERS", "ON");
 
+    // Disable Vulkan version checking in CI environments where GPU drivers aren't available
+    // But enable it for self-hosted GPU runners which have proper GPU support
+    // Also allow manual override via environment variable
+    let disable_vulkan_check =
+        (is_ci && !is_self_hosted_gpu_runner) || env::var("KOMPUTE_DISABLE_VULKAN_CHECK").is_ok();
+    if disable_vulkan_check {
+        cmake_config.define("KOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK", "ON");
+        let reason = if is_ci && !is_self_hosted_gpu_runner {
+            "CI environment detected (non-GPU runner)"
+        } else {
+            "manual override via KOMPUTE_DISABLE_VULKAN_CHECK"
+        };
+        println!("cargo:warning=Disabling Vulkan version check: {}", reason);
+    } else if is_self_hosted_gpu_runner {
+        println!("cargo:warning=Enabling Vulkan version check: self-hosted GPU runner detected");
+    }
+
+    // Disable validation layers in ALL CI environments to prevent ErrorLayerNotPresent
+    if is_ci {
+        cmake_config.define("KOMPUTE_DISABLE_VK_DEBUG_LAYERS", "ON");
+        cmake_config.define("KOMPUTE_OPT_DISABLE_VK_DEBUG_LAYERS", "ON");
+        cmake_config.define("KOMPUTE_VK_DEBUG_ENABLED", "OFF");
+        println!("cargo:warning=Disabling validation layers for CI environment");
+    }
+
     // Add AddressSanitizer flags to CMake build if asan feature is enabled
-    if cfg!(feature = "asan") {
+    // Also respect the KOMPUTE_DISABLE_ASAN environment variable
+    let disable_asan = env::var("KOMPUTE_DISABLE_ASAN").is_ok();
+    if cfg!(feature = "asan") && !disable_asan {
         cmake_config
             .define(
                 "CMAKE_CXX_FLAGS",
@@ -137,12 +225,20 @@ fn build_kompute_library(
             cmake_config.define("CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS", "ON");
         }
         "macos" => {
-            cmake_config.define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15");
+            // Set deployment target for compatibility - also set as environment variable
+            let deployment_target = "11.0"; // Changed to match modern CI environments
+            cmake_config.define("CMAKE_OSX_DEPLOYMENT_TARGET", deployment_target);
+            println!(
+                "cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET={}",
+                deployment_target
+            );
             // Fix for Kompute + MoltenVK compatibility issue
             // Reference: https://github.com/KhronosGroup/MoltenVK/issues/2292
             cmake_config.define("KOMPUTE_OPT_DISABLE_VULKAN_VERSION_CHECK", "ON");
             // Disable all debugging and validation features for MoltenVK compatibility
             cmake_config.define("KOMPUTE_DISABLE_VK_DEBUG_LAYERS", "ON");
+            cmake_config.define("KOMPUTE_OPT_DISABLE_VK_DEBUG_LAYERS", "ON");
+            cmake_config.define("KOMPUTE_VK_DEBUG_ENABLED", "OFF");
             cmake_config.define("CMAKE_BUILD_TYPE", "Release");
             // CRITICAL FIX: Force Vulkan API 1.2 for MoltenVK compatibility
             // "For anyone coming across this in the future, ensure that vk::ApplicationInfo.apiVersion is 1.2 or lower.
@@ -268,7 +364,8 @@ fn build_cxx_bridge(out_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Add AddressSanitizer flags to C++ compilation if asan feature is enabled
-    if cfg!(feature = "asan") {
+    // Also respect the KOMPUTE_DISABLE_ASAN environment variable
+    if cfg!(feature = "asan") && env::var("KOMPUTE_DISABLE_ASAN").is_err() {
         cxx_builder
             .flag_if_supported("-fsanitize=address")
             .flag_if_supported("-g")
@@ -281,6 +378,9 @@ fn build_cxx_bridge(out_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
     // Link to Vulkan libraries - we still need runtime linking
     #[cfg(target_os = "macos")]
     {
+        // Set deployment target for linker consistency
+        println!("cargo:rustc-link-arg=-mmacosx-version-min=11.0");
+
         // Link to Vulkan directly on macOS
         if let Ok(vulkan_sdk) = env::var("VULKAN_SDK") {
             let vulkan_lib_path = Path::new(&vulkan_sdk).join("lib");
@@ -334,8 +434,11 @@ fn configure_address_sanitizer() {
             println!("cargo:rustc-link-lib=asan");
         }
         "macos" => {
-            // On macOS, AddressSanitizer is built into clang, no separate library needed
-            // The -fsanitize=address flag is sufficient
+            // On macOS, we need to link against the ASAN runtime explicitly
+            // Even though it's built into clang, we need the runtime symbols
+            println!("cargo:rustc-link-arg=-fsanitize=address");
+            // Also try to link the ASAN library directly
+            println!("cargo:rustc-link-lib=asan");
         }
         "windows" => {
             // On Windows with MSVC, AddressSanitizer support varies

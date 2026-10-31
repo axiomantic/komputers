@@ -7,8 +7,8 @@
 //! - High-level GPU operations abstraction
 
 use komputers::{
-    Algorithm, ErrorRecoveryManager, GpuOperations, Manager, MemoryOptimizer, MultiQueueManager,
-    Result, Tensor, WorkgroupConfig,
+    ErrorRecoveryManager, GpuOperations, Manager, MemoryOptimizer, MultiQueueManager, Result,
+    Tensor, VulkanConfig, WorkgroupConfig,
 };
 use std::time::{Duration, Instant};
 
@@ -18,7 +18,8 @@ fn main() -> Result<()> {
 
     // 1. Initialize advanced GPU setup
     println!("\n1. Setting up advanced GPU environment...");
-    let mut manager = Manager::new()?;
+    let config = VulkanConfig::auto_detect().map_err(|e| komputers::KomputeError::vulkan(&e))?;
+    let mut manager = Manager::with_config(config)?;
     let device_count = Manager::device_count()?;
     println!("   Available GPU devices: {}", device_count);
 
@@ -36,6 +37,9 @@ fn main() -> Result<()> {
 
     // 6. Performance monitoring and optimization
     demonstrate_performance_monitoring(&mut manager)?;
+
+    // 7. Platform-specific optimizations
+    demonstrate_platform_optimizations()?;
 
     println!("\n🎉 Advanced GPU operations example completed!");
     println!("   • Memory optimization strategies implemented");
@@ -147,25 +151,25 @@ fn demonstrate_multi_queue_operations(manager: &mut Manager) -> Result<()> {
 
     let tensor1 = Tensor::new(manager, &data1)?;
     let tensor2 = Tensor::new(manager, &data2)?;
-    let mut result1: Tensor<f32> = Tensor::uninit(manager, 5000)?;
-    let mut result2: Tensor<f32> = Tensor::uninit(manager, 5000)?;
+    let result1: Tensor<f32> = Tensor::uninit(manager, 5000)?;
+    let result2: Tensor<f32> = Tensor::uninit(manager, 5000)?;
 
     println!("   Created tensors for parallel processing");
 
-    // Create sequences on different queues
-    let mut sequence1 = manager.create_sequence_on_queue(queue1)?;
-    let mut sequence2 = manager.create_sequence_on_queue(queue2)?;
+    // Build sequences using consuming builder pattern
+    let sequence1 = manager
+        .create_sequence_on_queue(queue1)?
+        .record_tensor_sync_device(tensor1.handle())?
+        .record_tensor_sync_device(result1.handle())?
+        // In real usage, you would record algorithm dispatch here
+        .record_tensor_sync_local(result1.handle())?;
 
-    // Record operations on each queue
-    sequence1.record_tensor_sync_device(tensor1.handle())?;
-    sequence1.record_tensor_sync_device(result1.handle())?;
-    // In real usage, you would record algorithm dispatch here
-    sequence1.record_tensor_sync_local(result1.handle())?;
-
-    sequence2.record_tensor_sync_device(tensor2.handle())?;
-    sequence2.record_tensor_sync_device(result2.handle())?;
-    // In real usage, you would record algorithm dispatch here
-    sequence2.record_tensor_sync_local(result2.handle())?;
+    let sequence2 = manager
+        .create_sequence_on_queue(queue2)?
+        .record_tensor_sync_device(tensor2.handle())?
+        .record_tensor_sync_device(result2.handle())?
+        // In real usage, you would record algorithm dispatch here
+        .record_tensor_sync_local(result2.handle())?;
 
     println!("   ✅ Operations recorded on separate queues");
 
@@ -173,8 +177,8 @@ fn demonstrate_multi_queue_operations(manager: &mut Manager) -> Result<()> {
     let start = Instant::now();
 
     // In a real implementation, you would submit these sequences in parallel
-    sequence1.eval()?;
-    sequence2.eval()?;
+    sequence1.execute()?;
+    sequence2.execute()?;
 
     let parallel_duration = start.elapsed();
     println!(
@@ -183,7 +187,7 @@ fn demonstrate_multi_queue_operations(manager: &mut Manager) -> Result<()> {
     );
 
     // Create multi-queue manager for advanced coordination
-    let multi_queue_manager = MultiQueueManager::new()?;
+    let _multi_queue_manager = MultiQueueManager::new()?;
     println!("   ✅ Multi-queue manager created for advanced coordination");
 
     Ok(())

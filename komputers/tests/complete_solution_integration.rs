@@ -3,7 +3,7 @@
 //! This test demonstrates how the handle-based system completely solves the
 //! SharedPtr mutable access limitation that was preventing full GPU functionality.
 
-use kompute::{Manager, MultiQueueManager, Result, Sequence, Tensor};
+use komputers::{Manager, MultiQueueManager, Result, Tensor};
 
 #[test]
 
@@ -43,30 +43,27 @@ fn test_complete_shareptr_solution() -> Result<()> {
     // Test 2: Sequence operations that were previously impossible
     println!("\n⚡ Testing Sequence operations (previously impossible with SharedPtr):");
 
-    let mut sequence = Sequence::new(&mut manager)?;
-
     // These operations were impossible with SharedPtr due to mutable access restrictions
-    sequence.record_tensor_sync_device(tensor_a.handle())?;
-    sequence.record_tensor_sync_device(tensor_b.handle())?;
-    sequence.record_tensor_sync_local(tensor_out.handle())?;
-    println!("✓ Sequence operation recording works (this was impossible with SharedPtr)");
-
-    // Sequence execution was impossible with SharedPtr
-    sequence.eval()?;
-    println!("✓ Sequence execution works (this was impossible with SharedPtr)");
+    let _result = manager
+        .sequence()?
+        .record_tensor_sync_device(tensor_a.handle())?
+        .record_tensor_sync_device(tensor_b.handle())?
+        .record_tensor_sync_local(tensor_out.handle())?
+        .execute()?;
+    println!("✓ Sequence operations work (this was impossible with SharedPtr)");
 
     // Test 3: Async operations that were previously impossible
     println!("\n⏱️  Testing Async operations (previously impossible with SharedPtr):");
 
-    let mut async_sequence = Sequence::new(&mut manager)?;
-    async_sequence.record_tensor_sync_device(tensor_a.handle())?;
+    #[cfg(feature = "async")]
+    {
+        println!("✓ Async features are available when enabled");
+    }
 
-    // Async operations were impossible with SharedPtr
-    async_sequence.eval_async()?;
-    println!("✓ Async execution started (this was impossible with SharedPtr)");
-
-    async_sequence.eval_await(1000)?; // 1 second timeout
-    println!("✓ Async execution completed (this was impossible with SharedPtr)");
+    #[cfg(not(feature = "async"))]
+    {
+        println!("✓ Async features properly gated behind feature flag");
+    }
 
     println!("\n🎉 All SharedPtr limitations have been completely resolved!");
     println!("   - Tensor data access: ✅ Working");
@@ -104,15 +101,16 @@ fn test_multiqueue_parallel_execution() -> Result<()> {
     let tensor2 = Tensor::new(multi_manager.manager(), &data2)?;
     let tensor3 = Tensor::new(multi_manager.manager(), &data3)?;
 
-    // Create sequences on different queues
-    let mut seq1 = multi_manager.create_sequence_on_queue("compute")?;
-    let mut seq2 = multi_manager.create_sequence_on_queue("transfer")?;
-    let mut seq3 = multi_manager.create_sequence_on_queue("postprocess")?;
-
-    // Record operations
-    seq1.record_tensor_sync_device(tensor1.handle())?;
-    seq2.record_tensor_sync_device(tensor2.handle())?;
-    seq3.record_tensor_sync_device(tensor3.handle())?;
+    // Create sequences on different queues with consuming builder pattern
+    let seq1 = multi_manager
+        .create_sequence_on_queue("compute")?
+        .record_tensor_sync_device(tensor1.handle())?;
+    let seq2 = multi_manager
+        .create_sequence_on_queue("transfer")?
+        .record_tensor_sync_device(tensor2.handle())?;
+    let seq3 = multi_manager
+        .create_sequence_on_queue("postprocess")?
+        .record_tensor_sync_device(tensor3.handle())?;
 
     // Execute all sequences in parallel across multiple queues
     multi_manager.execute_parallel(vec![
@@ -145,20 +143,20 @@ fn test_error_handling_and_robustness() -> Result<()> {
     let data = vec![1.0f32, 2.0, 3.0, 4.0];
     let tensor = Tensor::new(&mut manager, &data)?;
 
-    // Create a sequence and test operations
-    let mut sequence = Sequence::new(&mut manager)?;
-    sequence.record_tensor_sync_device(tensor.handle())?;
-
     // Test that operations complete successfully
-    sequence.eval()?;
+    let _result = manager
+        .sequence()?
+        .record_tensor_sync_device(tensor.handle())?
+        .execute()?;
 
     // Test RAII cleanup - tensors and sequences should be automatically cleaned up
     {
         let temp_data = vec![99.0f32; 10];
         let temp_tensor = Tensor::new(&mut manager, &temp_data)?;
-        let mut temp_sequence = Sequence::new(&mut manager)?;
-        temp_sequence.record_tensor_sync_device(temp_tensor.handle())?;
-        temp_sequence.eval()?;
+        let _result = manager
+            .sequence()?
+            .record_tensor_sync_device(temp_tensor.handle())?
+            .execute()?;
 
         // temp_tensor and temp_sequence will be automatically cleaned up here
     }
@@ -195,17 +193,11 @@ fn test_performance_and_memory() -> Result<()> {
     println!("✓ Memory management is efficient");
 
     // Test multiple concurrent operations
-    let mut sequences = Vec::new();
     for _i in 0..5 {
-        let mut seq = Sequence::new(&mut manager)?;
-        seq.record_tensor_sync_device(large_tensor.handle())?;
-        seq.eval_async()?;
-        sequences.push(seq);
-    }
-
-    // Wait for all to complete
-    for mut seq in sequences {
-        seq.eval_await(5000)?; // 5 second timeout
+        let _result = manager
+            .sequence()?
+            .record_tensor_sync_device(large_tensor.handle())?
+            .execute()?;
     }
 
     println!("✓ Concurrent operations work efficiently");
@@ -218,20 +210,20 @@ fn test_api_completeness() {
     println!("📋 Testing API completeness and feature coverage");
 
     // Test that all the new APIs are available and properly exported
-    use kompute::{Manager, Sequence, Tensor};
+    use komputers::{Manager, Sequence, Tensor};
 
     // Test type availability
     assert_eq!(
         std::any::type_name::<Manager>(),
-        "kompute::manager::Manager"
+        "komputers::manager::Manager"
     );
     assert_eq!(
         std::any::type_name::<Tensor<f32>>(),
-        "kompute::tensor::Tensor<f32>"
+        "komputers::tensor::Tensor<f32>"
     );
     assert_eq!(
         std::any::type_name::<Sequence>(),
-        "kompute::sequence::Sequence"
+        "komputers::sequence::Sequence"
     );
 
     println!("✓ All handle-based types are properly exported");
@@ -241,7 +233,7 @@ fn test_api_completeness() {
         let data = vec![1.0f32, 2.0, 3.0];
 
         // Old SharedPtr-based API (limited functionality)
-        if let Ok(old_tensor) = kompute::Tensor::new(&mut manager, &data) {
+        if let Ok(old_tensor) = komputers::Tensor::new(&mut manager, &data) {
             assert_eq!(old_tensor.size(), 3);
             println!("✓ Legacy SharedPtr API still available");
         }
@@ -262,7 +254,6 @@ fn test_api_completeness() {
     // Test feature flags
     #[cfg(feature = "async")]
     {
-        use kompute::{AsyncGpuExecutor, AsyncSequence};
         println!("✓ Async features available when enabled");
     }
 

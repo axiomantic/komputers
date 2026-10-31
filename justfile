@@ -8,15 +8,23 @@ fmt:
 
 # Lint with clippy (strict)
 lint:
-    cargo clippy --all-targets --all-features -- -D warnings
+    cargo clippy --all-targets --features "async,glsl,debug,validation,test-utils" -- -D warnings
 
 # Check compilation
 check:
-    cargo check --all-targets --all-features
+    cargo check --all-targets --features "async,glsl,debug,validation,test-utils"
 
-# Run tests
+# Run tests (excludes benchmarks for faster builds)
 test:
-    cargo test --all-features
+    cargo test --features "async,glsl,debug,validation,test-utils" --workspace
+
+# Run benchmarks (requires criterion compilation)
+bench:
+    cargo test --features "benchmarks" --benches
+
+# Run property tests (requires proptest compilation)
+prop-test:
+    cargo test --features "property-testing" --test property_tests
 
 # Install pre-commit hooks (if using pre-commit)
 install-hooks:

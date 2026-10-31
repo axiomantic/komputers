@@ -1,6 +1,6 @@
 //! Test working GPU operations with proper Vulkan setup
 
-use kompute::{
+use komputers::{
     configure_vulkan_environment, verify_vulkan_availability, Manager, Result, Sequence, Tensor,
 };
 
